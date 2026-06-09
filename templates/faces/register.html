@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% block title %}Register Faces — {{ student.name }}{% endblock %}
+{% block content %}
+<h1>Register faces: {{ student.name }}</h1>
+<p class="subtitle">Roll {{ student.roll_number }} · {{ student.face_samples|length }} sample(s) stored</p>
+
+{% if not engine_ready %}
+<div class="warn-banner">⚠ Face models not installed. Run <strong>python download_models.py</strong> first.</div>
+{% endif %}
+
+<div class="cam-col">
+  <div class="card">
+    <h2>Webcam capture</h2>
+    <p class="muted">Allow camera access, then capture a few samples from different angles.</p>
+    <video id="video" width="320" height="240" autoplay playsinline></video>
+    <canvas id="canvas" width="320" height="240" style="display:none"></canvas>
+    <div class="btn-row">
+      <button class="btn" id="start-cam" type="button">Start camera</button>
+      <button class="btn" id="capture" type="button" disabled>Capture sample</button>
+    </div>
+    <div id="cam-status" class="muted" style="margin-top:10px"></div>
+  </div>
+
+  <div class="card">
+    <h2>Upload images</h2>
+    <form method="post" action="{{ url_for('faces.upload', student_id=student.id) }}"
+          enctype="multipart/form-data">
+      <label>Select one or more face photos</label>
+      <input type="file" name="images" accept="image/*" multiple>
+      <div class="btn-row">
+        <button class="btn" type="submit">Upload</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="card">
+  <h2>Stored samples ({{ student.face_samples|length }})</h2>
+  {% if student.face_samples %}
+  <table>
+    <tr><th>#</th><th>Captured</th><th></th></tr>
+    {% for sample in student.face_samples %}
+    <tr>
+      <td>{{ loop.index }}</td>
+      <td>{{ sample.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+      <td>
+        <form class="inline-form" method="post"
+              action="{{ url_for('faces.delete_sample', sample_id=sample.id) }}">
+          <button class="btn btn-sm btn-danger" type="submit">Delete</button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% else %}
+  <p class="muted">No samples yet.</p>
+  {% endif %}
+  <div class="btn-row">
+    <a class="btn btn-secondary" href="{{ url_for('faces.index') }}">Done</a>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const captureUrl = "{{ url_for('faces.capture', student_id=student.id) }}";
+const video = document.getElementById('video');
+const canvas = document.getElementById('canvas');
+const status = document.getElementById('cam-status');
+const startBtn = document.getElementById('start-cam');
+const capBtn = document.getElementById('capture');
+let stream = null, count = {{ student.face_samples|length }};
+
+startBtn.onclick = async () => {
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ video: true });
+    video.srcObject = stream;
+    capBtn.disabled = false;
+    status.textContent = 'Camera ready.';
+  } catch (e) {
+    status.textContent = 'Could not access camera: ' + e.message;
+  }
+};
+
+capBtn.onclick = async () => {
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+  const data = canvas.toDataURL('image/jpeg', 0.9);
+  status.textContent = 'Processing…';
+  try {
+    const res = await fetch(captureUrl, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ image: data })
+    });
+    const json = await res.json();
+    status.textContent = json.message + (json.success ? ` (total: ${json.sample_count})` : '');
+    if (json.success) setTimeout(() => location.reload(), 700);
+  } catch (e) {
+    status.textContent = 'Error: ' + e.message;
+  }
+};
+
+window.addEventListener('beforeunload', () => { if (stream) stream.getTracks().forEach(t => t.stop()); });
+</script>
+{% endblock %}

@@ -1,0 +1,43 @@
+{% extends "base.html" %}
+{% block title %}Students{% endblock %}
+{% block content %}
+<h1>Students</h1>
+<p class="subtitle">{{ students | length }} student(s)</p>
+
+<div class="card">
+  <form method="get" style="display:flex;gap:10px;align-items:flex-end;margin-bottom:16px">
+    <div style="flex:1"><label>Search</label>
+      <input name="q" value="{{ q }}" placeholder="name, roll, department…"></div>
+    <button class="btn" type="submit">Search</button>
+    <a class="btn" href="{{ url_for('students.create_student') }}">+ Add student</a>
+  </form>
+
+  {% if students %}
+  <table>
+    <tr><th>Roll</th><th>Name</th><th>Department</th><th>Class</th><th>Face</th><th>Actions</th></tr>
+    {% for s in students %}
+    <tr>
+      <td>{{ s.roll_number }}</td>
+      <td>{{ s.name }}</td>
+      <td>{{ s.department or '—' }}</td>
+      <td>{{ s.class_name or '—' }}</td>
+      <td>
+        {% if s.has_face %}<span class="badge badge-yes">{{ s.face_samples|length }} sample(s)</span>
+        {% else %}<span class="badge badge-no">none</span>{% endif %}
+      </td>
+      <td>
+        <a class="btn btn-sm" href="{{ url_for('faces.register', student_id=s.id) }}">Faces</a>
+        <a class="btn btn-sm btn-secondary" href="{{ url_for('students.edit_student', student_id=s.id) }}">Edit</a>
+        <form class="inline-form" method="post" action="{{ url_for('students.delete_student', student_id=s.id) }}"
+              onsubmit="return confirm('Delete {{ s.name }}?')">
+          <button class="btn btn-sm btn-danger" type="submit">Delete</button>
+        </form>
+      </td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% else %}
+  <p class="muted">No students found.</p>
+  {% endif %}
+</div>
+{% endblock %}

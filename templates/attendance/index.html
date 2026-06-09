@@ -1,0 +1,35 @@
+{% extends "base.html" %}
+{% block title %}Attendance Sessions{% endblock %}
+{% block content %}
+<h1>Attendance Sessions</h1>
+<p class="subtitle">Start a new session or review past ones</p>
+
+<div class="card">
+  <div class="btn-row" style="margin-top:0">
+    <a class="btn" href="{{ url_for('attendance.new_session') }}">+ Start new session</a>
+  </div>
+</div>
+
+<div class="card">
+  {% if sessions %}
+  <table>
+    <tr><th>Date</th><th>Subject</th><th>Class</th><th>Faculty</th><th>Present</th><th>Actions</th></tr>
+    {% for s in sessions %}
+    <tr>
+      <td>{{ s.session_date }}</td>
+      <td>{{ s.subject.name }}</td>
+      <td>{{ s.class_name or '—' }}</td>
+      <td>{{ s.faculty.username if s.faculty else '—' }}</td>
+      <td>{{ s.records | selectattr('status', 'equalto', 'present') | list | length }}</td>
+      <td>
+        <a class="btn btn-sm" href="{{ url_for('attendance.take', session_id=s.id) }}">Take</a>
+        <a class="btn btn-sm btn-secondary" href="{{ url_for('attendance.history', session_id=s.id) }}">View</a>
+      </td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% else %}
+  <p class="muted">No sessions yet.</p>
+  {% endif %}
+</div>
+{% endblock %}

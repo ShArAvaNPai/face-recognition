@@ -1,0 +1,128 @@
+{% extends "base.html" %}
+{% block title %}Take Attendance{% endblock %}
+{% block content %}
+<h1>Take attendance</h1>
+<p class="subtitle">{{ session.subject.name }} · {{ session.class_name or 'all classes' }} · {{ session.session_date }}</p>
+
+{% if not engine_ready %}
+<div class="warn-banner">⚠ Face models not installed. Run <strong>python download_models.py</strong> first. You can still mark manually below.</div>
+{% endif %}
+
+<div class="cam-col">
+  <div class="card">
+    <h2>Live recognition</h2>
+    <video id="video" width="360" height="270" autoplay playsinline></video>
+    <canvas id="canvas" width="360" height="270" style="display:none"></canvas>
+    <div class="btn-row">
+      <button class="btn" id="start-cam" type="button">Start camera</button>
+      <button class="btn" id="scan-once" type="button" disabled>Scan once</button>
+      <button class="btn btn-secondary" id="auto-scan" type="button" disabled>Start auto-scan</button>
+    </div>
+    <div id="log" class="log" style="margin-top:12px"></div>
+  </div>
+
+  <div class="card">
+    <h2>Roster <span id="present-count" class="badge badge-yes">{{ present_ids|length }} present</span></h2>
+    <table>
+      <tr><th>Roll</th><th>Name</th><th>Status</th><th>Action</th></tr>
+      {% for s in students %}
+      <tr id="row-{{ s.id }}">
+        <td>{{ s.roll_number }}</td>
+        <td>{{ s.name }}</td>
+        <td class="status">
+          {% if s.id in present_ids %}<span class="badge badge-yes">Present</span>
+          {% else %}<span class="badge badge-muted">Absent</span>{% endif %}
+        </td>
+        <td>
+          <form class="inline-form" method="post" action="{{ url_for('attendance.toggle', session_id=session.id) }}">
+            <input type="hidden" name="student_id" value="{{ s.id }}">
+            {% if s.id in present_ids %}
+              <input type="hidden" name="present" value="0">
+              <button class="btn btn-sm btn-secondary" type="submit">Unmark</button>
+            {% else %}
+              <input type="hidden" name="present" value="1">
+              <button class="btn btn-sm" type="submit">Mark</button>
+            {% endif %}
+          </form>
+        </td>
+      </tr>
+      {% endfor %}
+    </table>
+    <div class="btn-row">
+      <a class="btn btn-secondary" href="{{ url_for('attendance.history', session_id=session.id) }}">View summary</a>
+    </div>
+  </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const recognizeUrl = "{{ url_for('attendance.recognize', session_id=session.id) }}";
+const video = document.getElementById('video');
+const canvas = document.getElementById('canvas');
+const logEl = document.getElementById('log');
+const startBtn = document.getElementById('start-cam');
+const scanBtn = document.getElementById('scan-once');
+const autoBtn = document.getElementById('auto-scan');
+const presentCount = document.getElementById('present-count');
+let stream = null, autoTimer = null, presentSet = new Set();
+
+function log(msg){ const t = new Date().toLocaleTimeString();
+  logEl.innerHTML = `[${t}] ${msg}<br>` + logEl.innerHTML; }
+
+function markRowPresent(m){
+  const row = document.getElementById('row-' + m.student_id);
+  if (!row) return;
+  row.querySelector('.status').innerHTML = '<span class="badge badge-yes">Present</span>';
+  presentSet.add(m.student_id);
+  presentCount.textContent = presentSet.size + ' present';
+}
+
+startBtn.onclick = async () => {
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ video: true });
+    video.srcObject = stream;
+    scanBtn.disabled = false; autoBtn.disabled = false;
+    log('Camera ready.');
+  } catch (e) { log('Camera error: ' + e.message); }
+};
+
+async function scan(){
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+  const data = canvas.toDataURL('image/jpeg', 0.85);
+  try {
+    const res = await fetch(recognizeUrl, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ image: data })
+    });
+    const j = await res.json();
+    if (!j.success){ log('⚠ ' + j.message); return; }
+    if (j.recognized === 0){ log(`Scanned: ${j.faces_found} face(s), none recognized.`); return; }
+    j.marked.forEach(m => {
+      markRowPresent(m);
+      log(`✔ ${m.name} (${m.roll_number}) ${m.newly_marked ? 'marked' : 'already present'} — score ${m.score}`);
+    });
+  } catch (e) { log('Error: ' + e.message); }
+}
+
+scanBtn.onclick = scan;
+
+autoBtn.onclick = () => {
+  if (autoTimer){
+    clearInterval(autoTimer); autoTimer = null;
+    autoBtn.textContent = 'Start auto-scan'; autoBtn.classList.remove('btn-danger');
+    log('Auto-scan stopped.');
+  } else {
+    autoTimer = setInterval(scan, 2500);
+    autoBtn.textContent = 'Stop auto-scan'; autoBtn.classList.add('btn-danger');
+    log('Auto-scan started (every 2.5s).');
+  }
+};
+
+window.addEventListener('beforeunload', () => {
+  if (autoTimer) clearInterval(autoTimer);
+  if (stream) stream.getTracks().forEach(t => t.stop());
+});
+</script>
+{% endblock %}

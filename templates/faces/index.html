@@ -1,0 +1,28 @@
+{% extends "base.html" %}
+{% block title %}Face Registration{% endblock %}
+{% block content %}
+<h1>Face Registration</h1>
+<p class="subtitle">Capture or upload face samples for each student</p>
+
+{% if not engine_ready %}
+<div class="warn-banner">⚠ Face models not installed. Run <strong>python download_models.py</strong> first.</div>
+{% endif %}
+
+<div class="card">
+  <table>
+    <tr><th>Roll</th><th>Name</th><th>Samples</th><th></th></tr>
+    {% for s in students %}
+    <tr>
+      <td>{{ s.roll_number }}</td>
+      <td>{{ s.name }}</td>
+      <td>
+        {% if s.has_face %}<span class="badge badge-yes">{{ s.face_samples|length }}</span>
+        {% else %}<span class="badge badge-no">0</span>{% endif %}
+      </td>
+      <td><a class="btn btn-sm" href="{{ url_for('faces.register', student_id=s.id) }}">Register faces</a></td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% if not students %}<p class="muted">No students yet. Add students first.</p>{% endif %}
+</div>
+{% endblock %}

@@ -1,0 +1,18 @@
+{% extends "base.html" %}
+{% block title %}My Dashboard{% endblock %}
+{% block content %}
+<h1>Welcome{% if student %}, {{ student.name }}{% endif %}</h1>
+{% if student %}
+<p class="subtitle">Roll {{ student.roll_number }} · {{ student.department or '—' }} · {{ student.class_name or '—' }}</p>
+
+<div class="card" style="text-align:center">
+  <div class="pct-big">{{ percentage }}%</div>
+  <p class="muted">Attended {{ present }} of {{ total }} sessions</p>
+  <a class="btn" href="{{ url_for('reports.student_detail', student_id=student.id) }}">View full history</a>
+</div>
+{% else %}
+<div class="card">
+  <p class="muted">Your account is not linked to a student profile yet. Please contact an administrator.</p>
+</div>
+{% endif %}
+{% endblock %}

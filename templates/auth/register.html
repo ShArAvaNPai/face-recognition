@@ -1,0 +1,45 @@
+{% extends "base.html" %}
+{% block title %}Register{% endblock %}
+{% block content %}
+<div class="auth-wrap">
+  <div class="card">
+    <h1>Create account</h1>
+    <form method="post" id="reg-form">
+      <label>Role</label>
+      <select name="role" id="role">
+        <option value="student">Student</option>
+        <option value="faculty">Faculty</option>
+      </select>
+
+      <label>Username</label>
+      <input name="username" required>
+      <label>Email</label>
+      <input type="email" name="email" required>
+      <label>Password</label>
+      <input type="password" name="password" required minlength="6">
+
+      <div id="student-fields">
+        <label>Roll Number</label>
+        <input name="roll_number">
+        <label>Full Name</label>
+        <input name="name">
+        <label>Department</label>
+        <input name="department">
+        <label>Class</label>
+        <input name="class_name">
+      </div>
+
+      <div class="btn-row">
+        <button class="btn" type="submit">Register</button>
+        <a class="btn btn-secondary" href="{{ url_for('auth.login') }}">Back to login</a>
+      </div>
+    </form>
+  </div>
+</div>
+<script>
+  const role = document.getElementById('role');
+  const sf = document.getElementById('student-fields');
+  function sync(){ sf.style.display = role.value === 'student' ? 'block' : 'none'; }
+  role.addEventListener('change', sync); sync();
+</script>
+{% endblock %}

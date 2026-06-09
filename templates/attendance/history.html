@@ -1,0 +1,32 @@
+{% extends "base.html" %}
+{% block title %}Session Summary{% endblock %}
+{% block content %}
+<h1>Session summary</h1>
+<p class="subtitle">{{ session.subject.name }} · {{ session.class_name or 'all classes' }} · {{ session.session_date }}</p>
+
+<div class="stat-grid">
+  <div class="stat"><div class="num">{{ present_ids|length }}</div><div class="lbl">Present</div></div>
+  <div class="stat"><div class="num">{{ students|length - present_ids|length }}</div><div class="lbl">Absent</div></div>
+  <div class="stat"><div class="num">{{ students|length }}</div><div class="lbl">Total</div></div>
+</div>
+
+<div class="card" style="margin-top:20px">
+  <table>
+    <tr><th>Roll</th><th>Name</th><th>Status</th></tr>
+    {% for s in students %}
+    <tr>
+      <td>{{ s.roll_number }}</td>
+      <td>{{ s.name }}</td>
+      <td>
+        {% if s.id in present_ids %}<span class="badge badge-yes">Present</span>
+        {% else %}<span class="badge badge-no">Absent</span>{% endif %}
+      </td>
+    </tr>
+    {% endfor %}
+  </table>
+  <div class="btn-row">
+    <a class="btn" href="{{ url_for('attendance.take', session_id=session.id) }}">Continue taking</a>
+    <a class="btn btn-secondary" href="{{ url_for('attendance.index') }}">All sessions</a>
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,34 @@
+{% extends "base.html" %}
+{% block title %}Subjects{% endblock %}
+{% block content %}
+<h1>Subjects</h1>
+<p class="subtitle">Subjects you can take attendance for</p>
+
+<div class="card">
+  <h2>Add subject</h2>
+  <form method="post" style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap">
+    <div style="flex:1;min-width:120px"><label>Code</label><input name="code" required></div>
+    <div style="flex:2;min-width:160px"><label>Name</label><input name="name" required></div>
+    <button class="btn" type="submit">Add</button>
+  </form>
+</div>
+
+<div class="card">
+  <h2>All subjects</h2>
+  {% if subjects %}
+  <table>
+    <tr><th>Code</th><th>Name</th><th>Faculty</th><th>Sessions</th></tr>
+    {% for s in subjects %}
+    <tr>
+      <td>{{ s.code }}</td>
+      <td>{{ s.name }}</td>
+      <td>{{ s.faculty.username if s.faculty else '—' }}</td>
+      <td>{{ s.sessions|length }}</td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% else %}
+  <p class="muted">No subjects yet.</p>
+  {% endif %}
+</div>
+{% endblock %}

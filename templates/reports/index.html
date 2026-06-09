@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Reports{% endblock %}
+{% block content %}
+<h1>Attendance Reports</h1>
+<p class="subtitle">Attendance percentages across {{ total_sessions }} session(s)</p>
+
+<div class="card">
+  <form method="get" style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap">
+    <div style="flex:1;min-width:200px">
+      <label>Filter by subject</label>
+      <select name="subject_id" onchange="this.form.submit()">
+        <option value="">All subjects</option>
+        {% for s in subjects %}
+        <option value="{{ s.id }}" {{ 'selected' if selected_subject == s.id else '' }}>
+          {{ s.code }} — {{ s.name }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <a class="btn" href="{{ url_for('reports.export_csv', subject_id=selected_subject or '') }}">⬇ Export CSV</a>
+  </form>
+</div>
+
+<div class="card">
+  {% if rows %}
+  <table>
+    <tr><th>Roll</th><th>Name</th><th>Dept</th><th>Class</th><th>Attended</th><th>%</th><th></th></tr>
+    {% for r in rows %}
+    <tr>
+      <td>{{ r.student.roll_number }}</td>
+      <td>{{ r.student.name }}</td>
+      <td>{{ r.student.department or '—' }}</td>
+      <td>{{ r.student.class_name or '—' }}</td>
+      <td>{{ r.present }} / {{ r.total }}</td>
+      <td>
+        <span class="badge {{ 'badge-yes' if r.percentage >= 75 else ('badge-no' if r.percentage < 50 else 'badge-muted') }}">
+          {{ r.percentage }}%</span>
+      </td>
+      <td><a href="{{ url_for('reports.student_detail', student_id=r.student.id) }}">Details</a></td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% else %}
+  <p class="muted">No students to report on.</p>
+  {% endif %}
+</div>
+{% endblock %}

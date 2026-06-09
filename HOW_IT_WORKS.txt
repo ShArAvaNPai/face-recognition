@@ -1,0 +1,307 @@
+================================================================================
+        SMART ATTENDANCE SYSTEM USING FACE RECOGNITION
+        HOW THE APPLICATION WORKS  (Technical Walkthrough)
+================================================================================
+
+This document explains, in plain language, how every part of the application
+works -- from the moment you start the server to the moment a student's face is
+recognized and attendance is saved.
+
+
+--------------------------------------------------------------------------------
+0. THE BIG PICTURE (30-second summary)
+--------------------------------------------------------------------------------
+
+It is a Flask WEB application. You run a small Python web server on your own PC.
+You open it in a browser at http://127.0.0.1:5000.
+
+- The browser shows the pages (login, students, attendance, reports).
+- Your browser's WEBCAM captures the live video.
+- A single video frame is sent to the Python server as an image.
+- The server uses OpenCV (YuNet + SFace AI models) to:
+      (a) find faces in the image, and
+      (b) turn each face into a list of 128 numbers (a "face fingerprint").
+- It compares that fingerprint to the fingerprints already saved for each
+  student. The closest match (if close enough) is marked PRESENT.
+- All data (users, students, faces, attendance) is stored in a SQLite database
+  file called attendance.db.
+
+No internet, no cloud, no TensorFlow, no dlib. Everything runs locally.
+
+
+--------------------------------------------------------------------------------
+1. THE TECHNOLOGY STACK (what each piece does)
+--------------------------------------------------------------------------------
+
+Flask              -> The web framework. Handles web pages and form submissions.
+Flask-Login        -> Manages who is logged in (sessions, cookies).
+Flask-SQLAlchemy   -> Talks to the database using Python objects instead of SQL.
+SQLite             -> The actual database (a single file: attendance.db).
+Werkzeug           -> Hashes passwords securely (comes with Flask).
+OpenCV (cv2)       -> Computer vision: detects faces and creates face fingerprints.
+   - YuNet model   -> Detects WHERE faces are in an image (bounding boxes).
+   - SFace model   -> Converts a face into a 128-number fingerprint (an "embedding").
+NumPy              -> Math on those number arrays (e.g. comparing fingerprints).
+HTML/CSS/JS        -> The pages you see; JavaScript runs the webcam in the browser.
+
+
+--------------------------------------------------------------------------------
+2. WHY OpenCV SFACE INSTEAD OF DeepFace?
+--------------------------------------------------------------------------------
+
+The original requirement asked for DeepFace. But DeepFace requires TensorFlow,
+and TensorFlow has NO version that installs on Python 3.14 (your Python). The
+same problem blocks the "face_recognition" library, which needs "dlib".
+
+So the app uses OpenCV's built-in face models (YuNet + SFace) instead. They:
+   - install with plain "pip install opencv-python" (already installed),
+   - need no C++ compiler, no TensorFlow, no dlib,
+   - and give accurate, fast recognition.
+
+The face logic is isolated in ONE file (face_engine.py). If you ever switch to
+Python 3.11/3.12, only that one file would need to change to use DeepFace.
+
+
+--------------------------------------------------------------------------------
+3. STARTUP: WHAT HAPPENS WHEN YOU RUN "python app.py"
+--------------------------------------------------------------------------------
+
+Step 1: create_app() in app.py builds the Flask application.
+Step 2: It connects the database (SQLAlchemy) and the login manager (Flask-Login).
+Step 3: It registers all the "blueprints" (groups of pages):
+            auth, dashboard, students, faces, attendance, reports.
+Step 4: db.create_all() creates the database tables if they don't exist yet.
+Step 5: _seed_admin() creates a default admin account on the FIRST run only:
+            username = admin , password = admin123
+Step 6: The server starts listening on http://127.0.0.1:5000
+
+(The face AI models are NOT loaded yet. They load lazily -- only the first time
+a face operation actually happens -- so startup stays fast.)
+
+
+--------------------------------------------------------------------------------
+4. THE DATABASE (how data is organized)  -- see models.py
+--------------------------------------------------------------------------------
+
+There are 6 tables. Think of each as a spreadsheet:
+
+USER        -> login accounts. Columns: username, email, password_hash, role
+               (admin / faculty / student), and an optional link to a Student.
+STUDENT     -> student profiles. Columns: roll_number, name, department, class.
+FACE_SAMPLE -> the face fingerprints. Each row = ONE 128-number vector belonging
+               to one student (a student can have several samples). Stored as
+               raw bytes in the column "feature".
+SUBJECT     -> a subject/course. Columns: code (e.g. CS101), name, faculty.
+SESSION     -> one attendance-taking event. Columns: subject, class, date.
+ATTENDANCE  -> one row = "student X was present in session Y". A UNIQUE rule on
+               (session, student) prevents the same student being recorded
+               twice for the same session = DUPLICATE PREVENTION.
+
+Relationships:
+   A Student has many FaceSamples and many Attendance rows.
+   A Subject has many Sessions. A Session has many Attendance rows.
+
+
+--------------------------------------------------------------------------------
+5. MODULE 1 -- USER AUTHENTICATION  (blueprints/auth.py)
+--------------------------------------------------------------------------------
+
+REGISTER:
+   - A new user picks a role (student or faculty), username, email, password.
+   - Passwords are never stored as plain text. set_password() runs the password
+     through Werkzeug's hashing (generate_password_hash) and stores only the hash.
+   - If the role is "student", a linked Student profile is also created.
+
+LOGIN:
+   - The typed password is hashed and compared to the stored hash
+     (check_password). If it matches, Flask-Login starts a SESSION (a signed
+     cookie in the browser) so the user stays logged in across pages.
+
+ROLE-BASED ACCESS (blueprints/decorators.py):
+   - @staff_required wraps pages that only admin/faculty may open.
+   - If a student tries to open them, the server returns "403 Forbidden".
+   - This is how the navigation and permissions differ per role.
+
+PASSWORD MANAGEMENT:
+   - /password lets a logged-in user change their password (verifies the old
+     one first).
+
+LOGOUT:
+   - Ends the session cookie.
+
+
+--------------------------------------------------------------------------------
+6. MODULE 2 -- STUDENT MANAGEMENT  (blueprints/students.py)
+--------------------------------------------------------------------------------
+
+Admin/faculty can:
+   - Add a student (roll number, name, department, class). Roll number must be
+     unique -- the code checks before saving.
+   - Edit a student.
+   - Search students (by name / roll / department / class).
+   - Delete a student (which also deletes their face samples and attendance,
+     via "cascade").
+
+Each student row shows how many face samples are registered.
+
+
+--------------------------------------------------------------------------------
+7. MODULE 3 -- FACE REGISTRATION  (blueprints/faces.py + face_engine.py)
+--------------------------------------------------------------------------------
+
+GOAL: store one or more "face fingerprints" per student so they can be
+recognized later.
+
+TWO WAYS to add a sample:
+
+  A) WEBCAM CAPTURE (in the browser):
+     1. JavaScript asks for camera permission and shows the live video.
+     2. When you click "Capture sample", JS draws the current video frame onto a
+        hidden <canvas> and converts it to a JPEG encoded as a base64 string.
+     3. That string is POSTed to /faces/<id>/capture as JSON.
+
+  B) IMAGE UPLOAD:
+     - You choose one or more photo files; they are POSTed to /faces/<id>/upload.
+
+WHAT THE SERVER DOES WITH THE IMAGE (the function _store_sample):
+     1. Decode the base64/file into an OpenCV image (imaging.py).
+     2. engine.best_single_feature(image):
+            - YuNet detects all faces in the image.
+            - It picks the LARGEST face (closest to the camera).
+            - SFace aligns/crops that face and produces a 128-number fingerprint.
+     3. The fingerprint is converted to raw bytes and saved as a FaceSample row
+        linked to that student.
+
+If no face is found, the server replies "No face detected -- try again".
+Capturing 2-4 samples from slightly different angles improves accuracy.
+
+
+--------------------------------------------------------------------------------
+8. MODULE 4 + 5 -- FACE RECOGNITION & ATTENDANCE  (blueprints/attendance.py)
+--------------------------------------------------------------------------------
+
+SETUP BEFORE TAKING ATTENDANCE:
+   - Faculty creates a SUBJECT (e.g. CS101).
+   - Faculty starts a SESSION (subject + class + date). This opens the
+     "Take attendance" page.
+
+THE LIVE RECOGNITION LOOP (the heart of the system):
+
+   1. On the "Take attendance" page, JavaScript starts the webcam.
+   2. "Scan once" (or "Auto-scan" every 2.5 seconds) grabs a video frame,
+      converts it to base64 JPEG, and POSTs it to /attendance/<id>/recognize.
+
+   3. SERVER SIDE -- the recognize() function:
+        a. Decode the frame into an OpenCV image.
+        b. Load all stored fingerprints from the database as a list of
+           (student_id, fingerprint) pairs  -> _load_candidates().
+        c. engine.extract_features(image):
+              - YuNet finds ALL faces in the frame (supports MULTIPLE people
+                at once = multi-face recognition).
+              - SFace makes a fingerprint for each detected face.
+        d. For EACH detected face, engine.match() compares its fingerprint to
+           every stored fingerprint using COSINE SIMILARITY:
+
+                similarity = (A . B) / (|A| * |B|)
+
+           This gives a score from 0 (totally different) to 1 (identical).
+           The best-scoring student is chosen IF the score is >= the threshold
+           (FACE_MATCH_THRESHOLD, default 0.363). Otherwise the face is ignored
+           as "Unknown".
+        e. _mark_present() saves an Attendance row for that student.
+           - DUPLICATE PREVENTION: if a record already exists for this
+             student+session, it is NOT inserted again (the unique database rule
+             + an existence check guarantee one record per student per session).
+
+   4. The server returns JSON listing who was recognized (name, roll, score).
+   5. JavaScript updates the roster table live -> the student's row flips to
+      "Present", the present-count badge increases, and a log line is written.
+
+MANUAL CORRECTION (Attendance Correction feature):
+   - On the same page you can manually Mark/Unmark any student (method="manual"),
+     in case the camera missed someone or recognized incorrectly.
+
+HISTORY:
+   - /attendance/<id>/history shows the full present/absent list for a session.
+
+
+--------------------------------------------------------------------------------
+9. MODULE 6 -- REPORTS & DASHBOARD  (blueprints/reports.py + dashboard.py)
+--------------------------------------------------------------------------------
+
+REPORTS:
+   - For each student, the system counts how many sessions they attended out of
+     the total number of sessions, and computes a percentage:
+
+         percentage = (sessions attended / total sessions) * 100
+
+   - You can filter the report by a specific SUBJECT.
+   - Colour badges: green >= 75%, grey 50-74%, red < 50%.
+   - "Export CSV" downloads the same table as a .csv file (opens in Excel).
+   - Per-student detail page shows that student's full session-by-session history.
+
+DASHBOARD (the landing page after login, role-aware):
+   - Admin/Faculty: counts of students, face samples, subjects, sessions, users,
+     plus recent sessions and quick action buttons.
+   - Student: their own attendance percentage and a link to their history.
+
+
+--------------------------------------------------------------------------------
+10. END-TO-END EXAMPLE (one full real-world run)
+--------------------------------------------------------------------------------
+
+1. Start server, open browser, log in as admin / admin123.
+2. Students -> Add student: roll R001, name "Alice", dept MCA, class 1A.
+3. Faces -> Register faces for Alice -> Start camera -> Capture 3 samples.
+      (Server saves 3 fingerprints for Alice in FACE_SAMPLE.)
+4. Subjects -> add CS101 "Intro to CS".
+5. Attendance -> Start new session -> pick CS101, class 1A, today's date.
+6. On Take Attendance -> Start camera -> Auto-scan.
+      Alice sits in front of the camera. Each frame is sent to the server,
+      YuNet finds her face, SFace fingerprints it, it matches her stored
+      fingerprints with score ~0.6 (> 0.363), so she is marked PRESENT.
+      Scanning again does NOT create a second record (duplicate prevented).
+7. Reports -> Alice shows 1/1 sessions = 100%. Export CSV if needed.
+
+
+--------------------------------------------------------------------------------
+11. KEY FILES (where to look for each thing)
+--------------------------------------------------------------------------------
+
+app.py                  Starts the app, registers pages, seeds the admin.
+config.py               Settings: DB path, model paths, match threshold, admin seed.
+extensions.py           Shared database + login objects.
+models.py               The 6 database tables (described in section 4).
+face_engine.py          ALL face logic: detect, encode, compare. (YuNet + SFace)
+download_models.py      Downloads the two AI model files (handles Git LFS).
+blueprints/auth.py      Login, register, logout, change password.
+blueprints/students.py  Student add/edit/search/delete.
+blueprints/faces.py     Capture/upload and store face samples.
+blueprints/attendance.py Subjects, sessions, recognition, marking, history.
+blueprints/reports.py   Percentages, CSV export, per-student history.
+blueprints/dashboard.py Role-aware landing page.
+blueprints/imaging.py   Turns uploaded/base64 images into OpenCV images.
+blueprints/decorators.py Role-based access control (@staff_required).
+templates/              The HTML pages (Jinja2) for every module.
+static/style.css        Styling.
+models/                 The downloaded .onnx AI model files.
+attendance.db           The SQLite database (created automatically).
+
+
+--------------------------------------------------------------------------------
+12. SECURITY & ACCURACY NOTES
+--------------------------------------------------------------------------------
+
+- Passwords: stored only as salted hashes, never plain text.
+- Sessions: signed cookies via Flask-Login; SECRET_KEY signs them.
+- Access control: students cannot open staff pages or view other students'
+  attendance (server returns 403).
+- Recognition strictness: controlled by FACE_MATCH_THRESHOLD in config.py
+  (default 0.363). Higher = stricter (fewer false matches, but may miss people);
+  lower = more lenient. Tune it after testing with real faces.
+- Browser camera: works on http://127.0.0.1 in Chrome/Edge. Other hostnames may
+  require HTTPS for the camera to turn on.
+
+================================================================================
+                                END OF DOCUMENT
+================================================================================

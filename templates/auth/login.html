@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+{% block title %}Login{% endblock %}
+{% block content %}
+<div class="auth-wrap">
+  <div class="card">
+    <h1>Sign in</h1>
+    <p class="subtitle">Smart Attendance System</p>
+    <form method="post">
+      <label>Username</label>
+      <input name="username" autofocus required>
+      <label>Password</label>
+      <input type="password" name="password" required>
+      <div class="btn-row">
+        <button class="btn" type="submit">Login</button>
+        <a class="btn btn-secondary" href="{{ url_for('auth.register') }}">Register</a>
+      </div>
+    </form>
+    <p class="muted" style="margin-top:16px">Default admin: <strong>admin / admin123</strong></p>
+  </div>
+</div>
+{% endblock %}

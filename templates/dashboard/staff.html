@@ -1,0 +1,44 @@
+{% extends "base.html" %}
+{% block title %}Dashboard{% endblock %}
+{% block content %}
+<h1>Dashboard</h1>
+<p class="subtitle">Overview of the attendance system</p>
+
+<div class="stat-grid">
+  <div class="stat"><div class="num">{{ stats.students }}</div><div class="lbl">Students</div></div>
+  <div class="stat"><div class="num">{{ stats.faces }}</div><div class="lbl">Face samples</div></div>
+  <div class="stat"><div class="num">{{ stats.subjects }}</div><div class="lbl">Subjects</div></div>
+  <div class="stat"><div class="num">{{ stats.sessions }}</div><div class="lbl">Sessions</div></div>
+  <div class="stat"><div class="num">{{ stats.users }}</div><div class="lbl">Users</div></div>
+</div>
+
+<div class="card" style="margin-top:20px">
+  <h2>Quick actions</h2>
+  <div class="btn-row">
+    <a class="btn" href="{{ url_for('students.create_student') }}">+ Add student</a>
+    <a class="btn" href="{{ url_for('faces.index') }}">Register faces</a>
+    <a class="btn" href="{{ url_for('attendance.new_session') }}">Start attendance</a>
+    <a class="btn btn-secondary" href="{{ url_for('reports.index') }}">View reports</a>
+  </div>
+</div>
+
+<div class="card">
+  <h2>Recent sessions</h2>
+  {% if recent_sessions %}
+  <table>
+    <tr><th>Date</th><th>Subject</th><th>Class</th><th>Present</th><th></th></tr>
+    {% for s in recent_sessions %}
+    <tr>
+      <td>{{ s.session_date }}</td>
+      <td>{{ s.subject.name }}</td>
+      <td>{{ s.class_name or '—' }}</td>
+      <td>{{ s.records | selectattr('status', 'equalto', 'present') | list | length }}</td>
+      <td><a href="{{ url_for('attendance.history', session_id=s.id) }}">View</a></td>
+    </tr>
+    {% endfor %}
+  </table>
+  {% else %}
+  <p class="muted">No attendance sessions yet.</p>
+  {% endif %}
+</div>
+{% endblock %}

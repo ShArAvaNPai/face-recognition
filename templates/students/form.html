@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}{{ 'Edit' if student else 'New' }} Student{% endblock %}
+{% block content %}
+<div class="auth-wrap">
+  <div class="card">
+    <h1>{{ 'Edit' if student else 'Add' }} student</h1>
+    <form method="post">
+      <label>Roll Number</label>
+      <input name="roll_number" value="{{ student.roll_number if student else '' }}" required>
+      <label>Full Name</label>
+      <input name="name" value="{{ student.name if student else '' }}" required>
+      <label>Department</label>
+      <input name="department" value="{{ student.department if student else '' }}">
+      <label>Class</label>
+      <input name="class_name" value="{{ student.class_name if student else '' }}">
+      <div class="btn-row">
+        <button class="btn" type="submit">Save</button>
+        <a class="btn btn-secondary" href="{{ url_for('students.list_students') }}">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

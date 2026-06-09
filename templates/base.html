@@ -1,0 +1,55 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Smart Attendance{% endblock %} · Smart Attendance</title>
+  <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <a href="{{ url_for('dashboard.index') if current_user.is_authenticated else url_for('auth.login') }}">
+        🎓 Smart Attendance
+      </a>
+    </div>
+    {% if current_user.is_authenticated %}
+    <nav class="nav">
+      <a href="{{ url_for('dashboard.index') }}">Dashboard</a>
+      {% if current_user.role in ['admin', 'faculty'] %}
+        <a href="{{ url_for('students.list_students') }}">Students</a>
+        <a href="{{ url_for('faces.index') }}">Faces</a>
+        <a href="{{ url_for('attendance.subjects') }}">Subjects</a>
+        <a href="{{ url_for('attendance.index') }}">Attendance</a>
+        <a href="{{ url_for('reports.index') }}">Reports</a>
+      {% else %}
+        {% if current_user.student %}
+        <a href="{{ url_for('reports.student_detail', student_id=current_user.student.id) }}">My Attendance</a>
+        {% endif %}
+      {% endif %}
+      <span class="spacer"></span>
+      <span class="who">{{ current_user.username }} <em>({{ current_user.role }})</em></span>
+      <a href="{{ url_for('auth.change_password') }}">Password</a>
+      <a class="btn-link" href="{{ url_for('auth.logout') }}">Logout</a>
+    </nav>
+    {% endif %}
+  </header>
+
+  <main class="container">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <div class="flashes">
+          {% for category, message in messages %}
+            <div class="flash flash-{{ category }}">{{ message }}</div>
+          {% endfor %}
+        </div>
+      {% endif %}
+    {% endwith %}
+
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer class="footer">Smart Attendance System · Face Recognition (OpenCV SFace)</footer>
+  {% block scripts %}{% endblock %}
+</body>
+</html>
