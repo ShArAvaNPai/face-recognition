@@ -27,61 +27,6 @@ def login():
     return render_template("auth/login.html")
 
 
-@auth_bp.route("/register", methods=["GET", "POST"])
-def register():
-    """Public self-registration (students/faculty). Admins are seeded/created by admin."""
-    if request.method == "POST":
-        username = request.form.get("username", "").strip()
-        email = request.form.get("email", "").strip()
-        password = request.form.get("password", "")
-        role = request.form.get("role", ROLE_STUDENT)
-
-        if role not in (ROLE_STUDENT, ROLE_FACULTY):
-            role = ROLE_STUDENT
-
-        error = None
-        if not username or not email or not password:
-            error = "All fields are required."
-        elif len(password) < 6:
-            error = "Password must be at least 6 characters."
-        elif User.query.filter_by(username=username).first():
-            error = "That username is already taken."
-        elif User.query.filter_by(email=email).first():
-            error = "That email is already registered."
-
-        if error:
-            flash(error, "danger")
-            return render_template("auth/register.html")
-
-        user = User(username=username, email=email, role=role)
-        user.set_password(password)
-
-        # If registering as a student, create a linked Student profile.
-        if role == ROLE_STUDENT:
-            roll = request.form.get("roll_number", "").strip()
-            name = request.form.get("name", "").strip() or username
-            if not roll:
-                flash("Roll number is required for student registration.", "danger")
-                return render_template("auth/register.html")
-            if Student.query.filter_by(roll_number=roll).first():
-                flash("A student with that roll number already exists.", "danger")
-                return render_template("auth/register.html")
-            student = Student(
-                roll_number=roll,
-                name=name,
-                department=request.form.get("department", "").strip(),
-                class_name=request.form.get("class_name", "").strip(),
-            )
-            db.session.add(student)
-            db.session.flush()  # get student.id
-            user.student_id = student.id
-
-        db.session.add(user)
-        db.session.commit()
-        flash("Account created. You can now log in.", "success")
-        return redirect(url_for("auth.login"))
-
-    return render_template("auth/register.html")
 
 
 @auth_bp.route("/logout")

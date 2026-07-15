@@ -102,3 +102,25 @@ video, canvas { border-radius: 10px; background: #000; max-width: 100%; }
 .cam-col > div { flex: 1; min-width: 280px; }
 .log { font-family: ui-monospace, Consolas, monospace; font-size: 13px; background: #0b1020; color: #c7f9cc; padding: 12px; border-radius: 8px; height: 220px; overflow-y: auto; }
 .warn-banner { background: #fef3c7; color: var(--warning); padding: 10px 14px; border-radius: 8px; margin-bottom: 16px; font-size: 14px; }
+
+.password-wrapper {
+  position: relative;
+}
+.password-wrapper input {
+  padding-right: 40px;
+}
+.password-wrapper .toggle-password {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 16px;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  user-select: none;
+}
+

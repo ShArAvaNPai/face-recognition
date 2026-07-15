@@ -1,0 +1,77 @@
+{% extends "base.html" %}
+{% block title %}Create New User{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center mt-4">
+    <div class="col-md-6">
+        <div class="card shadow-sm">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">Create New User</h5>
+            </div>
+            <div class="card-body">
+                <form method="post" action="{{ url_for('admin.new_user') }}">
+                    <div class="mb-3">
+                        <label class="form-label">Username</label>
+                        <input type="text" name="username" class="form-control" required autofocus>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Email</label>
+                        <input type="email" name="email" class="form-control" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Password</label>
+                        <div class="password-wrapper">
+                            <input type="password" name="password" class="form-control" required minlength="6">
+                            <button type="button" class="toggle-password">👁️</button>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">Role</label>
+                        <select name="role" id="role-select" class="form-select" required>
+                            {% for r in roles %}
+                            <option value="{{ r }}">{{ r|capitalize }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <!-- Student specific fields -->
+                    <div id="student-fields" style="display: none;">
+                        <hr>
+                        <h6>Student Details</h6>
+                        <div class="mb-3">
+                            <label class="form-label">Roll Number</label>
+                            <input type="text" name="roll_number" class="form-control" placeholder="e.g. CS2023-01">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Full Name</label>
+                            <input type="text" name="name" class="form-control">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Department</label>
+                            <input type="text" name="department" class="form-control">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label">Class</label>
+                            <input type="text" name="class_name" class="form-control">
+                        </div>
+                    </div>
+
+                    <button type="submit" class="btn btn-primary w-100">Create User</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.getElementById('role-select').addEventListener('change', function() {
+    if(this.value === 'student') {
+        document.getElementById('student-fields').style.display = 'block';
+    } else {
+        document.getElementById('student-fields').style.display = 'none';
+    }
+});
+// trigger on load
+document.getElementById('role-select').dispatchEvent(new Event('change'));
+</script>
+{% endblock %}

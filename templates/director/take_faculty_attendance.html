@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}Take Faculty Attendance{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">Faculty Attendance: {{ session.session_date }}</h1>
+    <a href="{{ url_for('director.faculty_attendance_index') }}" class="btn btn-outline-secondary">Back to Sessions</a>
+</div>
+
+<div class="table-responsive">
+    <table class="table table-striped table-sm align-middle">
+        <thead>
+            <tr>
+                <th>Username</th>
+                <th>Email</th>
+                <th>Status</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for faculty in faculties %}
+            {% set is_present = faculty.id in present_ids %}
+            <tr>
+                <td>{{ faculty.username }}</td>
+                <td>{{ faculty.email }}</td>
+                <td>
+                    {% if is_present %}
+                    <span class="badge bg-success">Present</span>
+                    {% else %}
+                    <span class="badge bg-danger">Absent</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <form method="post" action="{{ url_for('director.toggle_faculty_attendance', session_id=session.id) }}" class="d-inline">
+                        <input type="hidden" name="faculty_id" value="{{ faculty.id }}">
+                        {% if is_present %}
+                            <input type="hidden" name="present" value="0">
+                            <button class="btn btn-sm btn-warning">Mark Absent</button>
+                        {% else %}
+                            <input type="hidden" name="present" value="1">
+                            <button class="btn btn-sm btn-success">Mark Present</button>
+                        {% endif %}
+                    </form>
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

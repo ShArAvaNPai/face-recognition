@@ -38,6 +38,9 @@ def create_app(config_class=Config):
     from blueprints.faces import faces_bp
     from blueprints.attendance import attendance_bp
     from blueprints.reports import reports_bp
+    from blueprints.admin import admin_bp
+    from blueprints.director import director_bp
+    from blueprints.faculty import faculty_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(dashboard_bp)
@@ -45,6 +48,9 @@ def create_app(config_class=Config):
     app.register_blueprint(faces_bp)
     app.register_blueprint(attendance_bp)
     app.register_blueprint(reports_bp)
+    app.register_blueprint(admin_bp)
+    app.register_blueprint(director_bp)
+    app.register_blueprint(faculty_bp)
 
     # Error pages
     @app.errorhandler(403)

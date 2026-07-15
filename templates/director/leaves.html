@@ -1,0 +1,60 @@
+{% extends "base.html" %}
+{% block title %}Leave Applications{% endblock %}
+
+{% block content %}
+<div class="pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">Leave Applications</h1>
+</div>
+
+<div class="table-responsive">
+    <table class="table table-striped table-sm align-middle">
+        <thead>
+            <tr>
+                <th>Faculty</th>
+                <th>Start Date</th>
+                <th>End Date</th>
+                <th>Reason</th>
+                <th>Status</th>
+                <th>Applied At</th>
+                <th>Actions</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for leave in leaves %}
+            <tr>
+                <td>{{ leave.user.username }}</td>
+                <td>{{ leave.start_date }}</td>
+                <td>{{ leave.end_date }}</td>
+                <td>{{ leave.reason }}</td>
+                <td>
+                    {% if leave.status == 'pending' %}
+                        <span class="badge bg-warning text-dark">Pending</span>
+                    {% elif leave.status == 'approved' %}
+                        <span class="badge bg-success">Approved</span>
+                    {% else %}
+                        <span class="badge bg-danger">Rejected</span>
+                    {% endif %}
+                </td>
+                <td>{{ leave.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                <td>
+                    {% if leave.status == 'pending' %}
+                    <form method="post" action="{{ url_for('director.update_leave', leave_id=leave.id) }}" class="d-inline">
+                        <input type="hidden" name="action" value="approved">
+                        <button class="btn btn-sm btn-success">Approve</button>
+                    </form>
+                    <form method="post" action="{{ url_for('director.update_leave', leave_id=leave.id) }}" class="d-inline">
+                        <input type="hidden" name="action" value="rejected">
+                        <button class="btn btn-sm btn-danger">Reject</button>
+                    </form>
+                    {% else %}
+                    <span class="text-muted">No actions</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% else %}
+            <tr><td colspan="7">No leave applications found.</td></tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% endblock %}

@@ -4,7 +4,7 @@ from functools import wraps
 from flask import abort
 from flask_login import current_user
 
-from models import ROLE_ADMIN, ROLE_FACULTY
+from models import ROLE_ADMIN, ROLE_FACULTY, ROLE_DIRECTOR
 
 
 def roles_required(*roles):
@@ -22,5 +22,15 @@ def roles_required(*roles):
 
 
 def staff_required(view):
-    """Admin or faculty only (the people who manage students/attendance)."""
-    return roles_required(ROLE_ADMIN, ROLE_FACULTY)(view)
+    """Admin, faculty, or director only."""
+    return roles_required(ROLE_ADMIN, ROLE_FACULTY, ROLE_DIRECTOR)(view)
+
+
+def admin_required(view):
+    """Admin only."""
+    return roles_required(ROLE_ADMIN)(view)
+
+
+def director_required(view):
+    """Director only (or admin)."""
+    return roles_required(ROLE_ADMIN, ROLE_DIRECTOR)(view)

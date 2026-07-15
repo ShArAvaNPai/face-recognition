@@ -16,13 +16,28 @@
     {% if current_user.is_authenticated %}
     <nav class="nav">
       <a href="{{ url_for('dashboard.index') }}">Dashboard</a>
-      {% if current_user.role in ['admin', 'faculty'] %}
+      {% if current_user.role == 'admin' %}
+        <a href="{{ url_for('admin.list_users') }}">Users</a>
+      {% endif %}
+      
+      {% if current_user.role in ['admin', 'faculty', 'director'] %}
         <a href="{{ url_for('students.list_students') }}">Students</a>
         <a href="{{ url_for('faces.index') }}">Faces</a>
         <a href="{{ url_for('attendance.subjects') }}">Subjects</a>
-        <a href="{{ url_for('attendance.index') }}">Attendance</a>
+        <a href="{{ url_for('attendance.index') }}">Stud. Attendance</a>
         <a href="{{ url_for('reports.index') }}">Reports</a>
-      {% else %}
+      {% endif %}
+
+      {% if current_user.role in ['admin', 'director'] %}
+        <a href="{{ url_for('director.faculty_attendance_index') }}">Fac. Attendance</a>
+        <a href="{{ url_for('director.leaves_index') }}">Leaves</a>
+      {% endif %}
+
+      {% if current_user.role == 'faculty' %}
+        <a href="{{ url_for('faculty.leaves') }}">My Leaves</a>
+      {% endif %}
+
+      {% if current_user.role == 'student' %}
         {% if current_user.student %}
         <a href="{{ url_for('reports.student_detail', student_id=current_user.student.id) }}">My Attendance</a>
         {% endif %}
@@ -50,6 +65,20 @@
   </main>
 
   <footer class="footer">Smart Attendance System · Face Recognition (OpenCV SFace)</footer>
+  <script>
+  document.addEventListener('click', function (e) {
+    if (e.target && e.target.classList.contains('toggle-password')) {
+      const input = e.target.closest('.password-wrapper').querySelector('input');
+      if (input.type === 'password') {
+        input.type = 'text';
+        e.target.textContent = '🙈';
+      } else {
+        input.type = 'password';
+        e.target.textContent = '👁️';
+      }
+    }
+  });
+  </script>
   {% block scripts %}{% endblock %}
 </body>
 </html>

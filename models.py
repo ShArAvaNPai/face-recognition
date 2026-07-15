@@ -10,7 +10,8 @@ from extensions import db
 ROLE_ADMIN = "admin"
 ROLE_FACULTY = "faculty"
 ROLE_STUDENT = "student"
-ROLES = (ROLE_ADMIN, ROLE_FACULTY, ROLE_STUDENT)
+ROLE_DIRECTOR = "director"
+ROLES = (ROLE_ADMIN, ROLE_FACULTY, ROLE_STUDENT, ROLE_DIRECTOR)
 
 
 class User(UserMixin, db.Model):
@@ -45,6 +46,10 @@ class User(UserMixin, db.Model):
     @property
     def is_student(self):
         return self.role == ROLE_STUDENT
+
+    @property
+    def is_director(self):
+        return self.role == ROLE_DIRECTOR
 
     def __repr__(self):
         return f"<User {self.username} ({self.role})>"
@@ -141,3 +146,69 @@ class Attendance(db.Model):
     status = db.Column(db.String(10), default="present")  # present / absent
     method = db.Column(db.String(10), default="face")      # face / manual
     marked_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+
+class FacultyAttendanceSession(db.Model):
+    """An attendance-taking session for faculty on a given date."""
+    __tablename__ = "faculty_sessions"
+
+    id = db.Column(db.Integer, primary_key=True)
+    taken_by_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    taken_by = db.relationship("User", foreign_keys=[taken_by_id])
+    session_date = db.Column(db.Date, default=date.today)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    records = db.relationship(
+        "FacultyAttendance", backref="session", cascade="all, delete-orphan"
+    )
+
+    def __repr__(self):
+        return f"<FacultySession {self.id} {self.session_date}>"
+
+
+class FacultyAttendance(db.Model):
+    """A single attendance record: one faculty in one session."""
+    __tablename__ = "faculty_attendance"
+    __table_args__ = (
+        db.UniqueConstraint("session_id", "faculty_id", name="uq_fsession_faculty"),
+    )
+
+    id = db.Column(db.Integer, primary_key=True)
+    session_id = db.Column(db.Integer, db.ForeignKey("faculty_sessions.id"), nullable=False)
+    faculty_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    faculty = db.relationship("User", foreign_keys=[faculty_id])
+    status = db.Column(db.String(10), default="present")  # present / absent
+    marked_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+
+class LeaveApplication(db.Model):
+    """A leave application submitted by a faculty member."""
+    __tablename__ = "leave_applications"
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    user = db.relationship("User", backref=db.backref("leaves", lazy=True))
+    start_date = db.Column(db.Date, nullable=False)
+    end_date = db.Column(db.Date, nullable=False)
+    reason = db.Column(db.Text, nullable=False)
+    status = db.Column(db.String(20), default="pending")  # pending, approved, rejected
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def __repr__(self):
+        return f"<LeaveApplication {self.id} {self.user_id} {self.status}>"
+
+
+class MedicalCertificate(db.Model):
+    """A medical certificate uploaded by a student."""
+    __tablename__ = "medical_certificates"
+
+    id = db.Column(db.Integer, primary_key=True)
+    student_id = db.Column(db.Integer, db.ForeignKey("students.id"), nullable=False)
+    student = db.relationship("Student", backref=db.backref("certificates", lazy=True))
+    file_path = db.Column(db.String(255), nullable=False)
+    reason = db.Column(db.String(255), nullable=True)
+    status = db.Column(db.String(20), default="uploaded")
+    upload_date = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def __repr__(self):
+        return f"<MedicalCertificate {self.id} {self.student_id}>"

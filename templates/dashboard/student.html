@@ -10,6 +10,21 @@
   <p class="muted">Attended {{ present }} of {{ total }} sessions</p>
   <a class="btn" href="{{ url_for('reports.student_detail', student_id=student.id) }}">View full history</a>
 </div>
+
+<div class="card" style="margin-top: 20px;">
+  <h3>Upload Medical Certificate</h3>
+  <form method="post" action="{{ url_for('dashboard.upload_certificate') }}" enctype="multipart/form-data">
+    <div style="margin-bottom: 10px;">
+      <label>Certificate File (Image/PDF):</label>
+      <input type="file" name="certificate" required>
+    </div>
+    <div style="margin-bottom: 10px;">
+      <label>Reason / Note:</label>
+      <input type="text" name="reason" placeholder="e.g., Viral Fever" style="width: 100%;">
+    </div>
+    <button type="submit" class="btn btn-primary">Upload</button>
+  </form>
+</div>
 {% else %}
 <div class="card">
   <p class="muted">Your account is not linked to a student profile yet. Please contact an administrator.</p>
