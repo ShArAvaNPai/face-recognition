@@ -7,8 +7,27 @@
     <a href="{{ url_for('director.faculty_attendance_index') }}" class="btn btn-outline-secondary">Back to Sessions</a>
 </div>
 
-<div class="table-responsive">
-    <table class="table table-striped table-sm align-middle">
+{% if not engine_ready %}
+<div class="warn-banner">⚠ Face models not installed. Run <strong>python download_models.py</strong> first. You can still mark manually below.</div>
+{% endif %}
+
+<div class="cam-col">
+  <div class="card">
+    <h2>Live recognition</h2>
+    <video id="video" width="360" height="270" autoplay playsinline></video>
+    <canvas id="canvas" width="360" height="270" style="display:none"></canvas>
+    <div class="btn-row">
+      <button class="btn" id="start-cam" type="button">Start camera</button>
+      <button class="btn" id="scan-once" type="button" disabled>Scan once</button>
+      <button class="btn btn-secondary" id="auto-scan" type="button" disabled>Start auto-scan</button>
+    </div>
+    <div id="log" class="log" style="margin-top:12px"></div>
+  </div>
+
+  <div class="card">
+    <h2>Roster <span id="present-count" class="badge badge-yes">{{ present_ids|length }} present</span></h2>
+    <div class="table-responsive">
+      <table class="table table-striped table-sm align-middle">
         <thead>
             <tr>
                 <th>Username</th>
@@ -20,17 +39,17 @@
         <tbody>
             {% for faculty in faculties %}
             {% set is_present = faculty.id in present_ids %}
-            <tr>
+            <tr id="row-{{ faculty.id }}">
                 <td>{{ faculty.username }}</td>
                 <td>{{ faculty.email }}</td>
-                <td>
+                <td class="status">
                     {% if is_present %}
                     <span class="badge bg-success">Present</span>
                     {% else %}
                     <span class="badge bg-danger">Absent</span>
                     {% endif %}
                 </td>
-                <td>
+                <td class="action-td">
                     <form method="post" action="{{ url_for('director.toggle_faculty_attendance', session_id=session.id) }}" class="d-inline">
                         <input type="hidden" name="faculty_id" value="{{ faculty.id }}">
                         {% if is_present %}
@@ -45,6 +64,95 @@
             </tr>
             {% endfor %}
         </tbody>
-    </table>
+      </table>
+    </div>
+  </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+const recognizeUrl = "{{ url_for('director.recognize_faculty', session_id=session.id) }}";
+const toggleUrlBase = "{{ url_for('director.toggle_faculty_attendance', session_id=session.id) }}";
+const video = document.getElementById('video');
+const canvas = document.getElementById('canvas');
+const logEl = document.getElementById('log');
+const startBtn = document.getElementById('start-cam');
+const scanBtn = document.getElementById('scan-once');
+const autoBtn = document.getElementById('auto-scan');
+const presentCount = document.getElementById('present-count');
+let stream = null, autoTimer = null, presentSet = new Set([
+  {% for pid in present_ids %}{{ pid }}{% if not loop.last %},{% endif %}{% endfor %}
+]);
+
+function log(msg){
+  const t = new Date().toLocaleTimeString();
+  logEl.innerHTML = `[${t}] ${msg}<br>` + logEl.innerHTML;
+}
+
+function markRowPresent(m){
+  const row = document.getElementById('row-' + m.faculty_id);
+  if (!row) return;
+  row.querySelector('.status').innerHTML = '<span class="badge bg-success">Present</span>';
+  const actionTd = row.querySelector('.action-td');
+  if (actionTd) {
+    actionTd.innerHTML = `
+      <form method="post" action="${toggleUrlBase}" class="d-inline">
+        <input type="hidden" name="faculty_id" value="${m.faculty_id}">
+        <input type="hidden" name="present" value="0">
+        <button class="btn btn-sm btn-warning">Mark Absent</button>
+      </form>
+    `;
+  }
+  presentSet.add(m.faculty_id);
+  presentCount.textContent = presentSet.size + ' present';
+}
+
+startBtn.onclick = async () => {
+  try {
+    stream = await navigator.mediaDevices.getUserMedia({ video: true });
+    video.srcObject = stream;
+    scanBtn.disabled = false; autoBtn.disabled = false;
+    log('Camera ready.');
+  } catch (e) { log('Camera error: ' + e.message); }
+};
+
+async function scan(){
+  const ctx = canvas.getContext('2d');
+  ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+  const data = canvas.toDataURL('image/jpeg', 0.85);
+  try {
+    const res = await fetch(recognizeUrl, {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ image: data })
+    });
+    const j = await res.json();
+    if (!j.success){ log('⚠ ' + j.message); return; }
+    if (j.recognized === 0){ log(`Scanned: ${j.faces_found} face(s), none recognized.`); return; }
+    j.marked.forEach(m => {
+      markRowPresent(m);
+      log(`✔ ${m.username} ${m.newly_marked ? 'marked' : 'already present'} — score ${m.score}`);
+    });
+  } catch (e) { log('Error: ' + e.message); }
+}
+
+scanBtn.onclick = scan;
+
+autoBtn.onclick = () => {
+  if (autoTimer){
+    clearInterval(autoTimer); autoTimer = null;
+    autoBtn.textContent = 'Start auto-scan'; autoBtn.classList.remove('btn-danger');
+    log('Auto-scan stopped.');
+  } else {
+    autoTimer = setInterval(scan, 2500);
+    autoBtn.textContent = 'Stop auto-scan'; autoBtn.classList.add('btn-danger');
+    log('Auto-scan started (every 2.5s).');
+  }
+};
+
+window.addEventListener('beforeunload', () => {
+  if (autoTimer) clearInterval(autoTimer);
+  if (stream) stream.getTracks().forEach(t => t.stop());
+});
+</script>
 {% endblock %}

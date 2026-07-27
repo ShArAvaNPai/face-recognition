@@ -1,8 +1,8 @@
 {% extends "base.html" %}
-{% block title %}Register Faces — {{ student.name }}{% endblock %}
+{% block title %}Register Faces — {{ target_name }}{% endblock %}
 {% block content %}
-<h1>Register faces: {{ student.name }}</h1>
-<p class="subtitle">Roll {{ student.roll_number }} · {{ student.face_samples|length }} sample(s) stored</p>
+<h1>Register faces: {{ target_name }}</h1>
+<p class="subtitle">Identifier: {{ target_identifier }} · {{ face_samples|length }} sample(s) stored</p>
 
 {% if not engine_ready %}
 <div class="warn-banner">⚠ Face models not installed. Run <strong>python download_models.py</strong> first.</div>
@@ -23,7 +23,7 @@
 
   <div class="card">
     <h2>Upload images</h2>
-    <form method="post" action="{{ url_for('faces.upload', student_id=student.id) }}"
+    <form method="post" action="{{ upload_url }}"
           enctype="multipart/form-data">
       <label>Select one or more face photos</label>
       <input type="file" name="images" accept="image/*" multiple>
@@ -35,11 +35,11 @@
 </div>
 
 <div class="card">
-  <h2>Stored samples ({{ student.face_samples|length }})</h2>
-  {% if student.face_samples %}
+  <h2>Stored samples ({{ face_samples|length }})</h2>
+  {% if face_samples %}
   <table>
     <tr><th>#</th><th>Captured</th><th></th></tr>
-    {% for sample in student.face_samples %}
+    {% for sample in face_samples %}
     <tr>
       <td>{{ loop.index }}</td>
       <td>{{ sample.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
@@ -63,13 +63,13 @@
 
 {% block scripts %}
 <script>
-const captureUrl = "{{ url_for('faces.capture', student_id=student.id) }}";
+const captureUrl = "{{ capture_url }}";
 const video = document.getElementById('video');
 const canvas = document.getElementById('canvas');
 const status = document.getElementById('cam-status');
 const startBtn = document.getElementById('start-cam');
 const capBtn = document.getElementById('capture');
-let stream = null, count = {{ student.face_samples|length }};
+let stream = null, count = {{ face_samples|length }};
 
 startBtn.onclick = async () => {
   try {

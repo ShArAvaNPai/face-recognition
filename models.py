@@ -29,6 +29,10 @@ class User(UserMixin, db.Model):
     student_id = db.Column(db.Integer, db.ForeignKey("students.id"), nullable=True)
     student = db.relationship("Student", backref=db.backref("user", uselist=False))
 
+    face_samples = db.relationship(
+        "FaceSample", backref="user", cascade="all, delete-orphan"
+    )
+
     def set_password(self, raw):
         self.password_hash = generate_password_hash(raw)
 
@@ -50,6 +54,10 @@ class User(UserMixin, db.Model):
     @property
     def is_director(self):
         return self.role == ROLE_DIRECTOR
+
+    @property
+    def has_face(self):
+        return len(self.face_samples) > 0
 
     def __repr__(self):
         return f"<User {self.username} ({self.role})>"
@@ -82,15 +90,16 @@ class Student(db.Model):
 
 
 class FaceSample(db.Model):
-    """One stored 128-d SFace feature vector for a student.
+    """One stored 128-d SFace feature vector for a student or lecturer.
 
-    Multiple samples per student improve recognition accuracy.
+    Multiple samples per student or lecturer improve recognition accuracy.
     The feature is stored as raw float32 bytes.
     """
     __tablename__ = "face_samples"
 
     id = db.Column(db.Integer, primary_key=True)
-    student_id = db.Column(db.Integer, db.ForeignKey("students.id"), nullable=False)
+    student_id = db.Column(db.Integer, db.ForeignKey("students.id"), nullable=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
     feature = db.Column(db.LargeBinary, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 

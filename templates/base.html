@@ -7,77 +7,142 @@
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
 <body>
-  <header class="topbar">
-    <div class="brand">
-      <a href="{{ url_for('dashboard.index') if current_user.is_authenticated else url_for('auth.login') }}">
-        🎓 Smart Attendance
-      </a>
-    </div>
+  <div class="app-layout{% if not current_user.is_authenticated %} auth-layout{% endif %}">
     {% if current_user.is_authenticated %}
-    <nav class="nav">
-      <a href="{{ url_for('dashboard.index') }}">Dashboard</a>
-      {% if current_user.role == 'admin' %}
-        <a href="{{ url_for('admin.list_users') }}">Users</a>
-      {% endif %}
-      
-      {% if current_user.role in ['admin', 'faculty', 'director'] %}
-        <a href="{{ url_for('students.list_students') }}">Students</a>
-        <a href="{{ url_for('faces.index') }}">Faces</a>
-        <a href="{{ url_for('attendance.subjects') }}">Subjects</a>
-        <a href="{{ url_for('attendance.index') }}">Stud. Attendance</a>
-        <a href="{{ url_for('reports.index') }}">Reports</a>
-      {% endif %}
+    <aside class="sidebar">
+      <div class="sidebar-brand">
+        <a href="{{ url_for('dashboard.index') }}">
+          <span class="brand-logo">🎓</span>
+          <span class="brand-name">Smart Attendance</span>
+        </a>
+      </div>
 
-      {% if current_user.role in ['admin', 'director'] %}
-        <a href="{{ url_for('director.faculty_attendance_index') }}">Fac. Attendance</a>
-        <a href="{{ url_for('director.leaves_index') }}">Leaves</a>
-      {% endif %}
+      <nav class="sidebar-nav">
+        <div class="nav-section-label">Main Menu</div>
+        <a href="{{ url_for('dashboard.index') }}" class="nav-item">
+          <span>📊 Dashboard</span>
+        </a>
 
-      {% if current_user.role == 'faculty' %}
-        <a href="{{ url_for('faculty.leaves') }}">My Leaves</a>
-      {% endif %}
-
-      {% if current_user.role == 'student' %}
-        {% if current_user.student %}
-        <a href="{{ url_for('reports.student_detail', student_id=current_user.student.id) }}">My Attendance</a>
+        {% if current_user.role == 'admin' %}
+          <a href="{{ url_for('admin.list_users') }}" class="nav-item">
+            <span>👥 Manage Users</span>
+          </a>
         {% endif %}
-      {% endif %}
-      <span class="spacer"></span>
-      <span class="who">{{ current_user.username }} <em>({{ current_user.role }})</em></span>
-      <a href="{{ url_for('auth.change_password') }}">Password</a>
-      <a class="btn-link" href="{{ url_for('auth.logout') }}">Logout</a>
-    </nav>
-    {% endif %}
-  </header>
+        
+        {% if current_user.role in ['admin', 'faculty', 'director'] %}
+          <div class="nav-section-label">Academic & Faces</div>
+          <a href="{{ url_for('students.list_students') }}" class="nav-item">
+            <span>👨‍🎓 Students</span>
+          </a>
+          {% if current_user.role == 'admin' %}
+          <a href="{{ url_for('faces.index') }}" class="nav-item">
+            <span>📸 Face Registration</span>
+          </a>
+          {% endif %}
+          <a href="{{ url_for('attendance.subjects') }}" class="nav-item">
+            <span>📚 Subjects</span>
+          </a>
+          <a href="{{ url_for('attendance.index') }}" class="nav-item">
+            <span>📋 Stud. Attendance</span>
+          </a>
+          <a href="{{ url_for('reports.index') }}" class="nav-item">
+            <span>📈 Reports</span>
+          </a>
+        {% endif %}
 
-  <main class="container">
-    {% with messages = get_flashed_messages(with_categories=true) %}
-      {% if messages %}
-        <div class="flashes">
-          {% for category, message in messages %}
-            <div class="flash flash-{{ category }}">{{ message }}</div>
-          {% endfor %}
+        {% if current_user.role in ['admin', 'director'] %}
+          <div class="nav-section-label">Administration</div>
+          <a href="{{ url_for('director.faculty_attendance_index') }}" class="nav-item">
+            <span>👩‍🏫 Fac. Attendance</span>
+          </a>
+          <a href="{{ url_for('director.leaves_index') }}" class="nav-item">
+            <span>📝 Leaves</span>
+          </a>
+        {% endif %}
+
+        {% if current_user.role == 'faculty' %}
+          <div class="nav-section-label">Faculty Portal</div>
+          <a href="{{ url_for('faculty.leaves') }}" class="nav-item">
+            <span>📝 My Leaves</span>
+          </a>
+        {% endif %}
+
+        {% if current_user.role == 'student' %}
+          {% if current_user.student %}
+          <div class="nav-section-label">Student Portal</div>
+          <a href="{{ url_for('reports.student_detail', student_id=current_user.student.id) }}" class="nav-item">
+            <span>📋 My Attendance</span>
+          </a>
+          {% endif %}
+        {% endif %}
+      </nav>
+
+      <div class="sidebar-user">
+        <div class="user-info">
+          <span class="username">{{ current_user.username }}</span>
+          <span class="user-role">{{ current_user.role }}</span>
         </div>
-      {% endif %}
-    {% endwith %}
+        <div class="user-actions">
+          <a href="{{ url_for('auth.change_password') }}" title="Change Password" class="user-action-btn">🔑</a>
+          <a href="{{ url_for('auth.logout') }}" title="Logout" class="user-action-btn logout-btn">🚪</a>
+        </div>
+      </div>
+    </aside>
+    {% endif %}
 
-    {% block content %}{% endblock %}
-  </main>
+    <div class="main-wrapper">
+      <main class="container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+          {% if messages %}
+            <div class="flashes">
+              {% for category, message in messages %}
+                <div class="flash flash-{{ category }}">{{ message }}</div>
+              {% endfor %}
+            </div>
+          {% endif %}
+        {% endwith %}
 
-  <footer class="footer">Smart Attendance System · Face Recognition (OpenCV SFace)</footer>
+        {% block content %}{% endblock %}
+      </main>
+
+      <footer class="footer">Smart Attendance System · Face Recognition (OpenCV SFace)</footer>
+    </div>
+  </div>
   <script>
-  document.addEventListener('click', function (e) {
-    if (e.target && e.target.classList.contains('toggle-password')) {
-      const input = e.target.closest('.password-wrapper').querySelector('input');
-      if (input.type === 'password') {
-        input.type = 'text';
-        e.target.textContent = '🙈';
-      } else {
-        input.type = 'password';
-        e.target.textContent = '👁️';
-      }
+  (function() {
+    const EYE_OPEN = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-eye" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>`;
+    const EYE_CLOSED = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-eye-off" viewBox="0 0 24 24"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>`;
+
+    function initTogglePasswordIcons() {
+      document.querySelectorAll('.toggle-password').forEach(btn => {
+        if (btn.textContent.trim() === '👁️' || btn.innerHTML.trim() === '👁️') {
+          btn.innerHTML = EYE_OPEN;
+        }
+      });
     }
-  });
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', initTogglePasswordIcons);
+    } else {
+      initTogglePasswordIcons();
+    }
+
+    document.addEventListener('click', function (e) {
+      const btn = e.target.closest('.toggle-password');
+      if (btn) {
+        const wrapper = btn.closest('.password-wrapper');
+        if (!wrapper) return;
+        const input = wrapper.querySelector('input');
+        if (input.type === 'password') {
+          input.type = 'text';
+          btn.innerHTML = EYE_CLOSED;
+        } else {
+          input.type = 'password';
+          btn.innerHTML = EYE_OPEN;
+        }
+      }
+    });
+  })();
   </script>
   {% block scripts %}{% endblock %}
 </body>

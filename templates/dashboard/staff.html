@@ -16,7 +16,9 @@
   <h2>Quick actions</h2>
   <div class="btn-row">
     <a class="btn" href="{{ url_for('students.create_student') }}">+ Add student</a>
+    {% if current_user.role == 'admin' %}
     <a class="btn" href="{{ url_for('faces.index') }}">Register faces</a>
+    {% endif %}
     <a class="btn" href="{{ url_for('attendance.new_session') }}">Start attendance</a>
     <a class="btn btn-secondary" href="{{ url_for('reports.index') }}">View reports</a>
   </div>
