@@ -1,48 +1,83 @@
 {% extends "base.html" %}
 {% block title %}Face Registration{% endblock %}
 {% block content %}
-<h1>Face Registration</h1>
-<p class="subtitle">Capture or upload face samples for each student and lecturer</p>
-
-{% if not engine_ready %}
-<div class="warn-banner">⚠ Face models not installed. Run <strong>python download_models.py</strong> first.</div>
-{% endif %}
-
-<div class="card">
-  <h2>Students</h2>
-  <table>
-    <tr><th>Roll</th><th>Name</th><th>Samples</th><th></th></tr>
-    {% for s in students %}
-    <tr>
-      <td>{{ s.roll_number }}</td>
-      <td>{{ s.name }}</td>
-      <td>
-        {% if s.has_face %}<span class="badge badge-yes">{{ s.face_samples|length }}</span>
-        {% else %}<span class="badge badge-no">0</span>{% endif %}
-      </td>
-      <td><a class="btn btn-sm" href="{{ url_for('faces.register', student_id=s.id) }}">Register faces</a></td>
-    </tr>
-    {% endfor %}
-  </table>
-  {% if not students %}<p class="muted">No students yet. Add students first.</p>{% endif %}
+<div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom: 2rem;">
+  <div>
+    <h1>Face Registration</h1>
+    <p class="subtitle" style="margin-bottom:0;">Capture or upload face samples for students and faculty</p>
+  </div>
 </div>
 
-<div class="card" style="margin-top: 20px;">
-  <h2>Lecturers</h2>
-  <table>
-    <tr><th>Username</th><th>Email</th><th>Samples</th><th></th></tr>
-    {% for f in faculties %}
-    <tr>
-      <td>{{ f.username }}</td>
-      <td>{{ f.email }}</td>
-      <td>
-        {% if f.has_face %}<span class="badge badge-yes">{{ f.face_samples|length }}</span>
-        {% else %}<span class="badge badge-no">0</span>{% endif %}
-      </td>
-      <td><a class="btn btn-sm" href="{{ url_for('faces.register_faculty', user_id=f.id) }}">Register faces</a></td>
-    </tr>
-    {% endfor %}
-  </table>
-  {% if not faculties %}<p class="muted">No lecturers yet.</p>{% endif %}
+{% if not engine_ready %}
+<div class="warn-banner">
+  <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+  <span>Face models not installed. Run <strong>python download_models.py</strong> first.</span>
+</div>
+{% endif %}
+
+<div class="card card-table">
+  <div class="card-table-header">
+    <h2>Students</h2>
+  </div>
+  <div class="table-responsive">
+    <table>
+      <thead>
+        <tr><th>Roll</th><th>Name</th><th>Samples</th><th>Action</th></tr>
+      </thead>
+      <tbody>
+        {% for s in students %}
+        <tr>
+          <td><span class="badge badge-muted">{{ s.roll_number }}</span></td>
+          <td style="font-weight:600; color:#fff;">{{ s.name }}</td>
+          <td>
+            {% if s.has_face %}<span class="badge badge-yes">{{ s.face_samples|length }} samples</span>
+            {% else %}<span class="badge badge-no">0 samples</span>{% endif %}
+          </td>
+          <td>
+            {% if current_user.role == 'admin' %}
+            <a class="btn btn-sm" href="{{ url_for('faces.register', student_id=s.id) }}">Register faces</a>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+        {% if not students %}
+        <tr><td colspan="4" style="text-align:center;padding:3rem 2rem;" class="muted">No students yet. Add students first.</td></tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card card-table" style="margin-top:2rem;">
+  <div class="card-table-header">
+    <h2>Lecturers</h2>
+  </div>
+  <div class="table-responsive">
+    <table>
+      <thead>
+        <tr><th>Username</th><th>Email</th><th>Samples</th><th>Action</th></tr>
+      </thead>
+      <tbody>
+        {% for f in faculties %}
+        <tr>
+          <td style="font-weight:600; color:#fff;">{{ f.username }}</td>
+          <td>{{ f.email }}</td>
+          <td>
+            {% if f.has_face %}<span class="badge badge-yes">{{ f.face_samples|length }} samples</span>
+            {% else %}<span class="badge badge-no">0 samples</span>{% endif %}
+          </td>
+          <td>
+            {% if current_user.role == 'admin' %}
+            <a class="btn btn-sm" href="{{ url_for('faces.register_faculty', user_id=f.id) }}">Register faces</a>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+        {% if not faculties %}
+        <tr><td colspan="4" style="text-align:center;padding:3rem 2rem;" class="muted">No lecturers yet.</td></tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
 </div>
 {% endblock %}

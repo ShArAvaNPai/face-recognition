@@ -2,74 +2,74 @@
 {% block title %}My Leave Applications{% endblock %}
 
 {% block content %}
-<div class="row mt-4">
-    <div class="col-md-4">
-        <div class="card shadow-sm mb-4">
-            <div class="card-header bg-primary text-white">
-                <h5 class="mb-0">Apply for Leave</h5>
-            </div>
-            <div class="card-body">
-                <form method="post" action="{{ url_for('faculty.leaves') }}">
-                    <div class="mb-3">
-                        <label class="form-label">Start Date</label>
-                        <input type="date" name="start_date" class="form-control" required min="{{ today }}">
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">End Date</label>
-                        <input type="date" name="end_date" class="form-control" required min="{{ today }}">
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Reason</label>
-                        <textarea name="reason" class="form-control" rows="3" required></textarea>
-                    </div>
-                    <button type="submit" class="btn btn-primary w-100">Submit Application</button>
-                </form>
-            </div>
+<div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom: 2rem;">
+  <div>
+    <h1>My Leave Applications</h1>
+    <p class="subtitle" style="margin-bottom:0;">Submit and track your leave requests</p>
+  </div>
+</div>
+
+<div style="display:flex; gap:1.5rem; flex-wrap:wrap; align-items:flex-start;">
+  <div style="flex:0 0 340px; min-width:280px;">
+    <div class="card">
+      <h2 style="margin-top:0;">Apply for Leave</h2>
+      <form method="post" action="{{ url_for('faculty.leaves') }}">
+        <label>Start Date</label>
+        <input type="date" name="start_date" required min="{{ today }}">
+        
+        <label>End Date</label>
+        <input type="date" name="end_date" required min="{{ today }}">
+        
+        <label>Reason</label>
+        <textarea name="reason" rows="3" required placeholder="Reason for leave application..."></textarea>
+        
+        <div class="btn-row" style="margin-top:1.5rem;">
+          <button type="submit" class="btn" style="width:100%;">Submit Application</button>
         </div>
+      </form>
     </div>
-    
-    <div class="col-md-8">
-        <div class="card shadow-sm">
-            <div class="card-header bg-light">
-                <h5 class="mb-0">Leave History</h5>
-            </div>
-            <div class="card-body p-0">
-                <div class="table-responsive">
-                    <table class="table table-striped table-sm mb-0">
-                        <thead class="table-light">
-                            <tr>
-                                <th>Start Date</th>
-                                <th>End Date</th>
-                                <th>Reason</th>
-                                <th>Status</th>
-                                <th>Applied At</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for leave in leaves %}
-                            <tr>
-                                <td>{{ leave.start_date }}</td>
-                                <td>{{ leave.end_date }}</td>
-                                <td>{{ leave.reason }}</td>
-                                <td>
-                                    {% if leave.status == 'pending' %}
-                                        <span class="badge bg-warning text-dark">Pending</span>
-                                    {% elif leave.status == 'approved' %}
-                                        <span class="badge bg-success">Approved</span>
-                                    {% else %}
-                                        <span class="badge bg-danger">Rejected</span>
-                                    {% endif %}
-                                </td>
-                                <td>{{ leave.created_at.strftime('%Y-%m-%d') }}</td>
-                            </tr>
-                            {% else %}
-                            <tr><td colspan="5" class="text-center py-3">No leave applications found.</td></tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-            </div>
-        </div>
+  </div>
+
+  <div style="flex:1; min-width:300px;">
+    <div class="card card-table">
+      <div class="card-table-header">
+        <h2>Leave History</h2>
+      </div>
+      <div class="table-responsive">
+        <table>
+          <thead>
+            <tr>
+              <th>Start Date</th>
+              <th>End Date</th>
+              <th>Reason</th>
+              <th>Status</th>
+              <th>Applied At</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for leave in leaves %}
+            <tr>
+              <td><span class="badge badge-muted">{{ leave.start_date }}</span></td>
+              <td><span class="badge badge-muted">{{ leave.end_date }}</span></td>
+              <td>{{ leave.reason }}</td>
+              <td>
+                {% if leave.status == 'pending' %}
+                  <span class="badge" style="background:rgba(245,158,11,0.15); color:#f59e0b; border:1px solid rgba(245,158,11,0.3);">Pending</span>
+                {% elif leave.status == 'approved' %}
+                  <span class="badge badge-yes">Approved</span>
+                {% else %}
+                  <span class="badge badge-no">Rejected</span>
+                {% endif %}
+              </td>
+              <td><span class="muted">{{ leave.created_at.strftime('%Y-%m-%d') }}</span></td>
+            </tr>
+            {% else %}
+            <tr><td colspan="5" style="text-align:center;padding:3rem 2rem;" class="muted">No leave applications found.</td></tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
     </div>
+  </div>
 </div>
 {% endblock %}

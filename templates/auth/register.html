@@ -3,7 +3,11 @@
 {% block content %}
 <div class="auth-wrap">
   <div class="card">
-    <h1>Create account</h1>
+    <div style="text-align:center; margin-bottom:1.5rem;">
+      <div class="brand-icon" style="width: 48px; height: 48px; margin: 0 auto 1rem; font-size: 1.5rem;">🎓</div>
+      <h1>Create account</h1>
+    </div>
+    
     <form method="post" id="reg-form">
       <label>Role</label>
       <select name="role" id="role">
@@ -12,29 +16,38 @@
       </select>
 
       <label>Username</label>
-      <input type="text" name="username" required>
+      <input type="text" name="username" required placeholder="Choose a username">
+      
       <label>Email</label>
-      <input type="email" name="email" required>
+      <input type="email" name="email" required placeholder="you@example.com">
+      
       <label>Password</label>
       <div class="password-wrapper">
-        <input type="password" name="password" required minlength="6">
-        <button type="button" class="toggle-password">👁️</button>
+        <input type="password" name="password" required minlength="6" placeholder="At least 6 characters">
+        <button type="button" class="toggle-password"></button>
       </div>
 
-      <div id="student-fields">
+      <div id="student-fields" style="display:none; animation: fadeIn 0.3s ease;">
+        <hr>
         <label>Roll Number</label>
-        <input type="text" name="roll_number">
+        <input type="text" name="roll_number" placeholder="e.g. CS2023-01">
+        
         <label>Full Name</label>
-        <input type="text" name="name">
+        <input type="text" name="name" placeholder="John Doe">
+        
         <label>Department</label>
-        <input type="text" name="department">
+        <input type="text" name="department" placeholder="Computer Science">
+        
         <label>Class</label>
-        <input type="text" name="class_name">
+        <input type="text" name="class_name" placeholder="MCA-1A">
       </div>
 
-      <div class="btn-row">
-        <button class="btn" type="submit">Register</button>
-        <a class="btn btn-secondary" href="{{ url_for('auth.login') }}">Back to login</a>
+      <div class="btn-row" style="margin-top:2rem;">
+        <button class="btn" type="submit" style="width:100%;">Register</button>
+      </div>
+      
+      <div style="text-align:center; margin-top:1.5rem;">
+        <a href="{{ url_for('auth.login') }}" style="font-size:0.9rem; font-weight:600;">Already have an account? Sign in</a>
       </div>
     </form>
   </div>
@@ -42,7 +55,13 @@
 <script>
   const role = document.getElementById('role');
   const sf = document.getElementById('student-fields');
-  function sync(){ sf.style.display = role.value === 'student' ? 'block' : 'none'; }
+  function sync(){ 
+    if(role.value === 'student') {
+      sf.style.display = 'block';
+    } else {
+      sf.style.display = 'none';
+    }
+  }
   role.addEventListener('change', sync); sync();
 </script>
 {% endblock %}

@@ -1,20 +1,33 @@
 {% extends "base.html" %}
 {% block title %}{{ 'Edit' if student else 'New' }} Student{% endblock %}
 {% block content %}
-<div class="auth-wrap">
+<div class="auth-wrap" style="max-width: 540px;">
   <div class="card">
-    <h1>{{ 'Edit' if student else 'Add' }} student</h1>
+    <div style="margin-bottom: 2rem; text-align:center;">
+      <div class="brand-icon" style="width:48px; height:48px; margin:0 auto 1rem; font-size:1.5rem;">👨‍🎓</div>
+      <h1>{{ 'Edit' if student else 'Add' }} Student</h1>
+      <p class="subtitle">Student profile and class details</p>
+    </div>
     <form method="post">
       <label>Roll Number</label>
-      <input name="roll_number" value="{{ student.roll_number if student else '' }}" required>
+      <input name="roll_number" value="{{ student.roll_number if student else '' }}" required placeholder="e.g. CS2023-01">
+      
       <label>Full Name</label>
-      <input name="name" value="{{ student.name if student else '' }}" required>
-      <label>Department</label>
-      <input name="department" value="{{ student.department if student else '' }}">
-      <label>Class</label>
-      <input name="class_name" value="{{ student.class_name if student else '' }}">
-      <div class="btn-row">
-        <button class="btn" type="submit">Save</button>
+      <input name="name" value="{{ student.name if student else '' }}" required placeholder="Student's full name">
+      
+      <div style="display:flex; gap:1rem; flex-wrap:wrap;">
+        <div style="flex:1; min-width:200px;">
+          <label>Department</label>
+          <input name="department" value="{{ student.department if student else '' }}" placeholder="Computer Science">
+        </div>
+        <div style="flex:1; min-width:200px;">
+          <label>Class</label>
+          <input name="class_name" value="{{ student.class_name if student else '' }}" placeholder="MCA-1A">
+        </div>
+      </div>
+      
+      <div class="btn-row" style="margin-top:2rem;">
+        <button class="btn" type="submit" style="flex:1;">Save Student</button>
         <a class="btn btn-secondary" href="{{ url_for('students.list_students') }}">Cancel</a>
       </div>
     </form>

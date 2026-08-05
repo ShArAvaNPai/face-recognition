@@ -1,34 +1,46 @@
 {% extends "base.html" %}
 {% block title %}Subjects{% endblock %}
 {% block content %}
-<h1>Subjects</h1>
-<p class="subtitle">Subjects you can take attendance for</p>
-
-<div class="card">
-  <h2>Add subject</h2>
-  <form method="post" style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap">
-    <div style="flex:1;min-width:120px"><label>Code</label><input name="code" required></div>
-    <div style="flex:2;min-width:160px"><label>Name</label><input name="name" required></div>
-    <button class="btn" type="submit">Add</button>
-  </form>
+<div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom: 2rem;">
+  <div>
+    <h1>Subjects Roster</h1>
+    <p class="subtitle" style="margin-bottom:0;">Manage course subjects and assignments</p>
+  </div>
 </div>
 
 <div class="card">
-  <h2>All subjects</h2>
-  {% if subjects %}
-  <table>
-    <tr><th>Code</th><th>Name</th><th>Faculty</th><th>Sessions</th></tr>
-    {% for s in subjects %}
-    <tr>
-      <td>{{ s.code }}</td>
-      <td>{{ s.name }}</td>
-      <td>{{ s.faculty.username if s.faculty else '—' }}</td>
-      <td>{{ s.sessions|length }}</td>
-    </tr>
-    {% endfor %}
-  </table>
-  {% else %}
-  <p class="muted">No subjects yet.</p>
-  {% endif %}
+  <h2>Add Subject</h2>
+  <form method="post" style="display:flex; gap:1rem; align-items:flex-end; flex-wrap:wrap">
+    <div style="flex:1; min-width:140px"><label>Code</label><input name="code" required placeholder="e.g. CS101"></div>
+    <div style="flex:2; min-width:200px"><label>Name</label><input name="name" required placeholder="e.g. Data Structures"></div>
+    <button class="btn" type="submit" style="margin-top:auto;">Add Subject</button>
+  </form>
+</div>
+
+<div class="card card-table">
+  <div class="card-table-header">
+    <h2>All Subjects</h2>
+  </div>
+  <div class="table-responsive">
+    {% if subjects %}
+    <table>
+      <thead>
+        <tr><th>Code</th><th>Name</th><th>Faculty</th><th>Sessions Count</th></tr>
+      </thead>
+      <tbody>
+        {% for s in subjects %}
+        <tr>
+          <td><span class="badge badge-muted">{{ s.code }}</span></td>
+          <td style="font-weight:600; color:#fff;">{{ s.name }}</td>
+          <td>{{ s.faculty.username if s.faculty else '—' }}</td>
+          <td><span class="badge badge-yes">{{ s.sessions|length }}</span></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p class="muted" style="padding:3rem 2rem; text-align:center;">No subjects yet.</p>
+    {% endif %}
+  </div>
 </div>
 {% endblock %}

@@ -2,38 +2,46 @@
 {% block title %}Faculty Attendance Sessions{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-    <h1 class="h2">Faculty Attendance Sessions</h1>
-    <form method="post" action="{{ url_for('director.new_faculty_session') }}" class="d-flex">
-        <input type="date" name="session_date" class="form-control me-2" required value="{{ today }}">
-        <button type="submit" class="btn btn-primary">Start Session</button>
-    </form>
+<div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom: 2rem;">
+  <div>
+    <h1>Faculty Attendance Sessions</h1>
+    <p class="subtitle" style="margin-bottom:0;">Manage and review faculty attendance records</p>
+  </div>
 </div>
 
-<div class="table-responsive">
-    <table class="table table-striped table-sm mt-3">
-        <thead>
-            <tr>
-                <th>Session ID</th>
-                <th>Date</th>
-                <th>Taken By</th>
-                <th>Actions</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for session in sessions %}
-            <tr>
-                <td>{{ session.id }}</td>
-                <td>{{ session.session_date }}</td>
-                <td>{{ session.taken_by.username }}</td>
-                <td>
-                    <a href="{{ url_for('director.take_faculty_attendance', session_id=session.id) }}" class="btn btn-sm btn-outline-primary">Take / Edit Attendance</a>
-                </td>
-            </tr>
-            {% else %}
-            <tr><td colspan="4">No sessions found.</td></tr>
-            {% endfor %}
-        </tbody>
+<div class="card card-table">
+  <div class="card-table-header">
+    <h2>Sessions Roster</h2>
+    <form method="post" action="{{ url_for('director.new_faculty_session') }}" style="display:flex; gap:8px; align-items:center;">
+      <input type="date" name="session_date" required value="{{ today }}" style="width:auto;">
+      <button type="submit" class="btn">Start Session</button>
+    </form>
+  </div>
+  <div class="table-responsive">
+    <table>
+      <thead>
+        <tr>
+          <th>Session ID</th>
+          <th>Date</th>
+          <th>Taken By</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for session in sessions %}
+        <tr>
+          <td><span class="badge badge-muted">#{{ session.id }}</span></td>
+          <td>{{ session.session_date }}</td>
+          <td><span style="font-weight:600; color:#fff;">{{ session.taken_by.username }}</span></td>
+          <td>
+            <a href="{{ url_for('director.take_faculty_attendance', session_id=session.id) }}" class="btn btn-sm">Take / Edit Attendance</a>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="4" style="text-align:center;padding:3rem 2rem;" class="muted">No sessions found.</td></tr>
+        {% endfor %}
+      </tbody>
     </table>
+  </div>
 </div>
 {% endblock %}

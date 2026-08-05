@@ -2,65 +2,78 @@
 {% block title %}Create New User{% endblock %}
 
 {% block content %}
-<div class="row justify-content-center mt-4">
-    <div class="col-md-6">
-        <div class="card shadow-sm">
-            <div class="card-header bg-primary text-white">
-                <h5 class="mb-0">Create New User</h5>
-            </div>
-            <div class="card-body">
-                <form method="post" action="{{ url_for('admin.new_user') }}">
-                    <div class="mb-3">
-                        <label class="form-label">Username</label>
-                        <input type="text" name="username" class="form-control" required autofocus>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Email</label>
-                        <input type="email" name="email" class="form-control" required>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Password</label>
-                        <div class="password-wrapper">
-                            <input type="password" name="password" class="form-control" required minlength="6">
-                            <button type="button" class="toggle-password">👁️</button>
-                        </div>
-                    </div>
-                    <div class="mb-3">
-                        <label class="form-label">Role</label>
-                        <select name="role" id="role-select" class="form-select" required>
-                            {% for r in roles %}
-                            <option value="{{ r }}">{{ r|capitalize }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-
-                    <!-- Student specific fields -->
-                    <div id="student-fields" style="display: none;">
-                        <hr>
-                        <h6>Student Details</h6>
-                        <div class="mb-3">
-                            <label class="form-label">Roll Number</label>
-                            <input type="text" name="roll_number" class="form-control" placeholder="e.g. CS2023-01">
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Full Name</label>
-                            <input type="text" name="name" class="form-control">
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Department</label>
-                            <input type="text" name="department" class="form-control">
-                        </div>
-                        <div class="mb-3">
-                            <label class="form-label">Class</label>
-                            <input type="text" name="class_name" class="form-control">
-                        </div>
-                    </div>
-
-                    <button type="submit" class="btn btn-primary w-100">Create User</button>
-                </form>
-            </div>
-        </div>
+<div class="auth-wrap" style="max-width: 600px;">
+  <div class="card">
+    <div style="margin-bottom: 2rem;">
+      <h1 style="font-size: 1.5rem;">Create New User</h1>
+      <p class="subtitle">Add a new account to the system</p>
     </div>
+    
+    <form method="post" action="{{ url_for('admin.new_user') }}">
+      <div style="display:flex; gap:1.5rem; flex-wrap:wrap;">
+        <div style="flex:1; min-width:240px;">
+          <label>Username</label>
+          <input type="text" name="username" required autofocus placeholder="Unique username">
+        </div>
+        <div style="flex:1; min-width:240px;">
+          <label>Email</label>
+          <input type="email" name="email" required placeholder="User email address">
+        </div>
+      </div>
+      
+      <div style="display:flex; gap:1.5rem; flex-wrap:wrap;">
+        <div style="flex:1; min-width:240px;">
+          <label>Password</label>
+          <div class="password-wrapper">
+            <input type="password" name="password" required minlength="6" placeholder="Secure password">
+            <button type="button" class="toggle-password"></button>
+          </div>
+        </div>
+        <div style="flex:1; min-width:240px;">
+          <label>Role</label>
+          <select name="role" id="role-select" required>
+            {% for r in roles %}
+            <option value="{{ r }}">{{ r|capitalize }}</option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+
+      <!-- Student specific fields -->
+      <div id="student-fields" style="display: none; animation: fadeIn 0.3s ease;">
+        <hr>
+        <h3>Student Details</h3>
+        <p class="muted">Required for student role accounts</p>
+        
+        <div style="display:flex; gap:1.5rem; flex-wrap:wrap;">
+          <div style="flex:1; min-width:240px;">
+            <label>Roll Number</label>
+            <input type="text" name="roll_number" placeholder="e.g. CS2023-01">
+          </div>
+          <div style="flex:1; min-width:240px;">
+            <label>Full Name</label>
+            <input type="text" name="name" placeholder="John Doe">
+          </div>
+        </div>
+        
+        <div style="display:flex; gap:1.5rem; flex-wrap:wrap;">
+          <div style="flex:1; min-width:240px;">
+            <label>Department</label>
+            <input type="text" name="department" placeholder="Computer Science">
+          </div>
+          <div style="flex:1; min-width:240px;">
+            <label>Class</label>
+            <input type="text" name="class_name" placeholder="MCA-1A">
+          </div>
+        </div>
+      </div>
+
+      <div class="btn-row" style="margin-top:2rem;">
+        <button type="submit" class="btn" style="flex:1;">Create User</button>
+        <a href="{{ url_for('admin.list_users') }}" class="btn btn-secondary">Cancel</a>
+      </div>
+    </form>
+  </div>
 </div>
 
 <script>

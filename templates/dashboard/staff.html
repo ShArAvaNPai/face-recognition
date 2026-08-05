@@ -1,46 +1,103 @@
 {% extends "base.html" %}
 {% block title %}Dashboard{% endblock %}
 {% block content %}
-<h1>Dashboard</h1>
-<p class="subtitle">Overview of the attendance system</p>
-
-<div class="stat-grid">
-  <div class="stat"><div class="num">{{ stats.students }}</div><div class="lbl">Students</div></div>
-  <div class="stat"><div class="num">{{ stats.faces }}</div><div class="lbl">Face samples</div></div>
-  <div class="stat"><div class="num">{{ stats.subjects }}</div><div class="lbl">Subjects</div></div>
-  <div class="stat"><div class="num">{{ stats.sessions }}</div><div class="lbl">Sessions</div></div>
-  <div class="stat"><div class="num">{{ stats.users }}</div><div class="lbl">Users</div></div>
-</div>
-
-<div class="card" style="margin-top:20px">
-  <h2>Quick actions</h2>
-  <div class="btn-row">
-    <a class="btn" href="{{ url_for('students.create_student') }}">+ Add student</a>
-    {% if current_user.role == 'admin' %}
-    <a class="btn" href="{{ url_for('faces.index') }}">Register faces</a>
-    {% endif %}
-    <a class="btn" href="{{ url_for('attendance.new_session') }}">Start attendance</a>
-    <a class="btn btn-secondary" href="{{ url_for('reports.index') }}">View reports</a>
+<div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom: 1.5rem;">
+  <div>
+    <h1>Overview</h1>
+    <p class="subtitle" style="margin-bottom:0;">System metrics and quick actions</p>
   </div>
 </div>
 
-<div class="card">
-  <h2>Recent sessions</h2>
+<div class="stat-grid">
+  <div class="stat">
+    <div class="num">{{ stats.students }}</div>
+    <div class="lbl">Students</div>
+    <div style="position:absolute; top:1.2rem; right:1.2rem; opacity:0.15;">
+      <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="#ffffff" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+    </div>
+  </div>
+  <div class="stat">
+    <div class="num">{{ stats.faces }}</div>
+    <div class="lbl">Face samples</div>
+    <div style="position:absolute; top:1.2rem; right:1.2rem; opacity:0.15;">
+      <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="#ffffff" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+    </div>
+  </div>
+  <div class="stat">
+    <div class="num">{{ stats.subjects }}</div>
+    <div class="lbl">Subjects</div>
+    <div style="position:absolute; top:1.2rem; right:1.2rem; opacity:0.15;">
+      <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="#ffffff" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+    </div>
+  </div>
+  <div class="stat">
+    <div class="num">{{ stats.sessions }}</div>
+    <div class="lbl">Sessions</div>
+    <div style="position:absolute; top:1.2rem; right:1.2rem; opacity:0.15;">
+      <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="#ffffff" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+    </div>
+  </div>
+  <div class="stat">
+    <div class="num">{{ stats.users }}</div>
+    <div class="lbl">Users</div>
+    <div style="position:absolute; top:1.2rem; right:1.2rem; opacity:0.15;">
+      <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="#ffffff" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+    </div>
+  </div>
+</div>
+
+<div class="card" style="margin-top:1.5rem">
+  <h2>Quick Actions</h2>
+  <div class="btn-row">
+    <a class="btn" href="{{ url_for('students.create_student') }}">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+      Add student
+    </a>
+    {% if current_user.role == 'admin' %}
+    <a class="btn" href="{{ url_for('faces.index') }}">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+      Register faces
+    </a>
+    {% endif %}
+    <a class="btn" href="{{ url_for('attendance.new_session') }}">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+      Start attendance
+    </a>
+    <a class="btn btn-secondary" href="{{ url_for('reports.index') }}">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+      View reports
+    </a>
+  </div>
+</div>
+
+<div class="card card-table">
+  <div class="card-table-header">
+    <h2>Recent Sessions</h2>
+    <a class="btn btn-secondary btn-sm" href="{{ url_for('attendance.index') }}">View all</a>
+  </div>
   {% if recent_sessions %}
-  <table>
-    <tr><th>Date</th><th>Subject</th><th>Class</th><th>Present</th><th></th></tr>
-    {% for s in recent_sessions %}
-    <tr>
-      <td>{{ s.session_date }}</td>
-      <td>{{ s.subject.name }}</td>
-      <td>{{ s.class_name or '—' }}</td>
-      <td>{{ s.records | selectattr('status', 'equalto', 'present') | list | length }}</td>
-      <td><a href="{{ url_for('attendance.history', session_id=s.id) }}">View</a></td>
-    </tr>
-    {% endfor %}
-  </table>
+  <div class="table-responsive">
+    <table>
+      <thead>
+        <tr><th>Date</th><th>Subject</th><th>Class</th><th>Present</th><th>Actions</th></tr>
+      </thead>
+      <tbody>
+        {% for s in recent_sessions %}
+        <tr>
+          <td><span class="badge badge-muted">{{ s.session_date }}</span></td>
+          <td style="font-weight: 500;">{{ s.subject.name }}</td>
+          <td>{{ s.class_name or '—' }}</td>
+          <td>
+            <span class="badge badge-yes">{{ s.records | selectattr('status', 'equalto', 'present') | list | length }} present</span>
+          </td>
+          <td><a class="btn btn-sm btn-secondary" href="{{ url_for('attendance.history', session_id=s.id) }}">View</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
   {% else %}
-  <p class="muted">No attendance sessions yet.</p>
+  <p class="muted" style="padding:2.5rem 1.5rem; text-align:center;">No attendance sessions yet.</p>
   {% endif %}
 </div>
 {% endblock %}

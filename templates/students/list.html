@@ -1,43 +1,71 @@
 {% extends "base.html" %}
 {% block title %}Students{% endblock %}
 {% block content %}
-<h1>Students</h1>
-<p class="subtitle">{{ students | length }} student(s)</p>
+<div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom: 2rem;">
+  <div>
+    <h1>Students Roster</h1>
+    <p class="subtitle" style="margin-bottom:0;">{{ students | length }} student(s) registered</p>
+  </div>
+</div>
 
-<div class="card">
-  <form method="get" style="display:flex;gap:10px;align-items:flex-end;margin-bottom:16px">
-    <div style="flex:1"><label>Search</label>
-      <input name="q" value="{{ q }}" placeholder="name, roll, department…"></div>
-    <button class="btn" type="submit">Search</button>
-    <a class="btn" href="{{ url_for('students.create_student') }}">+ Add student</a>
-  </form>
-
-  {% if students %}
-  <table>
-    <tr><th>Roll</th><th>Name</th><th>Department</th><th>Class</th><th>Face</th><th>Actions</th></tr>
-    {% for s in students %}
-    <tr>
-      <td>{{ s.roll_number }}</td>
-      <td>{{ s.name }}</td>
-      <td>{{ s.department or '—' }}</td>
-      <td>{{ s.class_name or '—' }}</td>
-      <td>
-        {% if s.has_face %}<span class="badge badge-yes">{{ s.face_samples|length }} sample(s)</span>
-        {% else %}<span class="badge badge-no">none</span>{% endif %}
-      </td>
-      <td>
-        <a class="btn btn-sm" href="{{ url_for('faces.register', student_id=s.id) }}">Faces</a>
-        <a class="btn btn-sm btn-secondary" href="{{ url_for('students.edit_student', student_id=s.id) }}">Edit</a>
-        <form class="inline-form" method="post" action="{{ url_for('students.delete_student', student_id=s.id) }}"
-              onsubmit="return confirm('Delete {{ s.name }}?')">
-          <button class="btn btn-sm btn-danger" type="submit">Delete</button>
-        </form>
-      </td>
-    </tr>
-    {% endfor %}
-  </table>
-  {% else %}
-  <p class="muted">No students found.</p>
-  {% endif %}
+<div class="card card-table">
+  <div class="card-table-header">
+    <h2>All Students</h2>
+    <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
+      <form method="get" style="display:flex; gap:8px; align-items:center;">
+        <div style="position:relative;">
+          <input name="q" value="{{ q }}" placeholder="Search name, roll, department…" style="width:260px; padding-left:2.4rem;">
+          <svg width="18" height="18" fill="none" stroke="var(--text-muted)" stroke-width="2" style="position:absolute; left:0.75rem; top:50%; transform:translateY(-50%);"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+        </div>
+        <button class="btn btn-secondary btn-sm" type="submit">Search</button>
+      </form>
+      <a class="btn" href="{{ url_for('students.create_student') }}">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+        Add Student
+      </a>
+    </div>
+  </div>
+  <div class="table-responsive">
+    {% if students %}
+    <table>
+      <thead>
+        <tr><th>Roll</th><th>Name</th><th>Department</th><th>Class</th><th>Face Status</th><th>Actions</th></tr>
+      </thead>
+      <tbody>
+        {% for s in students %}
+        <tr>
+          <td><span class="badge badge-muted">{{ s.roll_number }}</span></td>
+          <td style="font-weight:600; color:#fff;">{{ s.name }}</td>
+          <td>{{ s.department or '—' }}</td>
+          <td>{{ s.class_name or '—' }}</td>
+          <td>
+            {% if s.has_face %}
+              <span class="badge badge-yes">
+                <svg width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" style="margin-right:4px;"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+                {{ s.face_samples|length }} sample(s)
+              </span>
+            {% else %}
+              <span class="badge badge-no">No samples</span>
+            {% endif %}
+          </td>
+          <td>
+            <div style="display:flex; gap:0.5rem; align-items:center;">
+              {% if current_user.role == 'admin' %}
+              <a class="btn btn-sm" href="{{ url_for('faces.register', student_id=s.id) }}">Faces</a>
+              {% endif %}
+              <a class="btn btn-sm btn-secondary" href="{{ url_for('students.edit_student', student_id=s.id) }}">Edit</a>
+              <form class="inline-form" method="post" action="{{ url_for('students.delete_student', student_id=s.id) }}" onsubmit="return confirm('Delete {{ s.name }}?')">
+                <button class="btn btn-sm btn-danger" type="submit">Delete</button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p class="muted" style="padding:3rem 2rem; text-align:center;">No students found.</p>
+    {% endif %}
+  </div>
 </div>
 {% endblock %}

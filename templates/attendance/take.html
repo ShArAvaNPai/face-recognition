@@ -1,55 +1,78 @@
 {% extends "base.html" %}
 {% block title %}Take Attendance{% endblock %}
 {% block content %}
-<h1>Take attendance</h1>
-<p class="subtitle">{{ session.subject.name }} · {{ session.class_name or 'all classes' }} · {{ session.session_date }}</p>
+<div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom: 2rem;">
+  <div>
+    <h1>Take Attendance</h1>
+    <p class="subtitle" style="margin-bottom:0;">{{ session.subject.name }} · {{ session.class_name or 'All classes' }} · <span class="badge badge-muted">{{ session.session_date }}</span></p>
+  </div>
+</div>
 
 {% if not engine_ready %}
-<div class="warn-banner">⚠ Face models not installed. Run <strong>python download_models.py</strong> first. You can still mark manually below.</div>
+<div class="warn-banner">
+  <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+  <span>Face models not installed. Run <strong>python download_models.py</strong> first. You can still mark manually below.</span>
+</div>
 {% endif %}
 
 <div class="cam-col">
   <div class="card">
-    <h2>Live recognition</h2>
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1rem;">
+      <h2 style="margin:0;">Live Recognition</h2>
+      <span class="badge badge-muted" id="cam-badge">Standby</span>
+    </div>
+    
     <video id="video" width="360" height="270" autoplay playsinline></video>
     <canvas id="canvas" width="360" height="270" style="display:none"></canvas>
+    
     <div class="btn-row">
       <button class="btn" id="start-cam" type="button">Start camera</button>
       <button class="btn" id="scan-once" type="button" disabled>Scan once</button>
       <button class="btn btn-secondary" id="auto-scan" type="button" disabled>Start auto-scan</button>
     </div>
-    <div id="log" class="log" style="margin-top:12px"></div>
+    
+    <label style="margin-top:1.5rem;">Recognition Terminal</label>
+    <div id="log" class="log"></div>
   </div>
 
-  <div class="card">
-    <h2>Roster <span id="present-count" class="badge badge-yes">{{ present_ids|length }} present</span></h2>
-    <table>
-      <tr><th>Roll</th><th>Name</th><th>Status</th><th>Action</th></tr>
-      {% for s in students %}
-      <tr id="row-{{ s.id }}">
-        <td>{{ s.roll_number }}</td>
-        <td>{{ s.name }}</td>
-        <td class="status">
-          {% if s.id in present_ids %}<span class="badge badge-yes">Present</span>
-          {% else %}<span class="badge badge-muted">Absent</span>{% endif %}
-        </td>
-        <td>
-          <form class="inline-form" method="post" action="{{ url_for('attendance.toggle', session_id=session.id) }}">
-            <input type="hidden" name="student_id" value="{{ s.id }}">
-            {% if s.id in present_ids %}
-              <input type="hidden" name="present" value="0">
-              <button class="btn btn-sm btn-secondary" type="submit">Unmark</button>
-            {% else %}
-              <input type="hidden" name="present" value="1">
-              <button class="btn btn-sm" type="submit">Mark</button>
-            {% endif %}
-          </form>
-        </td>
-      </tr>
-      {% endfor %}
-    </table>
-    <div class="btn-row">
-      <a class="btn btn-secondary" href="{{ url_for('attendance.history', session_id=session.id) }}">View summary</a>
+  <div class="card card-table">
+    <div class="card-table-header">
+      <h2>Roster</h2>
+      <span id="present-count" class="badge badge-yes" style="font-size:0.85rem; padding:0.4rem 0.8rem;">{{ present_ids|length }} present</span>
+    </div>
+    <div class="table-responsive">
+      <table>
+        <thead>
+          <tr><th>Roll</th><th>Name</th><th>Status</th><th>Action</th></tr>
+        </thead>
+        <tbody>
+          {% for s in students %}
+          <tr id="row-{{ s.id }}">
+            <td><span class="badge badge-muted">{{ s.roll_number }}</span></td>
+            <td style="font-weight:600; color:#fff;">{{ s.name }}</td>
+            <td class="status">
+              {% if s.id in present_ids %}<span class="badge badge-yes">Present</span>
+              {% else %}<span class="badge badge-muted">Absent</span>{% endif %}
+            </td>
+            <td>
+              <form class="inline-form" method="post" action="{{ url_for('attendance.toggle', session_id=session.id) }}">
+                <input type="hidden" name="student_id" value="{{ s.id }}">
+                {% if s.id in present_ids %}
+                  <input type="hidden" name="present" value="0">
+                  <button class="btn btn-sm btn-secondary" type="submit">Unmark</button>
+                {% else %}
+                  <input type="hidden" name="present" value="1">
+                  <button class="btn btn-sm" type="submit">Mark</button>
+                {% endif %}
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+    <div class="card-table-footer">
+      <a class="btn btn-secondary" href="{{ url_for('attendance.history', session_id=session.id) }}">View Summary</a>
     </div>
   </div>
 </div>
@@ -65,6 +88,7 @@ const startBtn = document.getElementById('start-cam');
 const scanBtn = document.getElementById('scan-once');
 const autoBtn = document.getElementById('auto-scan');
 const presentCount = document.getElementById('present-count');
+const camBadge = document.getElementById('cam-badge');
 let stream = null, autoTimer = null, presentSet = new Set();
 
 function log(msg){ const t = new Date().toLocaleTimeString();
@@ -82,8 +106,11 @@ startBtn.onclick = async () => {
   try {
     stream = await navigator.mediaDevices.getUserMedia({ video: true });
     video.srcObject = stream;
+    video.classList.add('active');
     scanBtn.disabled = false; autoBtn.disabled = false;
-    log('Camera ready.');
+    camBadge.textContent = 'Active';
+    camBadge.className = 'badge badge-yes';
+    log('Camera stream initialized.');
   } catch (e) { log('Camera error: ' + e.message); }
 };
 
@@ -111,12 +138,12 @@ scanBtn.onclick = scan;
 autoBtn.onclick = () => {
   if (autoTimer){
     clearInterval(autoTimer); autoTimer = null;
-    autoBtn.textContent = 'Start auto-scan'; autoBtn.classList.remove('btn-danger');
+    autoBtn.textContent = 'Start auto-scan'; autoBtn.classList.remove('btn-danger'); autoBtn.classList.add('btn-secondary');
     log('Auto-scan stopped.');
   } else {
     autoTimer = setInterval(scan, 2500);
-    autoBtn.textContent = 'Stop auto-scan'; autoBtn.classList.add('btn-danger');
-    log('Auto-scan started (every 2.5s).');
+    autoBtn.textContent = 'Stop auto-scan'; autoBtn.classList.remove('btn-secondary'); autoBtn.classList.add('btn-danger');
+    log('Auto-scan active (interval 2.5s).');
   }
 };
 

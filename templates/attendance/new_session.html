@@ -1,22 +1,29 @@
 {% extends "base.html" %}
 {% block title %}New Session{% endblock %}
 {% block content %}
-<div class="auth-wrap">
+<div class="auth-wrap" style="max-width: 500px;">
   <div class="card">
-    <h1>Start attendance session</h1>
+    <div style="margin-bottom: 2rem; text-align:center;">
+      <div class="brand-icon" style="width:48px; height:48px; margin:0 auto 1rem; font-size:1.5rem;">📋</div>
+      <h1>Start Session</h1>
+      <p class="subtitle">Select subject and date to begin</p>
+    </div>
     <form method="post">
       <label>Subject</label>
-      <select name="subject_id" required>
+      <select name="subject_id" required style="margin-bottom:0.5rem;">
         {% for s in subjects %}
         <option value="{{ s.id }}">{{ s.code }} — {{ s.name }}</option>
         {% endfor %}
       </select>
-      <label>Class</label>
+      
+      <label>Class / Batch</label>
       <input name="class_name" placeholder="e.g. MCA-1A">
+      
       <label>Date</label>
       <input type="date" name="session_date" value="{{ today }}">
-      <div class="btn-row">
-        <button class="btn" type="submit">Start</button>
+      
+      <div class="btn-row" style="margin-top:2rem;">
+        <button class="btn" type="submit" style="flex:1;">Start Session</button>
         <a class="btn btn-secondary" href="{{ url_for('attendance.index') }}">Cancel</a>
       </div>
     </form>

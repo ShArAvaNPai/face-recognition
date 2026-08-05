@@ -2,67 +2,83 @@
 {% block title %}Take Faculty Attendance{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-    <h1 class="h2">Faculty Attendance: {{ session.session_date }}</h1>
-    <a href="{{ url_for('director.faculty_attendance_index') }}" class="btn btn-outline-secondary">Back to Sessions</a>
+<div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom: 2rem;">
+  <div>
+    <h1>Faculty Attendance: <span class="badge badge-muted">{{ session.session_date }}</span></h1>
+    <p class="subtitle" style="margin-bottom:0;">Session ID #{{ session.id }}</p>
+  </div>
+  <a href="{{ url_for('director.faculty_attendance_index') }}" class="btn btn-secondary btn-sm">Back to Sessions</a>
 </div>
 
 {% if not engine_ready %}
-<div class="warn-banner">⚠ Face models not installed. Run <strong>python download_models.py</strong> first. You can still mark manually below.</div>
+<div class="warn-banner">
+  <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+  <span>Face models not installed. Run <strong>python download_models.py</strong> first. You can still mark manually below.</span>
+</div>
 {% endif %}
 
 <div class="cam-col">
   <div class="card">
-    <h2>Live recognition</h2>
+    <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1rem;">
+      <h2 style="margin:0;">Live Recognition</h2>
+      <span class="badge badge-muted" id="cam-badge">Standby</span>
+    </div>
+    
     <video id="video" width="360" height="270" autoplay playsinline></video>
     <canvas id="canvas" width="360" height="270" style="display:none"></canvas>
+    
     <div class="btn-row">
       <button class="btn" id="start-cam" type="button">Start camera</button>
       <button class="btn" id="scan-once" type="button" disabled>Scan once</button>
       <button class="btn btn-secondary" id="auto-scan" type="button" disabled>Start auto-scan</button>
     </div>
-    <div id="log" class="log" style="margin-top:12px"></div>
+    
+    <label style="margin-top:1.5rem;">Recognition Terminal</label>
+    <div id="log" class="log"></div>
   </div>
 
-  <div class="card">
-    <h2>Roster <span id="present-count" class="badge badge-yes">{{ present_ids|length }} present</span></h2>
+  <div class="card card-table">
+    <div class="card-table-header">
+      <h2>Faculty Roster</h2>
+      <span id="present-count" class="badge badge-yes" style="font-size:0.85rem; padding:0.4rem 0.8rem;">{{ present_ids|length }} present</span>
+    </div>
     <div class="table-responsive">
-      <table class="table table-striped table-sm align-middle">
+      <table>
         <thead>
-            <tr>
-                <th>Username</th>
-                <th>Email</th>
-                <th>Status</th>
-                <th>Action</th>
-            </tr>
+          <tr>
+            <th>Username</th>
+            <th>Email</th>
+            <th>Status</th>
+            <th>Action</th>
+          </tr>
         </thead>
         <tbody>
-            {% for faculty in faculties %}
-            {% set is_present = faculty.id in present_ids %}
-            <tr id="row-{{ faculty.id }}">
-                <td>{{ faculty.username }}</td>
-                <td>{{ faculty.email }}</td>
-                <td class="status">
-                    {% if is_present %}
-                    <span class="badge bg-success">Present</span>
-                    {% else %}
-                    <span class="badge bg-danger">Absent</span>
-                    {% endif %}
-                </td>
-                <td class="action-td">
-                    <form method="post" action="{{ url_for('director.toggle_faculty_attendance', session_id=session.id) }}" class="d-inline">
-                        <input type="hidden" name="faculty_id" value="{{ faculty.id }}">
-                        {% if is_present %}
-                            <input type="hidden" name="present" value="0">
-                            <button class="btn btn-sm btn-warning">Mark Absent</button>
-                        {% else %}
-                            <input type="hidden" name="present" value="1">
-                            <button class="btn btn-sm btn-success">Mark Present</button>
-                        {% endif %}
-                    </form>
-                </td>
-            </tr>
-            {% endfor %}
+          {% for faculty in faculties %}
+          {% set is_present = faculty.id in present_ids %}
+          <tr id="row-{{ faculty.id }}">
+            <td style="font-weight:600; color:#fff;">{{ faculty.username }}</td>
+            <td>{{ faculty.email }}</td>
+            <td class="status">
+              {% if is_present %}
+              <span class="badge badge-yes">Present</span>
+              {% else %}
+              <span class="badge badge-no">Absent</span>
+              {% endif %}
+            </td>
+            <td class="action-td">
+              <form method="post" action="{{ url_for('director.toggle_faculty_attendance', session_id=session.id) }}" class="inline-form">
+                <input type="hidden" name="faculty_id" value="{{ faculty.id }}">
+                {% if is_present %}
+                  <input type="hidden" name="present" value="0">
+                  <button class="btn btn-sm btn-secondary" type="submit">Mark Absent</button>
+                {% else %}
+                  <input type="hidden" name="present" value="1">
+                  <button class="btn btn-sm" type="submit">Mark Present</button>
+                {% endif %}
+              </form>
+            </td>
+          </tr>
+          {% endfor %}
         </tbody>
       </table>
     </div>
@@ -81,6 +97,7 @@ const startBtn = document.getElementById('start-cam');
 const scanBtn = document.getElementById('scan-once');
 const autoBtn = document.getElementById('auto-scan');
 const presentCount = document.getElementById('present-count');
+const camBadge = document.getElementById('cam-badge');
 let stream = null, autoTimer = null, presentSet = new Set([
   {% for pid in present_ids %}{{ pid }}{% if not loop.last %},{% endif %}{% endfor %}
 ]);
@@ -93,14 +110,14 @@ function log(msg){
 function markRowPresent(m){
   const row = document.getElementById('row-' + m.faculty_id);
   if (!row) return;
-  row.querySelector('.status').innerHTML = '<span class="badge bg-success">Present</span>';
+  row.querySelector('.status').innerHTML = '<span class="badge badge-yes">Present</span>';
   const actionTd = row.querySelector('.action-td');
   if (actionTd) {
     actionTd.innerHTML = `
-      <form method="post" action="${toggleUrlBase}" class="d-inline">
+      <form method="post" action="${toggleUrlBase}" class="inline-form">
         <input type="hidden" name="faculty_id" value="${m.faculty_id}">
         <input type="hidden" name="present" value="0">
-        <button class="btn btn-sm btn-warning">Mark Absent</button>
+        <button class="btn btn-sm btn-secondary" type="submit">Mark Absent</button>
       </form>
     `;
   }
@@ -112,8 +129,11 @@ startBtn.onclick = async () => {
   try {
     stream = await navigator.mediaDevices.getUserMedia({ video: true });
     video.srcObject = stream;
+    video.classList.add('active');
     scanBtn.disabled = false; autoBtn.disabled = false;
-    log('Camera ready.');
+    camBadge.textContent = 'Active';
+    camBadge.className = 'badge badge-yes';
+    log('Camera stream ready.');
   } catch (e) { log('Camera error: ' + e.message); }
 };
 
@@ -141,12 +161,12 @@ scanBtn.onclick = scan;
 autoBtn.onclick = () => {
   if (autoTimer){
     clearInterval(autoTimer); autoTimer = null;
-    autoBtn.textContent = 'Start auto-scan'; autoBtn.classList.remove('btn-danger');
+    autoBtn.textContent = 'Start auto-scan'; autoBtn.classList.remove('btn-danger'); autoBtn.classList.add('btn-secondary');
     log('Auto-scan stopped.');
   } else {
     autoTimer = setInterval(scan, 2500);
-    autoBtn.textContent = 'Stop auto-scan'; autoBtn.classList.add('btn-danger');
-    log('Auto-scan started (every 2.5s).');
+    autoBtn.textContent = 'Stop auto-scan'; autoBtn.classList.remove('btn-secondary'); autoBtn.classList.add('btn-danger');
+    log('Auto-scan active (interval 2.5s).');
   }
 };
 

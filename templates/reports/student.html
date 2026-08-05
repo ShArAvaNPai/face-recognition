@@ -4,31 +4,55 @@
 <h1>{{ student.name }}</h1>
 <p class="subtitle">Roll {{ student.roll_number }} · {{ student.department or '—' }} · {{ student.class_name or '—' }}</p>
 
-<div class="card" style="text-align:center">
-  <div class="pct-big">{{ percentage }}%</div>
-  <p class="muted">Attended {{ present }} of {{ total_sessions }} sessions</p>
+<div class="card" style="text-align:center; padding: 2.5rem 1.5rem;">
+  <div style="position:relative; width:140px; height:140px; margin: 0 auto 1.25rem;">
+    <svg viewBox="0 0 36 36" class="circular-chart" style="width:100%; height:100%;">
+      <path class="circle-bg"
+        d="M18 2.0845
+          a 15.9155 15.9155 0 0 1 0 31.831
+          a 15.9155 15.9155 0 0 1 0 -31.831"
+      />
+      <path class="circle"
+        stroke="#ffffff"
+        stroke-dasharray="{{ percentage }}, 100"
+        d="M18 2.0845
+          a 15.9155 15.9155 0 0 1 0 31.831
+          a 15.9155 15.9155 0 0 1 0 -31.831"
+      />
+      <text x="18" y="20.35" class="percentage">{{ percentage }}%</text>
+    </svg>
+  </div>
+  <p class="muted" style="font-size: 1rem;">Attended <strong style="color:#fff;">{{ present }}</strong> of <strong style="color:#fff;">{{ total_sessions }}</strong> sessions</p>
 </div>
 
-<div class="card">
-  <h2>History</h2>
+<div class="card card-table" style="margin-top:1.5rem;">
+  <div class="card-table-header">
+    <h2>Attendance History</h2>
+  </div>
   {% if records %}
-  <table>
-    <tr><th>Date</th><th>Subject</th><th>Class</th><th>Status</th><th>Method</th></tr>
-    {% for r in records %}
-    <tr>
-      <td>{{ r.session.session_date }}</td>
-      <td>{{ r.session.subject.name }}</td>
-      <td>{{ r.session.class_name or '—' }}</td>
-      <td>
-        {% if r.status == 'present' %}<span class="badge badge-yes">Present</span>
-        {% else %}<span class="badge badge-no">{{ r.status }}</span>{% endif %}
-      </td>
-      <td><span class="badge badge-muted">{{ r.method }}</span></td>
-    </tr>
-    {% endfor %}
-  </table>
+  <div class="table-responsive">
+    <table>
+      <thead>
+        <tr><th>Date</th><th>Subject</th><th>Class</th><th>Status</th><th>Method</th></tr>
+      </thead>
+      <tbody>
+        {% for r in records %}
+        <tr>
+          <td><span class="badge badge-muted">{{ r.session.session_date }}</span></td>
+          <td style="font-weight:600; color:#fff;">{{ r.session.subject.name }}</td>
+          <td>{{ r.session.class_name or '—' }}</td>
+          <td>
+            {% if r.status == 'present' %}<span class="badge badge-yes">Present</span>
+            {% else %}<span class="badge badge-no">{{ r.status|capitalize }}</span>{% endif %}
+          </td>
+          <td><span class="badge badge-muted">{{ r.method }}</span></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
   {% else %}
-  <p class="muted">No attendance records yet.</p>
+  <p class="muted" style="padding:2.5rem 1.5rem; text-align:center;">No attendance records yet.</p>
   {% endif %}
 </div>
 {% endblock %}

@@ -1,61 +1,75 @@
 {% extends "base.html" %}
 {% block title %}Register Faces — {{ target_name }}{% endblock %}
 {% block content %}
-<h1>Register faces: {{ target_name }}</h1>
-<p class="subtitle">Identifier: {{ target_identifier }} · {{ face_samples|length }} sample(s) stored</p>
+<div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom: 2rem;">
+  <div>
+    <h1>Register Faces: {{ target_name }}</h1>
+    <p class="subtitle" style="margin-bottom:0;">Identifier: {{ target_identifier }} · <span class="badge badge-yes">{{ face_samples|length }} sample(s) stored</span></p>
+  </div>
+</div>
 
 {% if not engine_ready %}
-<div class="warn-banner">⚠ Face models not installed. Run <strong>python download_models.py</strong> first.</div>
+<div class="warn-banner">
+  <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+  <span>Face models not installed. Run <strong>python download_models.py</strong> first.</span>
+</div>
 {% endif %}
 
 <div class="cam-col">
   <div class="card">
-    <h2>Webcam capture</h2>
-    <p class="muted">Allow camera access, then capture a few samples from different angles.</p>
+    <h2>Webcam Capture</h2>
+    <p class="muted">Allow camera access, then capture multiple samples from different angles.</p>
     <video id="video" width="320" height="240" autoplay playsinline></video>
     <canvas id="canvas" width="320" height="240" style="display:none"></canvas>
     <div class="btn-row">
       <button class="btn" id="start-cam" type="button">Start camera</button>
       <button class="btn" id="capture" type="button" disabled>Capture sample</button>
     </div>
-    <div id="cam-status" class="muted" style="margin-top:10px"></div>
+    <div id="cam-status" class="muted" style="margin-top:1rem; font-weight:500;"></div>
   </div>
 
   <div class="card">
-    <h2>Upload images</h2>
-    <form method="post" action="{{ upload_url }}"
-          enctype="multipart/form-data">
-      <label>Select one or more face photos</label>
-      <input type="file" name="images" accept="image/*" multiple>
-      <div class="btn-row">
-        <button class="btn" type="submit">Upload</button>
+    <h2>Upload Images</h2>
+    <p class="muted">Or upload existing photos containing clean facial profiles.</p>
+    <form method="post" action="{{ upload_url }}" enctype="multipart/form-data">
+      <label>Select face photos</label>
+      <input type="file" name="images" accept="image/*" multiple style="background:rgba(255,255,255,0.05); padding:1rem;">
+      <div class="btn-row" style="margin-top:1.5rem;">
+        <button class="btn" type="submit">Upload Photos</button>
       </div>
     </form>
   </div>
 </div>
 
-<div class="card">
-  <h2>Stored samples ({{ face_samples|length }})</h2>
+<div class="card card-table">
+  <div class="card-table-header">
+    <h2>Stored Samples ({{ face_samples|length }})</h2>
+  </div>
   {% if face_samples %}
-  <table>
-    <tr><th>#</th><th>Captured</th><th></th></tr>
-    {% for sample in face_samples %}
-    <tr>
-      <td>{{ loop.index }}</td>
-      <td>{{ sample.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
-      <td>
-        <form class="inline-form" method="post"
-              action="{{ url_for('faces.delete_sample', sample_id=sample.id) }}">
-          <button class="btn btn-sm btn-danger" type="submit">Delete</button>
-        </form>
-      </td>
-    </tr>
-    {% endfor %}
-  </table>
+  <div class="table-responsive">
+    <table>
+      <thead>
+        <tr><th>#</th><th>Captured At</th><th>Action</th></tr>
+      </thead>
+      <tbody>
+        {% for sample in face_samples %}
+        <tr>
+          <td><span class="badge badge-muted">#{{ loop.index }}</span></td>
+          <td>{{ sample.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+          <td>
+            <form class="inline-form" method="post" action="{{ url_for('faces.delete_sample', sample_id=sample.id) }}">
+              <button class="btn btn-sm btn-danger" type="submit">Delete</button>
+            </form>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
   {% else %}
-  <p class="muted">No samples yet.</p>
+  <p class="muted" style="padding:3rem 2rem; text-align:center;">No samples yet.</p>
   {% endif %}
-  <div class="btn-row">
+  <div class="card-table-footer">
     <a class="btn btn-secondary" href="{{ url_for('faces.index') }}">Done</a>
   </div>
 </div>
@@ -75,10 +89,13 @@ startBtn.onclick = async () => {
   try {
     stream = await navigator.mediaDevices.getUserMedia({ video: true });
     video.srcObject = stream;
+    video.classList.add('active');
     capBtn.disabled = false;
-    status.textContent = 'Camera ready.';
+    status.textContent = 'Camera stream ready.';
+    status.style.color = 'var(--success)';
   } catch (e) {
     status.textContent = 'Could not access camera: ' + e.message;
+    status.style.color = 'var(--danger)';
   }
 };
 
@@ -86,7 +103,8 @@ capBtn.onclick = async () => {
   const ctx = canvas.getContext('2d');
   ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
   const data = canvas.toDataURL('image/jpeg', 0.9);
-  status.textContent = 'Processing…';
+  status.textContent = 'Processing face sample…';
+  status.style.color = 'var(--warning)';
   try {
     const res = await fetch(captureUrl, {
       method: 'POST',
@@ -95,9 +113,11 @@ capBtn.onclick = async () => {
     });
     const json = await res.json();
     status.textContent = json.message + (json.success ? ` (total: ${json.sample_count})` : '');
+    status.style.color = json.success ? 'var(--success)' : 'var(--danger)';
     if (json.success) setTimeout(() => location.reload(), 700);
   } catch (e) {
     status.textContent = 'Error: ' + e.message;
+    status.style.color = 'var(--danger)';
   }
 };
 

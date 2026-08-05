@@ -2,33 +2,64 @@
 {% block title %}Manage Users{% endblock %}
 
 {% block content %}
-<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-    <h1 class="h2">Manage Users</h1>
-    <a href="{{ url_for('admin.new_user') }}" class="btn btn-primary">Create New User</a>
+<div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom: 2rem;">
+  <div>
+    <h1>Manage Users</h1>
+    <p class="subtitle" style="margin-bottom:0;">Create and review system user accounts</p>
+  </div>
 </div>
 
-<div class="table-responsive">
-    <table class="table table-striped table-sm">
-        <thead>
-            <tr>
-                <th>Username</th>
-                <th>Email</th>
-                <th>Role</th>
-                <th>Created At</th>
-            </tr>
-        </thead>
-        <tbody>
-            {% for user in users %}
-            <tr>
-                <td>{{ user.username }}</td>
-                <td>{{ user.email }}</td>
-                <td><span class="badge bg-secondary">{{ user.role }}</span></td>
-                <td>{{ user.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
-            </tr>
+<div class="card card-table">
+  <div class="card-table-header">
+    <h2>All Users</h2>
+    <a href="{{ url_for('admin.new_user') }}" class="btn">
+      <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+      Create New User
+    </a>
+  </div>
+  <div class="table-responsive">
+    <table>
+      <thead>
+        <tr>
+          <th>User</th>
+          <th>Role</th>
+          <th>Created At</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for user in users %}
+        <tr>
+          <td>
+            <div style="display:flex; align-items:center; gap:0.75rem;">
+              <div style="width:36px; height:36px; border-radius:50%; background:linear-gradient(135deg, var(--secondary), var(--primary)); display:flex; align-items:center; justify-content:center; font-weight:700; font-size:0.9rem; color:white;">
+                {{ user.username[0]|upper }}
+              </div>
+              <div style="display:flex; flex-direction:column;">
+                <span style="font-weight:600; color:#fff;">{{ user.username }}</span>
+                <span style="font-size:0.8rem; color:var(--text-muted);">{{ user.email }}</span>
+              </div>
+            </div>
+          </td>
+          <td>
+            {% if user.role == 'admin' %}
+              <span class="badge" style="background:rgba(139,92,246,0.1); color:#8b5cf6; border-color:rgba(139,92,246,0.2);">Admin</span>
+            {% elif user.role == 'director' %}
+              <span class="badge" style="background:rgba(16,185,129,0.1); color:#10b981; border-color:rgba(16,185,129,0.2);">Director</span>
+            {% elif user.role == 'faculty' %}
+              <span class="badge" style="background:rgba(99,102,241,0.1); color:#6366f1; border-color:rgba(99,102,241,0.2);">Faculty</span>
+            {% elif user.role == 'student' %}
+              <span class="badge" style="background:rgba(245,158,11,0.1); color:#f59e0b; border-color:rgba(245,158,11,0.2);">Student</span>
             {% else %}
-            <tr><td colspan="4">No users found.</td></tr>
-            {% endfor %}
-        </tbody>
+              <span class="badge badge-muted">{{ user.role }}</span>
+            {% endif %}
+          </td>
+          <td><span class="muted">{{ user.created_at.strftime('%Y-%m-%d %H:%M') }}</span></td>
+        </tr>
+        {% else %}
+        <tr><td colspan="3" style="text-align:center;padding:3rem 2rem;" class="muted">No users found.</td></tr>
+        {% endfor %}
+      </tbody>
     </table>
+  </div>
 </div>
 {% endblock %}

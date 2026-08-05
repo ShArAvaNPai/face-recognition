@@ -8,11 +8,26 @@
 </head>
 <body>
   <div class="app-layout{% if not current_user.is_authenticated %} auth-layout{% endif %}">
+    
     {% if current_user.is_authenticated %}
-    <aside class="sidebar">
+    <div class="sidebar-overlay" id="sidebar-overlay"></div>
+    
+    <div class="mobile-header">
+      <div class="sidebar-brand" style="margin:0; padding:0; border:none;">
+        <a href="{{ url_for('dashboard.index') }}">
+          <div class="brand-icon">🎓</div>
+          <span class="brand-name">Smart Attend</span>
+        </a>
+      </div>
+      <button class="menu-toggle" id="menu-toggle">
+        <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 12h18M3 6h18M3 18h18"/></svg>
+      </button>
+    </div>
+
+    <aside class="sidebar" id="sidebar">
       <div class="sidebar-brand">
         <a href="{{ url_for('dashboard.index') }}">
-          <span class="brand-logo">🎓</span>
+          <div class="brand-icon">🎓</div>
           <span class="brand-name">Smart Attendance</span>
         </a>
       </div>
@@ -20,50 +35,60 @@
       <nav class="sidebar-nav">
         <div class="nav-section-label">Main Menu</div>
         <a href="{{ url_for('dashboard.index') }}" class="nav-item">
-          <span>📊 Dashboard</span>
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path><polyline points="9 22 9 12 15 12 15 22"></polyline></svg>
+          <span>Dashboard</span>
         </a>
 
         {% if current_user.role == 'admin' %}
           <a href="{{ url_for('admin.list_users') }}" class="nav-item">
-            <span>👥 Manage Users</span>
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
+            <span>Manage Users</span>
           </a>
         {% endif %}
         
         {% if current_user.role in ['admin', 'faculty', 'director'] %}
           <div class="nav-section-label">Academic & Faces</div>
           <a href="{{ url_for('students.list_students') }}" class="nav-item">
-            <span>👨‍🎓 Students</span>
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path><circle cx="12" cy="7" r="4"></circle></svg>
+            <span>Students</span>
           </a>
           {% if current_user.role == 'admin' %}
           <a href="{{ url_for('faces.index') }}" class="nav-item">
-            <span>📸 Face Registration</span>
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+            <span>Face Registration</span>
           </a>
           {% endif %}
           <a href="{{ url_for('attendance.subjects') }}" class="nav-item">
-            <span>📚 Subjects</span>
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"></path><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"></path></svg>
+            <span>Subjects</span>
           </a>
           <a href="{{ url_for('attendance.index') }}" class="nav-item">
-            <span>📋 Stud. Attendance</span>
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+            <span>Stud. Attendance</span>
           </a>
           <a href="{{ url_for('reports.index') }}" class="nav-item">
-            <span>📈 Reports</span>
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+            <span>Reports</span>
           </a>
         {% endif %}
 
         {% if current_user.role in ['admin', 'director'] %}
           <div class="nav-section-label">Administration</div>
           <a href="{{ url_for('director.faculty_attendance_index') }}" class="nav-item">
-            <span>👩‍🏫 Fac. Attendance</span>
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
+            <span>Fac. Attendance</span>
           </a>
           <a href="{{ url_for('director.leaves_index') }}" class="nav-item">
-            <span>📝 Leaves</span>
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+            <span>Leaves</span>
           </a>
         {% endif %}
 
         {% if current_user.role == 'faculty' %}
           <div class="nav-section-label">Faculty Portal</div>
           <a href="{{ url_for('faculty.leaves') }}" class="nav-item">
-            <span>📝 My Leaves</span>
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+            <span>My Leaves</span>
           </a>
         {% endif %}
 
@@ -71,51 +96,107 @@
           {% if current_user.student %}
           <div class="nav-section-label">Student Portal</div>
           <a href="{{ url_for('reports.student_detail', student_id=current_user.student.id) }}" class="nav-item">
-            <span>📋 My Attendance</span>
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
+            <span>My Attendance</span>
           </a>
           {% endif %}
         {% endif %}
       </nav>
 
       <div class="sidebar-user">
-        <div class="user-info">
-          <span class="username">{{ current_user.username }}</span>
-          <span class="user-role">{{ current_user.role }}</span>
+        <div class="user-profile">
+          <div class="user-avatar">{{ current_user.username[0]|upper }}</div>
+          <div class="user-info">
+            <span class="username">{{ current_user.username }}</span>
+            <span class="user-role">{{ current_user.role }}</span>
+          </div>
         </div>
         <div class="user-actions">
-          <a href="{{ url_for('auth.change_password') }}" title="Change Password" class="user-action-btn">🔑</a>
-          <a href="{{ url_for('auth.logout') }}" title="Logout" class="user-action-btn logout-btn">🚪</a>
+          <a href="{{ url_for('auth.change_password') }}" title="Change Password" class="user-action-btn">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path></svg>
+          </a>
+          <a href="{{ url_for('auth.logout') }}" title="Logout" class="user-action-btn logout-btn">
+            <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path><polyline points="16 17 21 12 16 7"></polyline><line x1="21" y1="12" x2="9" y2="12"></line></svg>
+          </a>
         </div>
       </div>
     </aside>
     {% endif %}
 
     <div class="main-wrapper">
-      <main class="container">
-        {% with messages = get_flashed_messages(with_categories=true) %}
-          {% if messages %}
-            <div class="flashes">
+      <main class="container page-transition">
+        <div class="toast-container" id="toast-container">
+          {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
               {% for category, message in messages %}
-                <div class="flash flash-{{ category }}">{{ message }}</div>
+                <div class="toast toast-{{ category }}">
+                  <div class="toast-icon">
+                    {% if category == 'success' %}
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
+                    {% elif category == 'danger' or category == 'error' %}
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+                    {% elif category == 'warning' %}
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+                    {% else %}
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg>
+                    {% endif %}
+                  </div>
+                  <div class="toast-message">{{ message }}</div>
+                </div>
               {% endfor %}
-            </div>
-          {% endif %}
-        {% endwith %}
+            {% endif %}
+          {% endwith %}
+        </div>
 
         {% block content %}{% endblock %}
       </main>
 
-      <footer class="footer">Smart Attendance System · Face Recognition (OpenCV SFace)</footer>
+      <footer class="footer">Smart Attendance System</footer>
     </div>
   </div>
+  
   <script>
   (function() {
-    const EYE_OPEN = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-eye" viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>`;
-    const EYE_CLOSED = `<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="feather feather-eye-off" viewBox="0 0 24 24"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>`;
+    // Nav highlight
+    const currentPath = window.location.pathname;
+    document.querySelectorAll('.nav-item').forEach(link => {
+      if (link.getAttribute('href') && currentPath.includes(link.getAttribute('href'))) {
+        link.classList.add('active');
+      }
+    });
+
+    // Mobile menu toggle
+    const menuBtn = document.getElementById('menu-toggle');
+    const sidebar = document.getElementById('sidebar');
+    const overlay = document.getElementById('sidebar-overlay');
+    
+    if(menuBtn && sidebar && overlay) {
+      menuBtn.addEventListener('click', () => {
+        sidebar.classList.toggle('show');
+        overlay.classList.toggle('show');
+      });
+      overlay.addEventListener('click', () => {
+        sidebar.classList.remove('show');
+        overlay.classList.remove('show');
+      });
+    }
+
+    // Auto-dismiss toasts
+    const toasts = document.querySelectorAll('.toast');
+    toasts.forEach(toast => {
+      setTimeout(() => {
+        toast.classList.add('fadeOut');
+        setTimeout(() => toast.remove(), 300);
+      }, 5000);
+    });
+
+    // Password toggle icons
+    const EYE_OPEN = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path><circle cx="12" cy="12" r="3"></circle></svg>`;
+    const EYE_CLOSED = `<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"></path><line x1="1" y1="1" x2="23" y2="23"></line></svg>`;
 
     function initTogglePasswordIcons() {
       document.querySelectorAll('.toggle-password').forEach(btn => {
-        if (btn.textContent.trim() === '👁️' || btn.innerHTML.trim() === '👁️') {
+        if (btn.textContent.trim() === '👁️' || btn.innerHTML.trim() === '👁️' || !btn.querySelector('svg')) {
           btn.innerHTML = EYE_OPEN;
         }
       });

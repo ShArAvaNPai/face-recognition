@@ -1,46 +1,59 @@
 {% extends "base.html" %}
 {% block title %}Reports{% endblock %}
 {% block content %}
-<h1>Attendance Reports</h1>
-<p class="subtitle">Attendance percentages across {{ total_sessions }} session(s)</p>
-
-<div class="card">
-  <form method="get" style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap">
-    <div style="flex:1;min-width:200px">
-      <label>Filter by subject</label>
-      <select name="subject_id" onchange="this.form.submit()">
-        <option value="">All subjects</option>
-        {% for s in subjects %}
-        <option value="{{ s.id }}" {{ 'selected' if selected_subject == s.id else '' }}>
-          {{ s.code }} — {{ s.name }}</option>
-        {% endfor %}
-      </select>
-    </div>
-    <a class="btn" href="{{ url_for('reports.export_csv', subject_id=selected_subject or '') }}">⬇ Export CSV</a>
-  </form>
+<div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom: 2rem;">
+  <div>
+    <h1>Attendance Reports</h1>
+    <p class="subtitle" style="margin-bottom:0;">Performance statistics across {{ total_sessions }} session(s)</p>
+  </div>
 </div>
 
-<div class="card">
-  {% if rows %}
-  <table>
-    <tr><th>Roll</th><th>Name</th><th>Dept</th><th>Class</th><th>Attended</th><th>%</th><th></th></tr>
-    {% for r in rows %}
-    <tr>
-      <td>{{ r.student.roll_number }}</td>
-      <td>{{ r.student.name }}</td>
-      <td>{{ r.student.department or '—' }}</td>
-      <td>{{ r.student.class_name or '—' }}</td>
-      <td>{{ r.present }} / {{ r.total }}</td>
-      <td>
-        <span class="badge {{ 'badge-yes' if r.percentage >= 75 else ('badge-no' if r.percentage < 50 else 'badge-muted') }}">
-          {{ r.percentage }}%</span>
-      </td>
-      <td><a href="{{ url_for('reports.student_detail', student_id=r.student.id) }}">Details</a></td>
-    </tr>
-    {% endfor %}
-  </table>
-  {% else %}
-  <p class="muted">No students to report on.</p>
-  {% endif %}
+<div class="card card-table">
+  <div class="card-table-header">
+    <h2>Student Attendance Roster</h2>
+    <div style="display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
+      <form method="get" style="display:flex; gap:8px; align-items:center;">
+        <select name="subject_id" onchange="this.form.submit()" style="width:auto;">
+          <option value="">All subjects</option>
+          {% for s in subjects %}
+          <option value="{{ s.id }}" {{ 'selected' if selected_subject == s.id else '' }}>
+            {{ s.code }} — {{ s.name }}</option>
+          {% endfor %}
+        </select>
+      </form>
+      <a class="btn btn-secondary btn-sm" href="{{ url_for('reports.export_csv', subject_id=selected_subject or '') }}">
+        <svg width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="7 10 12 15 17 10"></polyline><line x1="12" y1="15" x2="12" y2="3"></line></svg>
+        Export CSV
+      </a>
+    </div>
+  </div>
+  <div class="table-responsive">
+    {% if rows %}
+    <table>
+      <thead>
+        <tr><th>Roll</th><th>Name</th><th>Dept</th><th>Class</th><th>Attended</th><th>Percentage</th><th>Details</th></tr>
+      </thead>
+      <tbody>
+        {% for r in rows %}
+        <tr>
+          <td><span class="badge badge-muted">{{ r.student.roll_number }}</span></td>
+          <td style="font-weight:600; color:#fff;">{{ r.student.name }}</td>
+          <td>{{ r.student.department or '—' }}</td>
+          <td>{{ r.student.class_name or '—' }}</td>
+          <td>{{ r.present }} / {{ r.total }}</td>
+          <td>
+            <span class="badge {{ 'badge-yes' if r.percentage >= 75 else ('badge-no' if r.percentage < 50 else 'badge-muted') }}">
+              {{ r.percentage }}%
+            </span>
+          </td>
+          <td><a class="btn btn-sm btn-secondary" href="{{ url_for('reports.student_detail', student_id=r.student.id) }}">Details</a></td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p class="muted" style="padding:3rem 2rem; text-align:center;">No students to report on.</p>
+    {% endif %}
+  </div>
 </div>
 {% endblock %}
