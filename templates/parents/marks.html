@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+{% block title %}Student Marks{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h2 class="page-title">Marks - {{ student.name }}</h2>
+</div>
+
+<div class="card">
+  <div class="card-body">
+    {% if marks %}
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Subject</th>
+          <th>Exam</th>
+          <th>Marks</th>
+          <th>Percentage</th>
+          <th>Remarks</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for m in marks %}
+        <tr>
+          <td>{{ m.subject.name }}</td>
+          <td>{{ m.exam_name }}</td>
+          <td>{{ m.marks_obtained }}/{{ m.total_marks }}</td>
+          <td>{{ (m.marks_obtained / m.total_marks * 100)|round(2) }}%</td>
+          <td>{{ m.remarks }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p>No marks found.</p>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

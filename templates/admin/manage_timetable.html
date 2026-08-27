@@ -1,0 +1,124 @@
+{% extends "base.html" %}
+{% block title %}Manage Timetable{% endblock %}
+
+{% block content %}
+<div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom: 2rem; flex-wrap:wrap; gap:1rem;">
+  <div>
+    <h1>Manage Weekly Timetable</h1>
+    <p class="subtitle" style="margin-bottom:0;">Assign subjects to day/time slots. Changes reflect immediately on all dashboards.</p>
+  </div>
+  <a class="btn btn-secondary" href="{{ url_for('dashboard.index') }}#weekly-timetable">← Back to Dashboard</a>
+</div>
+
+<div class="card" style="margin-bottom:2rem;">
+  <h2 style="margin-bottom:1.25rem;">Add / Update a Slot</h2>
+  <form method="POST" action="{{ url_for('admin.manage_timetable') }}" style="display:flex; flex-wrap:wrap; gap:1rem; align-items:flex-end;">
+    <input type="hidden" name="action" value="create">
+    <div style="flex:1; min-width:160px;">
+      <label class="form-label">Day</label>
+      <select name="day_of_week" id="tt-day" class="form-control" required>
+        <option value="" disabled selected>Select day…</option>
+        {% for day in days %}
+        <option value="{{ day }}">{{ day }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div style="flex:1; min-width:180px;">
+      <label class="form-label">Time Slot</label>
+      <select name="slot_time" id="tt-time" class="form-control" required>
+        <option value="" disabled selected>Select time…</option>
+        {% for time in times %}
+        <option value="{{ time }}">{{ time }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div style="flex:2; min-width:200px;">
+      <label class="form-label">Subject</label>
+      <select name="subject_id" id="tt-subject" class="form-control">
+        <option value="">— No subject (free slot) —</option>
+        {% for subj in subjects %}
+        <option value="{{ subj.id }}">{{ subj.name }} ({{ subj.code }}) — {{ subj.faculty.username if subj.faculty else 'No faculty' }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    <div>
+      <button type="submit" class="btn" id="tt-add-btn">
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+        Save Slot
+      </button>
+    </div>
+  </form>
+</div>
+
+<div class="card card-table">
+  <div class="card-table-header">
+    <h2>Current Timetable Grid</h2>
+    <p class="subtitle" style="margin:0; font-size:0.85rem;">Click a subject cell to update it. Use Delete to remove the slot entirely.</p>
+  </div>
+  <div class="table-responsive">
+    <table style="width:100%; border-collapse:collapse; min-width:800px;">
+      <thead>
+        <tr style="border-bottom:2px solid var(--border-color, #333);">
+          <th style="padding:0.75rem; text-align:left; width:14%;">Time Slot</th>
+          {% for day in days %}
+          <th style="padding:0.75rem; text-align:center; width:17.2%;">{{ day }}</th>
+          {% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for time in times %}
+        <tr style="border-bottom:1px solid var(--border-color, #333);">
+          <td style="padding:0.75rem; font-weight:600; font-size:0.875rem;">{{ time }}</td>
+          {% for day in days %}
+            {% set slot = grid[day][time] %}
+            <td style="padding:0.5rem; text-align:center; vertical-align:middle;">
+              {% if slot %}
+                <div style="border-radius:6px; padding:0.5rem; background:rgba(59,130,246,0.07); border:1px solid rgba(59,130,246,0.2);">
+                  {% if slot.subject %}
+                    <div style="font-weight:600; font-size:0.85rem;">{{ slot.subject.name }}</div>
+                    <div style="font-size:0.75rem; color:var(--text-muted);">{{ slot.subject.code }}</div>
+                    <div style="font-size:0.75rem; margin-top:2px; color:var(--text-muted);">{{ slot.subject.faculty.username if slot.subject.faculty else 'No faculty' }}</div>
+                  {% else %}
+                    <div style="font-size:0.8rem; color:var(--text-muted);">Free slot</div>
+                  {% endif %}
+                  <div style="display:flex; gap:0.25rem; justify-content:center; margin-top:0.5rem;">
+                    <form method="POST" action="{{ url_for('admin.manage_timetable') }}" style="display:inline;">
+                      <input type="hidden" name="action" value="delete">
+                      <input type="hidden" name="slot_id" value="{{ slot.id }}">
+                      <button type="submit" class="btn btn-sm btn-secondary" style="font-size:0.7rem; padding:2px 6px; color:#ef4444;" title="Delete slot" onclick="return confirm('Delete this slot?')">✕ Delete</button>
+                    </form>
+                    {% if slot.subject %}
+                    <form method="POST" action="{{ url_for('admin.manage_timetable') }}" style="display:inline;">
+                      <input type="hidden" name="action" value="clear_subject">
+                      <input type="hidden" name="slot_id" value="{{ slot.id }}">
+                      <button type="submit" class="btn btn-sm btn-secondary" style="font-size:0.7rem; padding:2px 6px;" title="Clear subject">Clear</button>
+                    </form>
+                    {% endif %}
+                  </div>
+                </div>
+              {% else %}
+                <span class="muted" style="font-size:0.8rem;">—</span>
+              {% endif %}
+            </td>
+          {% endfor %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card" style="margin-top:1.5rem; padding:1.25rem;">
+  <h3 style="margin-bottom:0.5rem;">Legend</h3>
+  <div style="display:flex; flex-wrap:wrap; gap:1rem; font-size:0.85rem;">
+    <span style="display:flex; align-items:center; gap:0.4rem;">
+      <span style="width:12px; height:12px; border-radius:3px; background:rgba(59,130,246,0.2); border:1px solid rgba(59,130,246,0.3); display:inline-block;"></span>
+      Slot with subject assigned
+    </span>
+    <span style="display:flex; align-items:center; gap:0.4rem;">
+      <span style="font-weight:600;">—</span>
+      No slot configured for this time
+    </span>
+  </div>
+</div>
+{% endblock %}

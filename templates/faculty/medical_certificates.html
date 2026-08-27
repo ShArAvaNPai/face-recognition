@@ -1,0 +1,63 @@
+{% extends "base.html" %}
+{% block title %}Medical Certificates{% endblock %}
+
+{% block content %}
+<div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom: 2rem;">
+  <div>
+    <h1>Student Medical Certificates</h1>
+    <p class="subtitle" style="margin-bottom:0;">Review leaves and excuse student absences</p>
+  </div>
+</div>
+
+<div class="card card-table">
+  <div class="card-table-header">
+    <h2>Uploaded Certificates</h2>
+  </div>
+  <div class="table-responsive">
+    <table>
+      <thead>
+        <tr>
+          <th>Date</th>
+          <th>Student</th>
+          <th>Reason</th>
+          <th>Status</th>
+          <th>Certificate</th>
+          <th>Action (Excuse Absence)</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for cert in certificates %}
+        <tr>
+          <td><span class="badge badge-muted">{{ cert.upload_date.strftime('%Y-%m-%d') }}</span></td>
+          <td style="font-weight:600; color:#fff;">{{ cert.student.name }} <small class="muted">({{ cert.student.roll_number }})</small></td>
+          <td>{{ cert.reason or '—' }}</td>
+          <td>
+            {% if cert.status == 'approved' %}
+              <span class="badge badge-yes">Approved</span>
+            {% else %}
+              <span class="badge badge-muted">Pending</span>
+            {% endif %}
+          </td>
+          <td>
+            <a href="{{ url_for('faculty.download_certificate', cert_id=cert.id) }}" class="btn btn-sm btn-secondary" target="_blank">View File</a>
+          </td>
+          <td>
+            <form method="post" action="{{ url_for('faculty.approve_certificate', cert_id=cert.id) }}" style="display:flex; gap:0.5rem; margin:0;">
+              <select name="session_id" class="form-control" style="padding:0.25rem 0.5rem; font-size:0.875rem;" required>
+                <option value="" disabled selected>Select Session to Excuse...</option>
+                {% for s in my_sessions %}
+                  <option value="{{ s.id }}">{{ s.session_date }} - {{ s.subject.name }} (#{{ s.id }})</option>
+                {% endfor %}
+              </select>
+              <button class="btn btn-sm" type="submit">Approve & Excuse</button>
+            </form>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="6" style="text-align:center;padding:3rem 2rem;" class="muted">No medical certificates found.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

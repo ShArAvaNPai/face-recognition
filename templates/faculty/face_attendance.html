@@ -1,0 +1,107 @@
+{% extends "base.html" %}
+{% block title %}Daily Face Check-In{% endblock %}
+
+{% block content %}
+<div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom: 2rem;">
+  <div>
+    <h1>Daily Face Check-In</h1>
+    <p class="subtitle" style="margin-bottom:0;">Claim your daily attendance using face recognition for {{ today }}</p>
+  </div>
+</div>
+
+{% if not engine_ready %}
+<div class="warn-banner">
+  <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+  <span>Face models not installed or engine offline. Please contact administrator.</span>
+</div>
+{% endif %}
+
+<div class="card" style="max-width: 600px; margin: 0 auto; text-align: center;">
+  {% if is_present %}
+    <div style="padding: 3rem 1rem;">
+      <svg width="64" height="64" fill="none" stroke="#22c55e" stroke-width="2" style="margin-bottom: 1rem;"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+      <h2>You are marked present for today!</h2>
+      <p class="muted">No further action is required.</p>
+    </div>
+  {% else %}
+    <div style="display:flex; flex-direction:column; align-items:center;">
+      <video id="video" width="360" height="270" autoplay playsinline style="border-radius:8px; margin-bottom: 1rem; background: #000; display:none;"></video>
+      <canvas id="canvas" width="360" height="270" style="display:none"></canvas>
+      
+      <div id="cam-status" style="margin-bottom:1.5rem;" class="muted">Ready to verify.</div>
+      
+      <div class="btn-row" style="justify-content:center;">
+        <button class="btn" id="start-btn" type="button" {% if not engine_ready %}disabled{% endif %}>
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+          Open Camera
+        </button>
+        <button class="btn btn-secondary" id="scan-btn" type="button" style="display:none;">
+          <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><path d="M12 16v-4"></path><path d="M12 8h.01"></path></svg>
+          Verify Face
+        </button>
+      </div>
+    </div>
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+{% if not is_present and engine_ready %}
+<script>
+  const video = document.getElementById('video');
+  const canvas = document.getElementById('canvas');
+  const startBtn = document.getElementById('start-btn');
+  const scanBtn = document.getElementById('scan-btn');
+  const statusDiv = document.getElementById('cam-status');
+  let stream = null;
+
+  startBtn.addEventListener('click', async () => {
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({ video: true });
+      video.srcObject = stream;
+      video.style.display = 'block';
+      startBtn.style.display = 'none';
+      scanBtn.style.display = 'inline-flex';
+      statusDiv.textContent = 'Look at the camera and click Verify Face.';
+      statusDiv.style.color = 'var(--text)';
+    } catch (e) {
+      statusDiv.textContent = 'Camera error: ' + e.message;
+      statusDiv.style.color = '#ef4444';
+    }
+  });
+
+  scanBtn.addEventListener('click', async () => {
+    scanBtn.disabled = true;
+    statusDiv.textContent = 'Verifying...';
+    
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    const data = canvas.toDataURL('image/jpeg', 0.85);
+    
+    try {
+      const res = await fetch("{{ url_for('faculty.face_attendance_recognize') }}", {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ image: data })
+      });
+      const j = await res.json();
+      if (j.success) {
+        statusDiv.innerHTML = `<span style="color:#22c55e;font-weight:bold;">${j.message}</span>`;
+        if (stream) stream.getTracks().forEach(t => t.stop());
+        setTimeout(() => location.reload(), 2000);
+      } else {
+        statusDiv.innerHTML = `<span style="color:#ef4444;">${j.message}</span>`;
+        scanBtn.disabled = false;
+      }
+    } catch (e) {
+      statusDiv.textContent = 'Error: ' + e.message;
+      scanBtn.disabled = false;
+    }
+  });
+  
+  window.addEventListener('beforeunload', () => {
+    if (stream) stream.getTracks().forEach(t => t.stop());
+  });
+</script>
+{% endif %}
+{% endblock %}

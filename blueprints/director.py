@@ -4,7 +4,8 @@ from flask import Blueprint, render_template, redirect, url_for, request, flash,
 from flask_login import login_required, current_user
 
 from extensions import db
-from models import FacultyAttendanceSession, FacultyAttendance, LeaveApplication, User, ROLE_FACULTY
+from models import FacultyAttendanceSession, FacultyAttendance, LeaveApplication, User, ROLE_FACULTY, Student, ROLE_STUDENT
+from blueprints.reports import _student_stats
 from blueprints.decorators import director_required
 from face_engine import engine, feature_from_bytes
 from blueprints.imaging import decode_data_url
@@ -143,16 +144,18 @@ def recognize_faculty(session_id):
 
 # --- Leave Applications ---
 
+from blueprints.decorators import hod_required
+
 @director_bp.route("/leaves")
 @login_required
-@director_required
+@hod_required
 def leaves_index():
     leaves = LeaveApplication.query.order_by(LeaveApplication.created_at.desc()).all()
     return render_template("director/leaves.html", leaves=leaves)
 
 @director_bp.route("/leaves/<int:leave_id>/update", methods=["POST"])
 @login_required
-@director_required
+@hod_required
 def update_leave(leave_id):
     leave = LeaveApplication.query.get_or_404(leave_id)
     action = request.form.get("action")
@@ -161,3 +164,35 @@ def update_leave(leave_id):
         db.session.commit()
         flash(f"Leave application {action}.", "success")
     return redirect(url_for("director.leaves_index"))
+
+# --- Director Roster Views ---
+
+@director_bp.route("/lecturers")
+@login_required
+@director_required
+def lecturers_index():
+    lecturers = User.query.filter_by(role=ROLE_FACULTY).order_by(User.username).all()
+    total_sessions = FacultyAttendanceSession.query.count()
+    
+    rows = []
+    for lec in lecturers:
+        if total_sessions > 0:
+            present = FacultyAttendance.query.filter_by(faculty_id=lec.id, status="present").count()
+            pct = round(100.0 * present / total_sessions, 1)
+        else:
+            present = 0
+            pct = 0.0
+        rows.append({
+            "lecturer": lec,
+            "present": present,
+            "total": total_sessions,
+            "percentage": pct
+        })
+    return render_template("director/lecturers.html", rows=rows)
+
+@director_bp.route("/students")
+@login_required
+@director_required
+def students_index():
+    total_sessions, rows = _student_stats()
+    return render_template("director/students.html", rows=rows, total_sessions=total_sessions)

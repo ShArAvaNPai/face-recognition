@@ -41,6 +41,7 @@ def create_app(config_class=Config):
     from blueprints.admin import admin_bp
     from blueprints.director import director_bp
     from blueprints.faculty import faculty_bp
+    from blueprints.parents import parents_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(dashboard_bp)
@@ -51,6 +52,7 @@ def create_app(config_class=Config):
     app.register_blueprint(admin_bp)
     app.register_blueprint(director_bp)
     app.register_blueprint(faculty_bp)
+    app.register_blueprint(parents_bp)
 
     # Error pages
     @app.errorhandler(403)

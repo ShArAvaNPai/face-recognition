@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}Lecturers Roster{% endblock %}
+
+{% block content %}
+<div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom: 2rem;">
+  <div>
+    <h1>Lecturers Overview</h1>
+    <p class="subtitle" style="margin-bottom:0;">All registered faculty members and their attendance summary</p>
+  </div>
+</div>
+
+<div class="card card-table">
+  <div class="card-table-header">
+    <h2>Faculty Directory</h2>
+  </div>
+  <div class="table-responsive">
+    <table>
+      <thead>
+        <tr>
+          <th>Username</th>
+          <th>Email</th>
+          <th>Total Sessions</th>
+          <th>Attended</th>
+          <th>Percentage</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in rows %}
+        <tr>
+          <td style="font-weight:600; color:#fff;">{{ r.lecturer.username }}</td>
+          <td>{{ r.lecturer.email }}</td>
+          <td>{{ r.total }}</td>
+          <td><span class="badge badge-yes">{{ r.present }}</span></td>
+          <td>
+            <div style="display:flex; align-items:center; gap:0.5rem;">
+              <span>{{ r.percentage }}%</span>
+              <div style="flex-grow:1; background:var(--bg-lighter); height:6px; border-radius:3px; overflow:hidden;">
+                <div style="width:{{ r.percentage }}%; height:100%; background:var(--primary); border-radius:3px;"></div>
+              </div>
+            </div>
+          </td>
+        </tr>
+        {% else %}
+        <tr><td colspan="5" style="text-align:center;padding:3rem 2rem;" class="muted">No lecturers found.</td></tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

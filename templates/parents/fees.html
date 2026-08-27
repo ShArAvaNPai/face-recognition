@@ -1,0 +1,59 @@
+{% extends "base.html" %}
+{% block title %}Fees{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h2 class="page-title">Fees - {{ student.name }}</h2>
+</div>
+
+<div class="card">
+  <div class="card-body">
+    {% if fees %}
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Fee Type</th>
+          <th>Amount Due</th>
+          <th>Due Date</th>
+          <th>Status</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for f in fees %}
+        <tr>
+          <td>{{ f.fee_type }}</td>
+          <td>₹{{ f.amount_due }}</td>
+          <td>{{ f.due_date.strftime('%Y-%m-%d') }}</td>
+          <td>
+            {% if f.status == 'Paid' %}
+            <span style="color: green; font-weight: bold;">Paid</span>
+            {% elif f.status == 'Pending' %}
+            <span style="color: red; font-weight: bold;">Pending</span>
+            {% else %}
+            <span style="color: orange; font-weight: bold;">{{ f.status }}</span>
+            {% endif %}
+          </td>
+          <td>
+            {% if f.status == 'Pending' %}
+            <form action="{{ url_for('parents.fees') }}" method="POST" enctype="multipart/form-data" style="display: flex; gap: 10px;">
+              <input type="hidden" name="fee_id" value="{{ f.id }}">
+              <input type="file" name="receipt" required accept="image/*,.pdf" style="max-width: 200px;">
+              <button type="submit" class="btn btn-primary btn-sm">Upload Receipt</button>
+            </form>
+            {% elif f.receipt_path %}
+            <a href="{{ f.receipt_path }}" target="_blank">View Receipt</a>
+            {% else %}
+            N/A
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p>No fee records found.</p>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

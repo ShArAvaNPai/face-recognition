@@ -3,8 +3,8 @@ from flask import Blueprint, render_template, redirect, url_for, request, flash
 from flask_login import login_required
 
 from extensions import db
-from models import User, Student, ROLES, ROLE_STUDENT, ROLE_FACULTY, ROLE_DIRECTOR
-from blueprints.decorators import admin_required
+from models import User, Student, ROLES, ROLE_STUDENT, ROLE_FACULTY, ROLE_DIRECTOR, Subject, TimetableSlot
+from blueprints.decorators import admin_required, director_required
 
 admin_bp = Blueprint("admin", __name__, url_prefix="/admin")
 
@@ -73,3 +73,66 @@ def new_user():
         return redirect(url_for("admin.list_users"))
         
     return render_template("admin/new_user.html", roles=ROLES)
+
+
+@admin_bp.route("/timetable", methods=["GET", "POST"])
+@login_required
+@director_required
+def manage_timetable():
+    """Admin/Director page to create and delete weekly timetable slots."""
+    DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
+    TIMES = [
+        "09:00 - 10:00", "10:00 - 11:00", "11:00 - 12:00",
+        "13:00 - 14:00", "14:00 - 15:00", "15:00 - 16:00"
+    ]
+    subjects = Subject.query.order_by(Subject.name).all()
+
+    if request.method == "POST":
+        action = request.form.get("action")
+        if action == "create":
+            day = request.form.get("day_of_week", "").strip()
+            time = request.form.get("slot_time", "").strip()
+            subject_id = request.form.get("subject_id", type=int)
+            if day not in DAYS:
+                flash("Invalid day selected.", "danger")
+            elif time not in TIMES:
+                flash("Invalid time slot selected.", "danger")
+            else:
+                existing = TimetableSlot.query.filter_by(day_of_week=day, slot_time=time).first()
+                if existing:
+                    # Update subject
+                    existing.subject_id = subject_id if subject_id else None
+                    db.session.commit()
+                    flash(f"Updated {day} {time} slot.", "success")
+                else:
+                    slot = TimetableSlot(day_of_week=day, slot_time=time, subject_id=subject_id if subject_id else None)
+                    db.session.add(slot)
+                    db.session.commit()
+                    flash(f"Created slot: {day} {time}.", "success")
+        elif action == "delete":
+            slot_id = request.form.get("slot_id", type=int)
+            slot = TimetableSlot.query.get(slot_id)
+            if slot:
+                db.session.delete(slot)
+                db.session.commit()
+                flash("Slot deleted.", "info")
+        elif action == "clear_subject":
+            slot_id = request.form.get("slot_id", type=int)
+            slot = TimetableSlot.query.get(slot_id)
+            if slot:
+                slot.subject_id = None
+                db.session.commit()
+                flash("Subject cleared from slot (slot is now free).", "info")
+        return redirect(url_for("admin.manage_timetable"))
+
+    # Build grid for display
+    grid = {}
+    for day in DAYS:
+        grid[day] = {}
+        for time in TIMES:
+            slot = TimetableSlot.query.filter_by(day_of_week=day, slot_time=time).first()
+            grid[day][time] = slot
+
+    return render_template("admin/manage_timetable.html",
+                           grid=grid, days=DAYS, times=TIMES, subjects=subjects)
+

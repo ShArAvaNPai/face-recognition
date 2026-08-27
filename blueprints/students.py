@@ -1,9 +1,9 @@
 """Student Management Module: registration, profiles, department/class, roll number."""
 from flask import Blueprint, render_template, redirect, url_for, request, flash
-from flask_login import login_required
+from flask_login import login_required, current_user
 
 from extensions import db
-from models import Student
+from models import Student, Mark, Fee
 from blueprints.decorators import staff_required
 
 students_bp = Blueprint("students", __name__, url_prefix="/students")
@@ -82,3 +82,21 @@ def delete_student(student_id):
     db.session.commit()
     flash("Student deleted.", "info")
     return redirect(url_for("students.list_students"))
+
+@students_bp.route("/my_marks")
+@login_required
+def my_marks():
+    if not current_user.is_student:
+        flash("Access denied.", "danger")
+        return redirect(url_for("dashboard.index"))
+    marks_list = Mark.query.filter_by(student_id=current_user.student_id).all()
+    return render_template("students/marks.html", marks=marks_list)
+
+@students_bp.route("/my_fees")
+@login_required
+def my_fees():
+    if not current_user.is_student:
+        flash("Access denied.", "danger")
+        return redirect(url_for("dashboard.index"))
+    fees_list = Fee.query.filter_by(student_id=current_user.student_id).all()
+    return render_template("students/fees.html", fees=fees_list)

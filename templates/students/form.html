@@ -18,7 +18,12 @@
       <div style="display:flex; gap:1rem; flex-wrap:wrap;">
         <div style="flex:1; min-width:200px;">
           <label>Department</label>
-          <input name="department" value="{{ student.department if student else '' }}" placeholder="Computer Science">
+          <input name="department" list="dept-options" value="{{ student.department if student else '' }}" placeholder="Computer Science">
+          <datalist id="dept-options">
+            <option value="MBA">
+            <option value="Computer Science">
+            <option value="Engineering">
+          </datalist>
         </div>
         <div style="flex:1; min-width:200px;">
           <label>Class</label>

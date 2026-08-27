@@ -29,7 +29,7 @@ def _student_stats(subject_id=None):
             present = Attendance.query.filter(
                 Attendance.student_id == student.id,
                 Attendance.session_id.in_(session_ids),
-                Attendance.status == "present",
+                Attendance.status.in_(["present", "excused"]),
             ).count()
         else:
             present = 0
@@ -97,7 +97,7 @@ def student_detail(student_id):
                .order_by(AttendanceSession.session_date.desc())
                .all())
     total_sessions = AttendanceSession.query.count()
-    present = sum(1 for r in records if r.status == "present")
+    present = sum(1 for r in records if r.status in ["present", "excused"])
     pct = round(100.0 * present / total_sessions, 1) if total_sessions else 0.0
     return render_template("reports/student.html", student=student,
                            records=records, present=present,

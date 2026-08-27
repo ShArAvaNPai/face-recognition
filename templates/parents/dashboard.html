@@ -1,0 +1,62 @@
+{% extends "base.html" %}
+{% block title %}Parent Dashboard{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h2 class="page-title">Dashboard - {{ student.name }}</h2>
+</div>
+
+<div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));">
+  <div class="card stat-card">
+    <div class="stat-icon" style="background: rgba(46, 204, 113, 0.2); color: #2ecc71;">
+      <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
+    </div>
+    <div class="stat-details">
+      <h3>Attendance</h3>
+      <p class="stat-value">{{ att_percent }}%</p>
+    </div>
+  </div>
+  
+  <div class="card stat-card">
+    <div class="stat-icon" style="background: rgba(231, 76, 60, 0.2); color: #e74c3c;">
+      <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
+    </div>
+    <div class="stat-details">
+      <h3>Pending Fees</h3>
+      <p class="stat-value">{{ pending_fees }}</p>
+    </div>
+  </div>
+</div>
+
+<div class="card mt-4">
+  <div class="card-header">
+    <h3 class="card-title">Recent Marks</h3>
+  </div>
+  <div class="card-body">
+    {% if recent_marks %}
+    <table class="data-table">
+      <thead>
+        <tr>
+          <th>Subject</th>
+          <th>Exam</th>
+          <th>Marks</th>
+          <th>Remarks</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for m in recent_marks %}
+        <tr>
+          <td>{{ m.subject.name }}</td>
+          <td>{{ m.exam_name }}</td>
+          <td>{{ m.marks_obtained }}/{{ m.total_marks }}</td>
+          <td>{{ m.remarks }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p>No recent marks found.</p>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
