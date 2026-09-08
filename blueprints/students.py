@@ -14,6 +14,9 @@ students_bp = Blueprint("students", __name__, url_prefix="/students")
 @staff_required
 def list_students():
     q = request.args.get("q", "").strip()
+    dept_filter = request.args.get("dept", "").strip()
+    class_filter = request.args.get("class_name", "").strip()
+
     query = Student.query
     if q:
         like = f"%{q}%"
@@ -23,8 +26,24 @@ def list_students():
                    Student.department.ilike(like),
                    Student.class_name.ilike(like))
         )
+    if dept_filter:
+        query = query.filter(Student.department == dept_filter)
+    if class_filter:
+        query = query.filter(Student.class_name == class_filter)
+
     students = query.order_by(Student.roll_number).all()
-    return render_template("students/list.html", students=students, q=q)
+
+    # Distinct values for filter dropdowns
+    all_depts = sorted(set(s.department for s in Student.query.all() if s.department))
+    all_classes = sorted(set(s.class_name for s in Student.query.all() if s.class_name))
+
+    return render_template(
+        "students/list.html",
+        students=students, q=q,
+        dept_filter=dept_filter, class_filter=class_filter,
+        all_depts=all_depts, all_classes=all_classes
+    )
+
 
 
 @students_bp.route("/new", methods=["GET", "POST"])

@@ -17,7 +17,12 @@
       </select>
       
       <label>Class / Batch</label>
-      <input name="class_name" placeholder="e.g. MCA-1A">
+      <select name="class_name" style="margin-bottom:0.5rem;">
+        <option value="">All Classes</option>
+        {% for c in classes %}
+        <option value="{{ c }}">{{ c }}</option>
+        {% endfor %}
+      </select>
       
       <label>Date</label>
       <input type="date" name="session_date" value="{{ today }}">

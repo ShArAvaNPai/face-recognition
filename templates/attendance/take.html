@@ -4,7 +4,19 @@
 <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom: 2rem;">
   <div>
     <h1>Take Attendance</h1>
-    <p class="subtitle" style="margin-bottom:0;">{{ session.subject.name }} · {{ session.class_name or 'All classes' }} · <span class="badge badge-muted">{{ session.session_date }}</span></p>
+    <div style="display:flex; align-items:center; gap:0.5rem; flex-wrap:wrap; margin-top:0.4rem;">
+      <span class="subtitle" style="margin:0;">{{ session.subject.name }} · </span>
+      <form method="post" action="{{ url_for('attendance.take', session_id=session.id) }}" style="display:inline-flex; align-items:center; gap:0.3rem;">
+        <input type="hidden" name="update_class" value="1">
+        <select name="class_name" onchange="this.form.submit()" style="padding:0.25rem 0.6rem; font-size:0.85rem; border-radius:6px; background:var(--surface); color:var(--text); border:1px solid var(--border);">
+          <option value="" {% if not session.class_name %}selected{% endif %}>All Classes</option>
+          {% for c in available_classes %}
+          <option value="{{ c }}" {% if session.class_name == c %}selected{% endif %}>{{ c }}</option>
+          {% endfor %}
+        </select>
+      </form>
+      <span class="badge badge-muted">{{ session.session_date }}</span>
+    </div>
   </div>
 </div>
 

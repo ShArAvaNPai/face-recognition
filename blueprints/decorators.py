@@ -32,8 +32,9 @@ def admin_required(view):
 
 
 def director_required(view):
-    """Director only (or admin)."""
-    return roles_required(ROLE_ADMIN, ROLE_DIRECTOR)(view)
+    """Director or HOD (or admin)."""
+    return roles_required(ROLE_ADMIN, ROLE_DIRECTOR, ROLE_HOD)(view)
+
 
 
 def hod_required(view):

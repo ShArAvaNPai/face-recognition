@@ -6,24 +6,20 @@
   <h2 class="page-title">Dashboard - {{ student.name }}</h2>
 </div>
 
-<div class="grid" style="grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));">
-  <div class="card stat-card">
-    <div class="stat-icon" style="background: rgba(46, 204, 113, 0.2); color: #2ecc71;">
-      <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
-    </div>
-    <div class="stat-details">
-      <h3>Attendance</h3>
-      <p class="stat-value">{{ att_percent }}%</p>
+<div class="stat-grid">
+  <div class="stat">
+    <div class="num">{{ att_percent }}%</div>
+    <div class="lbl">Attendance</div>
+    <div style="position:absolute; top:1.2rem; right:1.2rem; opacity:0.15;">
+      <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="#ffffff" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
     </div>
   </div>
   
-  <div class="card stat-card">
-    <div class="stat-icon" style="background: rgba(231, 76, 60, 0.2); color: #e74c3c;">
-      <svg viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
-    </div>
-    <div class="stat-details">
-      <h3>Pending Fees</h3>
-      <p class="stat-value">{{ pending_fees }}</p>
+  <div class="stat">
+    <div class="num">{{ pending_fees }}</div>
+    <div class="lbl">Pending Fees</div>
+    <div style="position:absolute; top:1.2rem; right:1.2rem; opacity:0.15;">
+      <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="#ffffff" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
     </div>
   </div>
 </div>

@@ -24,12 +24,13 @@ def seed():
     for lec in lecturers_info:
         user = User.query.filter_by(username=lec["username"]).first()
         if not user:
-            user = User(username=lec["username"], email=lec["email"], role=ROLE_FACULTY)
+            user = User(username=lec["username"], email=lec["email"], role=ROLE_FACULTY, department="MCA")
             user.set_password(lec["password"])
             db.session.add(user)
             db.session.flush() # get user id
             print(f"Created lecturer user: {lec['username']}")
         else:
+            user.department = "MCA"
             print(f"Lecturer user {lec['username']} already exists")
             
         # Ensure subject exists for lecturer
@@ -45,8 +46,8 @@ def seed():
     # 2. Add students
     departments = ["MCA", "MBA"]
     years = ["1st Year", "2nd Year"]
-    first_names = ["John", "Jane", "Alice", "Bob", "Charlie", "David", "Eva", "Frank", "Grace", "Heidi", "Ivan", "Judy", "Mallory", "Niaj", "Olivia", "Peggy", "Rupert", "Sybil", "Trent", "Victor", "Walter"]
-    last_names = ["Smith", "Johnson", "Williams", "Jones", "Brown", "Davis", "Miller", "Wilson", "Moore", "Taylor", "Anderson", "Thomas", "Jackson", "White", "Harris", "Martin", "Thompson", "Garcia", "Martinez", "Robinson"]
+    first_names = ["Aarav", "Rohan", "Aditya", "Vihaan", "Arjun", "Kabir", "Sai", "Ishaan", "Ananya", "Diya", "Fatima", "Kavya", "Priya", "Sneha", "Neha", "Rahul", "Sanjay", "Amit", "Rajesh", "Dev", "Vikram", "Sunita", "Anjali", "Karan"]
+    last_names = ["Sharma", "Patel", "Kumar", "Singh", "Gupta", "Mehta", "Joshi", "Rao", "Nair", "Pillai", "Iyer", "Verma", "Mishra", "Reddy", "Choudhury", "Bhatt", "Sen", "Bose", "Das", "Jadhav", "Kulkarni", "Deshmukh"]
     
     students_info = []
     for i in range(1, 101):
@@ -213,38 +214,67 @@ def seed():
                 )
                 db.session.add(att)
     db.session.commit()
-    # 3. Randomly assign subjects to timetable slots
+    # 3. Assign subjects to timetable slots — separate timetables per department
     from models import TimetableSlot
-    
+
     # Clear existing timetable slots
     TimetableSlot.query.delete()
     db.session.commit()
-    
-    # Retrieve all available subjects
-    all_subjs = Subject.query.all()
-    # Pool of subjects including None for some free slots
-    subject_pool = all_subjs + [None] * (len(all_subjs) // 2)
-    
-    hours = [
-        "09:00 - 10:00",
-        "10:00 - 11:00",
-        "11:00 - 12:00",
-        "13:00 - 14:00",
-        "14:00 - 15:00",
-        "15:00 - 16:00"
+
+    # Create department-specific subjects if they don't exist
+    # MCA subjects
+    mca_subject_defs = [
+        {"username": "prof_smith",  "code": "cs101",    "name": "Computer Science 101"},
+        {"username": "prof_jones",  "code": "math101",  "name": "Mathematics 101"},
+        {"username": "prof_davis",  "code": "phy101",   "name": "Physics 101"},
     ]
+    # MBA subjects (create dedicated faculty if needed)
+    mba_faculty_defs = [
+        {"username": "prof_mehta",  "email": "mehta@example.com", "password": "mehta123",
+         "subject_code": "mgt201", "subject_name": "Management Principles"},
+        {"username": "prof_iyer",   "email": "iyer@example.com",  "password": "iyer123",
+         "subject_code": "mkt201", "subject_name": "Marketing Strategy"},
+        {"username": "prof_bose",   "email": "bose@example.com",  "password": "bose123",
+         "subject_code": "fin201", "subject_name": "Financial Management"},
+    ]
+    for fac in mba_faculty_defs:
+        u = User.query.filter_by(username=fac["username"]).first()
+        if not u:
+            u = User(username=fac["username"], email=fac["email"], role=ROLE_FACULTY, department="MBA")
+            u.set_password(fac["password"])
+            db.session.add(u)
+            db.session.flush()
+        else:
+            u.department = "MBA"
+        subj = Subject.query.filter_by(code=fac["subject_code"]).first()
+        if not subj:
+            subj = Subject(code=fac["subject_code"], name=fac["subject_name"], faculty_id=u.id)
+            db.session.add(subj)
+        else:
+            subj.faculty_id = u.id
+    db.session.commit()
+
+    # Fetch subject objects
+    mca_subjects = [Subject.query.filter_by(code=d["code"]).first() for d in mca_subject_defs if Subject.query.filter_by(code=d["code"]).first()]
+    mba_subjects = [Subject.query.filter_by(code=f["subject_code"]).first() for f in mba_faculty_defs if Subject.query.filter_by(code=f["subject_code"]).first()]
+
+    hours = ["09:00 - 10:00", "10:00 - 11:00", "11:00 - 12:00",
+             "13:00 - 14:00", "14:00 - 15:00", "15:00 - 16:00"]
     days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
-    
-    for day in days:
-        for hr in hours:
-            chosen_subj = random.choice(subject_pool)
-            slot = TimetableSlot(
-                day_of_week=day,
-                slot_time=hr,
-                subject_id=chosen_subj.id if chosen_subj else None
-            )
-            db.session.add(slot)
-            
+
+    for dept, pool in [("MCA", mca_subjects), ("MBA", mba_subjects)]:
+        pool_with_free = pool + [None] * max(1, len(pool) // 2)
+        for day in days:
+            for hr in hours:
+                chosen = random.choice(pool_with_free)
+                slot = TimetableSlot(
+                    department=dept,
+                    day_of_week=day,
+                    slot_time=hr,
+                    subject_id=chosen.id if chosen else None
+                )
+                db.session.add(slot)
+
     db.session.commit()
     print("Database seeding completed and timetable randomized.")
 

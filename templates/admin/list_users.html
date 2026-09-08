@@ -24,6 +24,7 @@
           <th>User</th>
           <th>Role</th>
           <th>Created At</th>
+          <th>Actions</th>
         </tr>
       </thead>
       <tbody>
@@ -45,6 +46,8 @@
               <span class="badge" style="background:rgba(139,92,246,0.1); color:#8b5cf6; border-color:rgba(139,92,246,0.2);">Admin</span>
             {% elif user.role == 'director' %}
               <span class="badge" style="background:rgba(16,185,129,0.1); color:#10b981; border-color:rgba(16,185,129,0.2);">Director</span>
+            {% elif user.role == 'hod' %}
+              <span class="badge" style="background:rgba(14,165,233,0.1); color:#0ea5e9; border-color:rgba(14,165,233,0.2);">HOD</span>
             {% elif user.role == 'faculty' %}
               <span class="badge" style="background:rgba(99,102,241,0.1); color:#6366f1; border-color:rgba(99,102,241,0.2);">Faculty</span>
             {% elif user.role == 'student' %}
@@ -52,11 +55,19 @@
             {% else %}
               <span class="badge badge-muted">{{ user.role }}</span>
             {% endif %}
+            {% if user.department %}
+              <span class="badge" style="background:rgba(255,255,255,0.1); color:#e2e8f0;">{{ user.department }}</span>
+            {% endif %}
           </td>
           <td><span class="muted">{{ user.created_at.strftime('%Y-%m-%d %H:%M') }}</span></td>
+          <td>
+            <a href="{{ url_for('admin.edit_user', user_id=user.id) }}" class="btn btn-sm btn-secondary">
+              Edit
+            </a>
+          </td>
         </tr>
         {% else %}
-        <tr><td colspan="3" style="text-align:center;padding:3rem 2rem;" class="muted">No users found.</td></tr>
+        <tr><td colspan="4" style="text-align:center;padding:3rem 2rem;" class="muted">No users found.</td></tr>
         {% endfor %}
       </tbody>
     </table>

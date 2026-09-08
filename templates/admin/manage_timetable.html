@@ -9,11 +9,21 @@
   </div>
   <a class="btn btn-secondary" href="{{ url_for('dashboard.index') }}#weekly-timetable">← Back to Dashboard</a>
 </div>
+<div style="margin-bottom: 2rem;">
+  <form method="GET" action="{{ url_for('admin.manage_timetable') }}" style="display:flex; gap:10px; align-items:center;">
+    <label class="form-label" style="margin-bottom:0;">Select Course (Department):</label>
+    <select name="dept" class="form-control" style="max-width: 200px;" onchange="this.form.submit()">
+      <option value="MCA" {% if department == 'MCA' %}selected{% endif %}>MCA</option>
+      <option value="MBA" {% if department == 'MBA' %}selected{% endif %}>MBA</option>
+    </select>
+  </form>
+</div>
 
 <div class="card" style="margin-bottom:2rem;">
   <h2 style="margin-bottom:1.25rem;">Add / Update a Slot</h2>
   <form method="POST" action="{{ url_for('admin.manage_timetable') }}" style="display:flex; flex-wrap:wrap; gap:1rem; align-items:flex-end;">
     <input type="hidden" name="action" value="create">
+    <input type="hidden" name="dept" value="{{ department }}">
     <div style="flex:1; min-width:160px;">
       <label class="form-label">Day</label>
       <select name="day_of_week" id="tt-day" class="form-control" required>
@@ -84,12 +94,14 @@
                   <div style="display:flex; gap:0.25rem; justify-content:center; margin-top:0.5rem;">
                     <form method="POST" action="{{ url_for('admin.manage_timetable') }}" style="display:inline;">
                       <input type="hidden" name="action" value="delete">
+                      <input type="hidden" name="dept" value="{{ department }}">
                       <input type="hidden" name="slot_id" value="{{ slot.id }}">
                       <button type="submit" class="btn btn-sm btn-secondary" style="font-size:0.7rem; padding:2px 6px; color:#ef4444;" title="Delete slot" onclick="return confirm('Delete this slot?')">✕ Delete</button>
                     </form>
                     {% if slot.subject %}
                     <form method="POST" action="{{ url_for('admin.manage_timetable') }}" style="display:inline;">
                       <input type="hidden" name="action" value="clear_subject">
+                      <input type="hidden" name="dept" value="{{ department }}">
                       <input type="hidden" name="slot_id" value="{{ slot.id }}">
                       <button type="submit" class="btn btn-sm btn-secondary" style="font-size:0.7rem; padding:2px 6px;" title="Clear subject">Clear</button>
                     </form>

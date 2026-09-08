@@ -5,24 +5,89 @@
 <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom: 2rem;">
   <div>
     <h1>Students Overview</h1>
-    <p class="subtitle" style="margin-bottom:0;">All registered students and their attendance summary</p>
+    <p class="subtitle" style="margin-bottom:0;">
+      {{ rows | length }} student(s)
+      {% if dept_filter or class_filter or q %} matching current filters{% endif %}
+    </p>
   </div>
 </div>
 
 <div class="card card-table">
   <div class="card-table-header">
     <h2>Student Directory</h2>
+
+    <form method="get" style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+
+      {# Text search #}
+      <div style="position:relative;">
+        <input name="q" value="{{ q }}" placeholder="Search name or roll…"
+               style="width:200px; padding-left:2.4rem;">
+        <svg width="18" height="18" fill="none" stroke="var(--text-muted)" stroke-width="2"
+             style="position:absolute; left:0.75rem; top:50%; transform:translateY(-50%);">
+          <circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+        </svg>
+      </div>
+
+      {# Department dropdown #}
+      <select name="dept"
+              style="padding:0.5rem 0.8rem; border-radius:8px;
+                     background:var(--surface-2,#1e293b);
+                     border:1px solid var(--border,#334155);
+                     color:var(--text,#f1f5f9);">
+        <option value="">All Departments</option>
+        {% for d in all_depts %}
+        <option value="{{ d }}" {% if dept_filter == d %}selected{% endif %}>{{ d }}</option>
+        {% endfor %}
+      </select>
+
+      {# Year dropdown #}
+      <select name="class_name"
+              style="padding:0.5rem 0.8rem; border-radius:8px;
+                     background:var(--surface-2,#1e293b);
+                     border:1px solid var(--border,#334155);
+                     color:var(--text,#f1f5f9);">
+        <option value="">All Years</option>
+        {% for c in all_classes %}
+        <option value="{{ c }}" {% if class_filter == c %}selected{% endif %}>{{ c }}</option>
+        {% endfor %}
+      </select>
+
+      <button class="btn btn-secondary btn-sm" type="submit">Filter</button>
+
+      {% if q or dept_filter or class_filter %}
+      <a href="{{ url_for('director.students_index') }}"
+         class="btn btn-sm"
+         style="background:transparent; border:1px solid var(--border,#334155);">
+        ✕ Clear
+      </a>
+      {% endif %}
+    </form>
   </div>
+
+  {% if dept_filter or class_filter or q %}
+  <div style="padding:0.6rem 1.5rem; background:rgba(99,102,241,0.1);
+              border-bottom:1px solid var(--border,#334155); font-size:0.875rem;
+              color:var(--text-muted);">
+    Filtering by:
+    {% if q %}<strong style="color:#a5b4fc;">Name/Roll: "{{ q }}"</strong>{% endif %}
+    {% if q and (dept_filter or class_filter) %} &amp; {% endif %}
+    {% if dept_filter %}<strong style="color:#a5b4fc;">Dept: {{ dept_filter }}</strong>{% endif %}
+    {% if dept_filter and class_filter %} &amp; {% endif %}
+    {% if class_filter %}<strong style="color:#a5b4fc;">Year: {{ class_filter }}</strong>{% endif %}
+  </div>
+  {% endif %}
+
   <div class="table-responsive">
     <table>
       <thead>
         <tr>
           <th>Roll Number</th>
           <th>Name</th>
-          <th>Department / Class</th>
-          <th>Total Sessions</th>
+          <th>Department</th>
+          <th>Year</th>
+          <th>Sessions</th>
           <th>Attended</th>
-          <th>Percentage</th>
+          <th>Attendance %</th>
         </tr>
       </thead>
       <tbody>
@@ -30,20 +95,42 @@
         <tr>
           <td><span class="badge badge-muted">{{ r.student.roll_number }}</span></td>
           <td style="font-weight:600; color:#fff;">{{ r.student.name }}</td>
-          <td>{{ r.student.department }} / {{ r.student.class_name }}</td>
+          <td>
+            {% if r.student.department %}
+            <span class="badge" style="background:rgba(99,102,241,0.15); color:#a5b4fc;">
+              {{ r.student.department }}
+            </span>
+            {% else %}—{% endif %}
+          </td>
+          <td>
+            {% if r.student.class_name %}
+            <span class="badge" style="background:rgba(16,185,129,0.15); color:#6ee7b7;">
+              {{ r.student.class_name }}
+            </span>
+            {% else %}—{% endif %}
+          </td>
           <td>{{ r.total }}</td>
           <td><span class="badge badge-yes">{{ r.present }}</span></td>
           <td>
             <div style="display:flex; align-items:center; gap:0.5rem;">
-              <span>{{ r.percentage }}%</span>
-              <div style="flex-grow:1; background:var(--bg-lighter); height:6px; border-radius:3px; overflow:hidden;">
-                <div style="width:{{ r.percentage }}%; height:100%; background:var(--primary); border-radius:3px;"></div>
+              <span style="min-width:3rem;">{{ r.percentage }}%</span>
+              <div style="flex-grow:1; background:var(--bg-lighter,#1e293b);
+                          height:6px; border-radius:3px; overflow:hidden;">
+                <div style="width:{{ r.percentage }}%; height:100%;
+                            background:{% if r.percentage >= 75 %}var(--primary,#6366f1)
+                                       {% elif r.percentage >= 50 %}#f59e0b
+                                       {% else %}#ef4444{% endif %};
+                            border-radius:3px;"></div>
               </div>
             </div>
           </td>
         </tr>
         {% else %}
-        <tr><td colspan="6" style="text-align:center;padding:3rem 2rem;" class="muted">No students found.</td></tr>
+        <tr>
+          <td colspan="7" style="text-align:center; padding:3rem 2rem;" class="muted">
+            No students match the selected filters.
+          </td>
+        </tr>
         {% endfor %}
       </tbody>
     </table>

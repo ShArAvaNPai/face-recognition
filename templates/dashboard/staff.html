@@ -142,30 +142,62 @@
             <td style="padding:0.75rem; text-align:center; vertical-align:top;
                        {% if is_my_subject %}background-color: rgba(59, 130, 246, 0.1); border: 2px solid rgba(59, 130, 246, 0.4); border-radius: 8px;{% endif %}">
               {% if cell.slot %}
-                {% if cell.is_empty %}
+                {% if cell.is_claimed %}
+                  <div style="padding:0.4rem; border-radius:6px; background-color:rgba(16, 185, 129, 0.08); border:1px solid rgba(16, 185, 129, 0.3);">
+                    <div style="font-weight:600; font-size:0.85rem; color:#10b981;">
+                      {{ cell.subject.name if cell.subject else 'Class' }}
+                    </div>
+                    <div style="font-size:0.75rem; color:var(--text-muted); margin-top:2px;">
+                      Substitute: <strong>{{ cell.faculty.username if cell.faculty else 'Self' }}</strong>
+                    </div>
+                    {% if cell.can_release %}
+                      <form method="POST" action="{{ url_for('dashboard.release_slot', claim_id=cell.claim_id) }}" style="margin-top:0.4rem;">
+                        <button type="submit" class="btn btn-sm btn-secondary" style="font-size:0.7rem; padding:0.2rem 0.5rem; width:100%;" title="Release re-assignment">Release / Revert</button>
+                      </form>
+                    {% endif %}
+                  </div>
+                {% elif current_user.role in ['hod', 'director', 'admin'] %}
+                  <div style="padding:0.4rem; border-radius:6px; background-color:rgba(59, 130, 246, 0.05); border:1px solid rgba(59, 130, 246, 0.2);">
+                    {% if cell.subject %}
+                      <div style="font-weight:600; font-size:0.85rem; color:#e2e8f0;">{{ cell.subject.name }}</div>
+                      <div style="font-size:0.75rem; color:var(--text-muted); margin-bottom:0.3rem;">Default: {{ cell.faculty.username if cell.faculty else 'None' }}</div>
+                    {% else %}
+                      <div style="font-weight:600; color:rgba(239, 68, 68, 0.8); font-size:0.825rem; margin-bottom:0.3rem;">Empty Slot</div>
+                    {% endif %}
+
+                    <form method="POST" action="{{ url_for('dashboard.claim_slot') }}" style="margin:0;">
+                      <input type="hidden" name="slot_id" value="{{ cell.slot.id }}">
+                      <input type="hidden" name="claim_date" value="{{ cell.cell_date }}">
+                      {% if cell.subject %}
+                        <input type="hidden" name="subject_id" value="{{ cell.subject.id }}">
+                      {% endif %}
+                      
+                      <select name="assignee_id" class="form-control" style="font-size:0.75rem; padding:0.2rem; margin-bottom:0.25rem; width:100%; border-radius:4px;" required>
+                        <option value="{{ current_user.id }}">Assign to Me ({{ current_user.username }})</option>
+                        {% for fac in department_faculty %}
+                          {% if fac.id != current_user.id %}
+                          <option value="{{ fac.id }}">Assign to {{ fac.username }}</option>
+                          {% endif %}
+                        {% endfor %}
+                      </select>
+                      <button type="submit" class="btn btn-sm" style="font-size:0.725rem; padding:0.2rem 0.4rem; width:100%;">Reassign Class</button>
+                    </form>
+                  </div>
+                {% elif cell.is_empty %}
                   <div style="padding:0.5rem; border-radius:6px; background-color:rgba(239, 68, 68, 0.05); border:1px dashed rgba(239, 68, 68, 0.3);">
                     <div style="font-weight:600; color:rgba(239, 68, 68, 0.8); font-size:0.825rem;">{% if cell.is_absent %}Lecturer Absent{% else %}Empty Slot{% endif %}</div>
                     {% if cell.claimable %}
                       <form method="POST" action="{{ url_for('dashboard.claim_slot') }}" style="margin: 0.5rem 0 0 0;">
                         <input type="hidden" name="slot_id" value="{{ cell.slot.id }}">
                         <input type="hidden" name="claim_date" value="{{ cell.cell_date }}">
-                        {% if current_user.role == 'admin' %}
+                        {% if my_subjects | length > 1 %}
                           <select name="subject_id" class="form-control" style="font-size:0.75rem; padding:0.2rem; margin-bottom:0.25rem; width:100%;" required>
-                            <option value="" disabled selected>Select Lecturer...</option>
-                            {% for sub in all_subjects %}
-                              <option value="{{ sub.id }}">{{ sub.faculty.username }} ({{ sub.name }})</option>
+                            {% for sub in my_subjects %}
+                              <option value="{{ sub.id }}">{{ sub.name }}</option>
                             {% endfor %}
                           </select>
-                        {% else %}
-                          {% if my_subjects | length > 1 %}
-                            <select name="subject_id" class="form-control" style="font-size:0.75rem; padding:0.2rem; margin-bottom:0.25rem; width:100%;" required>
-                              {% for sub in my_subjects %}
-                                <option value="{{ sub.id }}">{{ sub.name }}</option>
-                              {% endfor %}
-                            </select>
-                          {% elif my_subjects | length == 1 %}
-                            <input type="hidden" name="subject_id" value="{{ my_subjects[0].id }}">
-                          {% endif %}
+                        {% elif my_subjects | length == 1 %}
+                          <input type="hidden" name="subject_id" value="{{ my_subjects[0].id }}">
                         {% endif %}
                         <button type="submit" class="btn btn-sm" style="font-size:0.75rem; padding:0.25rem 0.5rem; width:100%;">Claim Slot</button>
                       </form>
@@ -182,16 +214,7 @@
                       {{ cell.subject.code }}
                     </div>
                     <div style="font-size:0.75rem; margin-top:4px;">
-                      {% if cell.is_claimed %}
-                        <span class="badge badge-yes" style="font-size:0.7rem; padding:2px 6px;">Claimed: {{ cell.faculty.username }}</span>
-                        {% if cell.can_release %}
-                          <form method="POST" action="{{ url_for('dashboard.release_slot', claim_id=cell.claim_id) }}" style="display:inline; margin-left:2px;">
-                            <button type="submit" class="btn btn-sm btn-secondary" style="font-size:0.65rem; padding:1px 4px; line-height:1;" title="Release claim">Release</button>
-                          </form>
-                        {% endif %}
-                      {% else %}
-                        <span class="badge badge-muted" style="font-size:0.7rem; padding:2px 6px;">{{ cell.faculty.username if cell.faculty else 'No faculty' }}</span>
-                      {% endif %}
+                      <span class="badge badge-muted" style="font-size:0.7rem; padding:2px 6px;">{{ cell.faculty.username if cell.faculty else 'No faculty' }}</span>
                     </div>
                   </div>
                 {% endif %}

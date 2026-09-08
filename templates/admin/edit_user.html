@@ -1,0 +1,58 @@
+{% extends "base.html" %}
+{% block title %}Edit User: {{ user.username }}{% endblock %}
+
+{% block content %}
+<div class="auth-wrap" style="max-width: 550px;">
+  <div class="card">
+    <div style="margin-bottom: 2rem; text-align:center;">
+      <div class="brand-icon" style="width:48px; height:48px; margin:0 auto 1rem; font-size:1.5rem;">✏️</div>
+      <h1>Edit User</h1>
+      <p class="subtitle">Modify credentials and details for <strong>{{ user.username }}</strong></p>
+    </div>
+
+    <form method="post">
+      <label>Username</label>
+      <input type="text" name="username" value="{{ user.username }}" required style="margin-bottom:0.8rem;">
+
+      <label>Email Address</label>
+      <input type="email" name="email" value="{{ user.email }}" required style="margin-bottom:0.8rem;">
+
+      <label>New Password <span class="muted" style="font-weight:normal; font-size:0.8rem;">(Leave blank to keep unchanged)</span></label>
+      <input type="password" name="password" placeholder="Enter new password" style="margin-bottom:0.8rem;">
+
+      <label>Role</label>
+      <select name="role" required style="margin-bottom:0.8rem;">
+        {% for r in roles %}
+        <option value="{{ r }}" {% if user.role == r %}selected{% endif %}>{{ r|capitalize }}</option>
+        {% endfor %}
+      </select>
+
+      <label>Department</label>
+      <select name="department" style="margin-bottom:0.8rem;">
+        <option value="" {% if not user.department %}selected{% endif %}>-- None / All --</option>
+        <option value="MCA" {% if user.department == 'MCA' %}selected{% endif %}>MCA</option>
+        <option value="MBA" {% if user.department == 'MBA' %}selected{% endif %}>MBA</option>
+      </select>
+
+      {% if user.student %}
+      <hr style="border-color:var(--border); margin:1.5rem 0;">
+      <h3 style="margin-bottom:1rem; font-size:1.1rem; color:var(--primary-light);">Student Profile</h3>
+      
+      <label>Student Full Name</label>
+      <input type="text" name="name" value="{{ user.student.name }}" style="margin-bottom:0.8rem;">
+
+      <label>Roll Number</label>
+      <input type="text" name="roll_number" value="{{ user.student.roll_number }}" style="margin-bottom:0.8rem;">
+
+      <label>Class / Batch</label>
+      <input type="text" name="class_name" value="{{ user.student.class_name }}" style="margin-bottom:0.8rem;">
+      {% endif %}
+
+      <div class="btn-row" style="margin-top:2rem;">
+        <button class="btn" type="submit" style="flex:1;">Save Changes</button>
+        <a class="btn btn-secondary" href="{{ url_for('admin.list_users') }}">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

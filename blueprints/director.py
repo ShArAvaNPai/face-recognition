@@ -42,7 +42,10 @@ def new_faculty_session():
 @director_required
 def take_faculty_attendance(session_id):
     session = FacultyAttendanceSession.query.get_or_404(session_id)
-    faculties = User.query.filter_by(role=ROLE_FACULTY).order_by(User.username).all()
+    if current_user.role == 'hod' and current_user.department:
+        faculties = User.query.filter_by(role=ROLE_FACULTY, department=current_user.department).order_by(User.username).all()
+    else:
+        faculties = User.query.filter_by(role=ROLE_FACULTY).order_by(User.username).all()
     present_ids = {a.faculty_id for a in session.records if a.status == "present"}
     return render_template("director/take_faculty_attendance.html", 
                            session=session, faculties=faculties, present_ids=present_ids,
@@ -82,7 +85,10 @@ def toggle_faculty_attendance(session_id):
 def _load_faculty_candidates():
     """Return list of (faculty_id, feature_vector) for all stored lecturer samples."""
     candidates = []
-    faculties = User.query.filter_by(role=ROLE_FACULTY).all()
+    if current_user.role == 'hod' and current_user.department:
+        faculties = User.query.filter_by(role=ROLE_FACULTY, department=current_user.department).all()
+    else:
+        faculties = User.query.filter_by(role=ROLE_FACULTY).all()
     for f in faculties:
         for sample in f.face_samples:
             candidates.append((f.id, feature_from_bytes(sample.feature)))
@@ -150,7 +156,10 @@ from blueprints.decorators import hod_required
 @login_required
 @hod_required
 def leaves_index():
-    leaves = LeaveApplication.query.order_by(LeaveApplication.created_at.desc()).all()
+    if current_user.role == 'hod' and current_user.department:
+        leaves = LeaveApplication.query.join(User).filter(User.department == current_user.department).order_by(LeaveApplication.created_at.desc()).all()
+    else:
+        leaves = LeaveApplication.query.order_by(LeaveApplication.created_at.desc()).all()
     return render_template("director/leaves.html", leaves=leaves)
 
 @director_bp.route("/leaves/<int:leave_id>/update", methods=["POST"])
@@ -171,7 +180,10 @@ def update_leave(leave_id):
 @login_required
 @director_required
 def lecturers_index():
-    lecturers = User.query.filter_by(role=ROLE_FACULTY).order_by(User.username).all()
+    if current_user.role == 'hod' and current_user.department:
+        lecturers = User.query.filter_by(role=ROLE_FACULTY, department=current_user.department).order_by(User.username).all()
+    else:
+        lecturers = User.query.filter_by(role=ROLE_FACULTY).order_by(User.username).all()
     total_sessions = FacultyAttendanceSession.query.count()
     
     rows = []
@@ -194,5 +206,36 @@ def lecturers_index():
 @login_required
 @director_required
 def students_index():
+    q          = request.args.get("q", "").strip()
+    dept_filter  = request.args.get("dept", "").strip()
+    class_filter = request.args.get("class_name", "").strip()
+
+    if current_user.role == 'hod' and current_user.department:
+        dept_filter = current_user.department
+
     total_sessions, rows = _student_stats()
-    return render_template("director/students.html", rows=rows, total_sessions=total_sessions)
+
+    # Apply filters to the already-computed rows
+    if q:
+        ql = q.lower()
+        rows = [r for r in rows if ql in r["student"].name.lower()
+                                or ql in r["student"].roll_number.lower()]
+    if dept_filter:
+        rows = [r for r in rows if r["student"].department == dept_filter]
+    if class_filter:
+        rows = [r for r in rows if r["student"].class_name == class_filter]
+
+    # Distinct values for dropdowns
+    from models import Student
+    if current_user.role == 'hod' and current_user.department:
+        all_depts = [current_user.department]
+    else:
+        all_depts = sorted(set(s.department for s in Student.query.all() if s.department))
+    all_classes = sorted(set(s.class_name for s in Student.query.all() if s.class_name))
+
+    return render_template(
+        "director/students.html",
+        rows=rows, total_sessions=total_sessions,
+        q=q, dept_filter=dept_filter, class_filter=class_filter,
+        all_depts=all_depts, all_classes=all_classes
+    )

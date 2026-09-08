@@ -199,6 +199,7 @@ a:hover {
 
 .user-profile {
   display: flex; align-items: center; gap: 0.65rem;
+  min-width: 0;
 }
 
 .user-avatar {
@@ -209,8 +210,11 @@ a:hover {
   font-weight: 700; font-size: 0.85rem; color: #000000;
 }
 
-.user-info { display: flex; flex-direction: column; }
-.user-info .username { font-size: 0.85rem; font-weight: 600; color: #ffffff; }
+.user-info { display: flex; flex-direction: column; min-width: 0; }
+.user-info .username { 
+  font-size: 0.85rem; font-weight: 600; color: #ffffff; 
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis; 
+}
 .user-info .user-role { font-size: 0.72rem; color: var(--text-muted); text-transform: capitalize; }
 
 .user-actions { display: flex; gap: 0.35rem; }

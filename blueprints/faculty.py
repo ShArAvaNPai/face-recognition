@@ -123,7 +123,7 @@ def medical_certificates():
 @faculty_bp.route("/medical-certificates/download/<int:cert_id>")
 @login_required
 def download_certificate(cert_id):
-    if current_user.role not in ['admin', 'faculty', 'director']:
+    if current_user.role not in ['admin', 'faculty', 'director', 'hod']:
         from flask import abort
         abort(403)
     cert = MedicalCertificate.query.get_or_404(cert_id)
@@ -135,29 +135,38 @@ def download_certificate(cert_id):
 @roles_required(ROLE_FACULTY)
 def approve_certificate(cert_id):
     cert = MedicalCertificate.query.get_or_404(cert_id)
-    session_id = request.form.get("session_id", type=int)
-    if session_id:
-        session = AttendanceSession.query.get(session_id)
-        if session and session.faculty_id == current_user.id:
-            # Mark the student as excused in this session
-            existing = Attendance.query.filter_by(session_id=session.id, student_id=cert.student_id).first()
-            if existing:
+
+    # Find all sessions belonging to this faculty in the certificate's date range
+    from datetime import date as date_type
+    start = cert.start_date if cert.start_date else date_type.today()
+    end = cert.end_date if cert.end_date else start
+
+    excused_count = 0
+    sessions_in_range = AttendanceSession.query.filter(
+        AttendanceSession.faculty_id == current_user.id,
+        AttendanceSession.session_date >= start,
+        AttendanceSession.session_date <= end
+    ).all()
+
+    for session in sessions_in_range:
+        existing = Attendance.query.filter_by(session_id=session.id, student_id=cert.student_id).first()
+        if existing:
+            if existing.status != "excused":
                 existing.status = "excused"
                 existing.method = "medical"
-            else:
-                rec = Attendance(session_id=session.id, student_id=cert.student_id, status="excused", method="medical")
-                db.session.add(rec)
-            
-            cert.status = "approved"
-            db.session.commit()
-            flash(f"Certificate approved and student marked as excused for session #{session.id}.", "success")
+                excused_count += 1
         else:
-            flash("Invalid session selected.", "danger")
+            rec = Attendance(session_id=session.id, student_id=cert.student_id, status="excused", method="medical")
+            db.session.add(rec)
+            excused_count += 1
+
+    cert.status = "approved"
+    db.session.commit()
+
+    if excused_count > 0:
+        flash(f"Certificate approved. Student marked as excused for {excused_count} session(s) from {start} to {end}.", "success")
     else:
-        # Just approve the certificate without linking to a session
-        cert.status = "approved"
-        db.session.commit()
-        flash("Certificate approved.", "success")
-        
+        flash(f"Certificate approved (no sessions found in your classes for {start} to {end}).", "info")
+
     return redirect(url_for("faculty.medical_certificates"))
 

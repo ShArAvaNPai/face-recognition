@@ -25,6 +25,7 @@ class User(UserMixin, db.Model):
     email = db.Column(db.String(120), unique=True, nullable=False)
     password_hash = db.Column(db.String(255), nullable=False)
     role = db.Column(db.String(20), nullable=False, default=ROLE_STUDENT)
+    department = db.Column(db.String(80), default="")
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     # Only set for student accounts.
@@ -227,6 +228,8 @@ class MedicalCertificate(db.Model):
     file_path = db.Column(db.String(255), nullable=False)
     reason = db.Column(db.String(255), nullable=True)
     status = db.Column(db.String(20), default="uploaded")
+    start_date = db.Column(db.Date, nullable=False, default=date.today)
+    end_date = db.Column(db.Date, nullable=False, default=date.today)
     upload_date = db.Column(db.DateTime, default=datetime.utcnow)
 
     def __repr__(self):
@@ -238,6 +241,7 @@ class TimetableSlot(db.Model):
     __tablename__ = "timetable_slots"
 
     id = db.Column(db.Integer, primary_key=True)
+    department = db.Column(db.String(80), nullable=True)    # e.g. "MCA", "MBA"
     day_of_week = db.Column(db.String(20), nullable=False)  # e.g. "Monday", "Tuesday", etc.
     slot_time = db.Column(db.String(50), nullable=False)    # e.g. "09:00 - 10:00"
     subject_id = db.Column(db.Integer, db.ForeignKey("subjects.id"), nullable=True)

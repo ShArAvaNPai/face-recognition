@@ -50,6 +50,49 @@
 </div>
 {% endif %}
 
+{% if timetable_grid %}
+<div class="card" style="margin-top: 1.5rem;">
+  <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:1.25rem;">
+    <h3 style="margin:0;">📅 My Weekly Timetable — {{ student.department }}</h3>
+  </div>
+  <div class="table-responsive">
+    <table style="width:100%; border-collapse:collapse; min-width:700px;">
+      <thead>
+        <tr style="border-bottom:2px solid var(--border-color,#333);">
+          <th style="padding:0.65rem 0.75rem; text-align:left; font-size:0.8rem; color:var(--text-muted);">TIME</th>
+          {% for day in timetable_days %}
+          <th style="padding:0.65rem 0.75rem; text-align:center; font-size:0.8rem; color:var(--text-muted);">{{ day | upper }}</th>
+          {% endfor %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for row in timetable_grid %}
+        <tr style="border-bottom:1px solid rgba(255,255,255,0.06);">
+          <td style="padding:0.65rem 0.75rem; font-size:0.8rem; font-weight:600; white-space:nowrap; color:var(--text-muted);">{{ row.time }}</td>
+          {% for day in timetable_days %}
+            {% set slot = row.days[day] %}
+            <td style="padding:0.5rem; text-align:center; vertical-align:middle;">
+              {% if slot and slot.subject %}
+                <div style="border-radius:8px; padding:0.5rem 0.65rem; background:rgba(99,102,241,0.1); border:1px solid rgba(99,102,241,0.25);">
+                  <div style="font-weight:600; font-size:0.82rem; color:#c7d2fe;">{{ slot.subject.name }}</div>
+                  <div style="font-size:0.72rem; color:var(--text-muted); margin-top:2px;">{{ slot.subject.code }}</div>
+                  {% if slot.subject.faculty %}
+                  <div style="font-size:0.72rem; color:var(--text-muted);">{{ slot.subject.faculty.username }}</div>
+                  {% endif %}
+                </div>
+              {% else %}
+                <span style="font-size:0.78rem; color:rgba(255,255,255,0.2);">—</span>
+              {% endif %}
+            </td>
+          {% endfor %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+
 <div class="card" style="margin-top: 1.5rem;">
   <div style="display:flex; align-items:center; gap:0.65rem; margin-bottom:1.25rem;">
     <div class="brand-icon" style="width:36px; height:36px;"><svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg></div>
@@ -64,6 +107,16 @@
       <div style="flex:1; min-width:240px;">
         <label>Reason / Note</label>
         <input type="text" name="reason" placeholder="e.g., Viral Fever" style="width: 100%;">
+      </div>
+    </div>
+    <div style="display:flex; gap:1.25rem; flex-wrap:wrap; margin-top:1rem;">
+      <div style="flex:1; min-width:180px;">
+        <label>Leave Start Date</label>
+        <input type="date" name="start_date" required style="width:100%;">
+      </div>
+      <div style="flex:1; min-width:180px;">
+        <label>Leave End Date</label>
+        <input type="date" name="end_date" required style="width:100%;">
       </div>
     </div>
     <div class="btn-row">

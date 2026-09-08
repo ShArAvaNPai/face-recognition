@@ -53,6 +53,8 @@ def get_week_dates(ref_date):
 @dashboard_bp.route("/")
 @login_required
 def index():
+    if current_user.role == "parent":
+        return redirect(url_for("parents.dashboard"))
     if current_user.role == ROLE_STUDENT:
         return _student_dashboard()
     return _staff_dashboard()
@@ -76,8 +78,10 @@ def _staff_dashboard():
     # Subjects of current user for the claim form dropdown
     my_subjects = []
     all_subjects = []
-    if current_user.role == 'director':
+    if current_user.role in ['director', 'hod']:
         my_subjects = Subject.query.filter_by(code="research").all()
+        if not my_subjects:
+            my_subjects = Subject.query.filter_by(faculty_id=current_user.id).all()
     elif current_user.role == 'admin':
         all_subjects = Subject.query.filter(Subject.faculty_id != None).all()
     else:
@@ -99,10 +103,13 @@ def _staff_dashboard():
     days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
     grid = []
     
+    dept = current_user.department or request.args.get("dept") or "MCA"
+    department_faculty = User.query.filter(User.role.in_(['faculty', 'hod']), (User.department == dept) | (User.department == '')).order_by(User.username).all()
+
     for time_str in slot_times:
         row = {"time": time_str, "days": {}}
         for day in days:
-            slot = TimetableSlot.query.filter_by(day_of_week=day, slot_time=time_str).first()
+            slot = TimetableSlot.query.filter_by(department=dept, day_of_week=day, slot_time=time_str).first()
             cell = {
                 "slot": slot,
                 "subject": None,
@@ -128,7 +135,7 @@ def _staff_dashboard():
                     cell["subject"] = claim.subject
                     cell["faculty"] = claim.claimed_by
                     cell["is_empty"] = False
-                    cell["can_release"] = (claim.claimed_by_id == current_user.id or current_user.role == 'admin')
+                    cell["can_release"] = (claim.claimed_by_id == current_user.id or current_user.role in ['admin', 'hod', 'director'])
                     cell["claim_id"] = claim.id
                 else:
                     if is_absent or slot.subject is None:
@@ -138,6 +145,7 @@ def _staff_dashboard():
                         cell["subject"] = slot.subject
                         cell["faculty"] = slot.subject.faculty if slot.subject else None
                         cell["is_empty"] = (slot.subject is None)
+                        cell["claimable"] = (current_user.role in ['hod', 'director', 'admin'])
             row["days"][day] = cell
         grid.append(row)
         
@@ -150,6 +158,7 @@ def _staff_dashboard():
                            next_week_date=next_week_date,
                            my_subjects=my_subjects,
                            all_subjects=all_subjects,
+                           department_faculty=department_faculty,
                            current_date_str=ref_date.isoformat())
 
 
@@ -162,6 +171,7 @@ def claim_slot():
     slot_id = request.form.get("slot_id", type=int)
     claim_date_str = request.form.get("claim_date")
     subject_id = request.form.get("subject_id", type=int)
+    assignee_id = request.form.get("assignee_id", type=int)
     
     try:
         claim_date = date.fromisoformat(claim_date_str)
@@ -171,35 +181,45 @@ def claim_slot():
         
     slot = TimetableSlot.query.get_or_404(slot_id)
     
-    # Verify the default lecturer is absent on that day, or slot is empty
+    # Verify default lecturer is absent, unless HOD/Director/Admin is reassigning an emergency slot
     default_faculty_id = slot.subject.faculty_id if slot.subject else None
     if slot.subject and not is_faculty_absent(default_faculty_id, claim_date):
-        flash("Cannot claim slot: Default lecturer is not absent.", "danger")
-        return redirect(url_for("dashboard.index", date=claim_date_str))
+        if current_user.role not in ['hod', 'director', 'admin']:
+            flash("Cannot claim slot: Default lecturer is not absent.", "danger")
+            return redirect(url_for("dashboard.index", date=claim_date_str))
         
     # Check if already claimed
     existing = TimetableClaim.query.filter_by(slot_id=slot.id, claim_date=claim_date).first()
     if existing:
-        flash("Slot is already claimed.", "danger")
-        return redirect(url_for("dashboard.index", date=claim_date_str))
+        if current_user.role in ['hod', 'director', 'admin']:
+            db.session.delete(existing)
+            db.session.flush()
+        else:
+            flash("Slot is already claimed.", "danger")
+            return redirect(url_for("dashboard.index", date=claim_date_str))
         
-    # Find subject: prefer user's own, fall back to slot's original subject
+    # Determine target faculty (assignee)
+    if current_user.role in ['hod', 'director', 'admin'] and assignee_id:
+        claimed_by_id = assignee_id
+    elif current_user.role == 'admin' and subject_id:
+        sub = Subject.query.get(subject_id)
+        claimed_by_id = sub.faculty_id if sub and sub.faculty_id else current_user.id
+    else:
+        claimed_by_id = current_user.id
+
+    # Determine subject
     subject = None
     if subject_id:
         subject = Subject.query.get(subject_id)
-    elif current_user.role == 'director':
+    elif current_user.role in ['director', 'hod']:
         subject = Subject.query.filter_by(code="research").first()
+        if not subject:
+            subject = Subject.query.filter_by(faculty_id=claimed_by_id).first()
     elif current_user.role in ['faculty', 'admin']:
-        subject = Subject.query.filter_by(faculty_id=current_user.id).first()
-    # For any other role, or if no personal subject found, keep the original slot subject
+        subject = Subject.query.filter_by(faculty_id=claimed_by_id).first()
+        
     if not subject and slot.subject:
         subject = slot.subject
-
-    # If admin is claiming, assign the claim to the faculty member teaching that subject
-    if current_user.role == 'admin' and subject and subject.faculty_id:
-        claimed_by_id = subject.faculty_id
-    else:
-        claimed_by_id = current_user.id
 
     claim = TimetableClaim(
         slot_id=slot.id,
@@ -207,24 +227,36 @@ def claim_slot():
         claimed_by_id=claimed_by_id,
         subject_id=subject.id if subject else None
     )
-    from extensions import db
     db.session.add(claim)
     
+    assigned_user = User.query.get(claimed_by_id)
+    assignee_name = assigned_user.username if assigned_user else 'faculty'
+
     if subject:
-        # Automatically start an attendance session for the claimed subject
-        session = AttendanceSession(
+        # Create attendance session for substitute lecturer
+        session = AttendanceSession.query.filter_by(
             subject_id=subject.id,
             faculty_id=claimed_by_id,
-            session_date=claim_date,
-            class_name=""
-        )
-        db.session.add(session)
+            session_date=claim_date
+        ).first()
+        if not session:
+            session = AttendanceSession(
+                subject_id=subject.id,
+                faculty_id=claimed_by_id,
+                session_date=claim_date,
+                class_name=slot.department or ""
+            )
+            db.session.add(session)
         db.session.commit()
-        flash("Slot claimed and attendance session started.", "success")
-        return redirect(url_for("attendance.take", session_id=session.id))
+        
+        flash(f"Slot reassigned to {assignee_name} for {claim_date}. Attendance session created.", "success")
+        if claimed_by_id == current_user.id:
+            return redirect(url_for("attendance.take", session_id=session.id))
+        else:
+            return redirect(url_for("dashboard.index", date=claim_date_str))
     else:
         db.session.commit()
-        flash("Slot claimed successfully.", "success")
+        flash(f"Slot reassigned to {assignee_name} for {claim_date}.", "success")
         return redirect(url_for("dashboard.index", date=claim_date_str))
 
 
@@ -232,33 +264,42 @@ def claim_slot():
 @login_required
 def release_slot(claim_id):
     claim = TimetableClaim.query.get_or_404(claim_id)
-    if claim.claimed_by_id != current_user.id and current_user.role != 'admin':
+    if claim.claimed_by_id != current_user.id and current_user.role not in ['admin', 'hod', 'director']:
         flash("You cannot release this claim.", "danger")
         return redirect(url_for("dashboard.index"))
         
     claim_date_str = claim.claim_date.isoformat()
-    from extensions import db
     db.session.delete(claim)
     db.session.commit()
-    flash("Slot claim released.", "info")
+    flash("Slot re-assignment released. Reverted to default schedule.", "info")
     return redirect(url_for("dashboard.index", date=claim_date_str))
 
 
 
 def _student_dashboard():
     student = current_user.student
+    dept = (student.department if student else current_user.department) or "MCA"
     present = total = pct = 0
     subject_stats = []
+    
     if student:
-        total = AttendanceSession.query.count()
-        present = Attendance.query.filter(
+        # Filter subjects belonging to student's department
+        subjects = Subject.query.filter(Subject.code.ilike(f"{dept}%")).all()
+        if not subjects:
+            subjects = Subject.query.all()
+
+        subj_ids = [s.id for s in subjects]
+        total = AttendanceSession.query.filter(AttendanceSession.subject_id.in_(subj_ids)).count() if subj_ids else 0
+
+        present = Attendance.query.join(AttendanceSession).filter(
             Attendance.student_id == student.id,
+            AttendanceSession.subject_id.in_(subj_ids),
             Attendance.status.in_(["present", "excused"])
-        ).count()
+        ).count() if subj_ids else 0
+
         pct = round(100.0 * present / total, 1) if total else 0.0
-        
-        # Calculate subject-wise attendance
-        subjects = Subject.query.all()
+
+        # Calculate subject-wise attendance for department subjects
         for subj in subjects:
             subj_total = AttendanceSession.query.filter_by(subject_id=subj.id).count()
             if subj_total > 0:
@@ -274,10 +315,27 @@ def _student_dashboard():
                     "total": subj_total,
                     "percentage": subj_pct
                 })
-                
+
+    # Build student's timetable based on their department (MCA / MBA)
+    DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
+    TIMES = [
+        "09:00 - 10:00", "10:00 - 11:00", "11:00 - 12:00",
+        "13:00 - 14:00", "14:00 - 15:00", "15:00 - 16:00"
+    ]
+
+    timetable_grid = []
+    for time_slot in TIMES:
+        row = {"time": time_slot, "days": {}}
+        for day in DAYS:
+            slot = TimetableSlot.query.filter_by(department=dept, day_of_week=day, slot_time=time_slot).first()
+            row["days"][day] = slot
+        timetable_grid.append(row)
+
     return render_template("dashboard/student.html", student=student,
                            present=present, total=total, percentage=pct,
-                           subject_stats=subject_stats)
+                           subject_stats=subject_stats,
+                           timetable_grid=timetable_grid,
+                           timetable_days=DAYS)
 
 
 @dashboard_bp.route("/upload-certificate", methods=["POST"])
@@ -305,10 +363,20 @@ def upload_certificate():
         file.save(file_path)
         
         reason = request.form.get("reason", "").strip()
+        start_date_str = request.form.get("start_date", "")
+        end_date_str = request.form.get("end_date", "")
+        today = date.today()
+        try:
+            start_date = date.fromisoformat(start_date_str) if start_date_str else today
+            end_date = date.fromisoformat(end_date_str) if end_date_str else today
+        except ValueError:
+            start_date = end_date = today
         cert = MedicalCertificate(
             student_id=current_user.student.id,
             file_path=filename,
-            reason=reason
+            reason=reason,
+            start_date=start_date,
+            end_date=end_date
         )
         from extensions import db
         db.session.add(cert)

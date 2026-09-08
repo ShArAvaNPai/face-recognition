@@ -60,6 +60,7 @@ def index():
 @staff_required
 def new_session():
     subjects_list = Subject.query.order_by(Subject.code).all()
+    available_classes = [c[0] for c in db.session.query(Student.class_name).distinct().all() if c[0]]
     if request.method == "POST":
         subject_id = request.form.get("subject_id", type=int)
         if not subject_id or not Subject.query.get(subject_id):
@@ -84,18 +85,41 @@ def new_session():
         flash("Create a subject first.", "warning")
         return redirect(url_for("attendance.subjects"))
     return render_template("attendance/new_session.html",
-                           subjects=subjects_list, today=date.today().isoformat())
+                           subjects=subjects_list, classes=available_classes, today=date.today().isoformat())
 
 
-@attendance_bp.route("/<int:session_id>/take")
+@attendance_bp.route("/<int:session_id>/take", methods=["GET", "POST"])
 @login_required
 @staff_required
 def take(session_id):
     session = AttendanceSession.query.get_or_404(session_id)
+    
+    if request.method == "POST" and "update_class" in request.form:
+        new_class = request.form.get("class_name", "").strip()
+        session.class_name = new_class
+        db.session.commit()
+        flash(f"Session class updated to '{new_class or 'All Classes'}'.", "info")
+        return redirect(url_for("attendance.take", session_id=session.id))
+        
+    req_class = request.args.get("class_name")
+    if req_class is not None and req_class != session.class_name:
+        session.class_name = req_class
+        db.session.commit()
+
     present_ids = {a.student_id for a in session.records if a.status == "present"}
-    students = Student.query.order_by(Student.roll_number).all()
+    
+    query = Student.query
+    if session.class_name:
+        query = query.filter_by(class_name=session.class_name)
+    elif current_user.role == "hod" and current_user.department:
+        query = query.filter_by(department=current_user.department)
+
+    students = query.order_by(Student.roll_number).all()
+    available_classes = [c[0] for c in db.session.query(Student.class_name).distinct().all() if c[0]]
+
     return render_template("attendance/take.html", session=session,
                            students=students, present_ids=present_ids,
+                           available_classes=available_classes,
                            engine_ready=engine.available)
 
 

@@ -67,6 +67,34 @@ def create_app(config_class=Config):
 
     with app.app_context():
         db.create_all()
+        from sqlalchemy import inspect, text
+        try:
+            inspector = inspect(db.engine)
+            
+            # Migrate users table
+            user_cols = [c['name'] for c in inspector.get_columns('users')]
+            if 'department' not in user_cols:
+                db.session.execute(text("ALTER TABLE users ADD COLUMN department VARCHAR(80) DEFAULT ''"))
+                db.session.commit()
+                
+            # Migrate timetable_slots table
+            if inspector.has_table('timetable_slots'):
+                tt_cols = [c['name'] for c in inspector.get_columns('timetable_slots')]
+                if 'department' not in tt_cols:
+                    db.session.execute(text("ALTER TABLE timetable_slots ADD COLUMN department VARCHAR(80) DEFAULT ''"))
+                    db.session.commit()
+                    
+            # Migrate medical_certificates table
+            if inspector.has_table('medical_certificates'):
+                med_cols = [c['name'] for c in inspector.get_columns('medical_certificates')]
+                if 'start_date' not in med_cols:
+                    db.session.execute(text("ALTER TABLE medical_certificates ADD COLUMN start_date DATE"))
+                    db.session.commit()
+                if 'end_date' not in med_cols:
+                    db.session.execute(text("ALTER TABLE medical_certificates ADD COLUMN end_date DATE"))
+                    db.session.commit()
+        except Exception as ex:
+            print(f"[migration] Note on schema check: {ex}")
         _seed_admin(app)
 
     return app
