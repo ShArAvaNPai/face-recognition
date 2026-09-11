@@ -97,11 +97,29 @@
           </a>
           <a href="{{ url_for('director.leaves_index') }}" class="nav-item">
             <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
-            <span>Leaves</span>
+            <span>{% if current_user.role == 'hod' %}Faculty Leaves{% else %}Leaves Approval{% endif %}</span>
           </a>
+          {% if current_user.role in ['admin', 'hod'] %}
+          <a href="{{ url_for('faculty.medical_certificates') }}" class="nav-item">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><line x1="10" y1="13" x2="14" y2="13"></line></svg>
+            <span>Medical Certificates</span>
+          </a>
+          {% endif %}
           <a href="{{ url_for('admin.manage_timetable') }}" class="nav-item">
             <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
             <span>Manage Timetable</span>
+          </a>
+        {% endif %}
+
+        {% if current_user.role == 'hod' %}
+          <div class="nav-section-label">HOD Portal</div>
+          <a href="{{ url_for('faculty.face_attendance') }}" class="nav-item">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+            <span>Face Check-In</span>
+          </a>
+          <a href="{{ url_for('faculty.leaves') }}" class="nav-item">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+            <span>Apply Leave (to Director)</span>
           </a>
         {% endif %}
 
@@ -114,10 +132,6 @@
           <a href="{{ url_for('faculty.leaves') }}" class="nav-item">
             <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
             <span>My Leaves</span>
-          </a>
-          <a href="{{ url_for('faculty.medical_certificates') }}" class="nav-item">
-            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><line x1="10" y1="13" x2="14" y2="13"></line></svg>
-            <span>Stud. Certificates</span>
           </a>
         {% endif %}
 
@@ -158,6 +172,12 @@
             <span>Fees</span>
           </a>
         {% endif %}
+
+        <div class="nav-section-label">Institution</div>
+        <a href="{{ url_for('calendar.index') }}" class="nav-item">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+          <span>Academic Calendar</span>
+        </a>
       </nav>
 
       <div class="sidebar-user">
@@ -205,6 +225,32 @@
           {% endwith %}
         </div>
 
+        {% if current_user.is_authenticated and user_notifications %}
+        <div class="card" style="margin-bottom: 1.5rem; background-color: rgba(59, 130, 246, 0.05); border: 1px solid rgba(59, 130, 246, 0.3);">
+          <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.5rem;">
+            <h3 style="margin:0; color: #60a5fa; font-size:1rem; display:flex; align-items:center; gap:6px;">
+              🔔 Notifications ({{ unread_notifications_count }})
+            </h3>
+          </div>
+          <ul style="list-style: none; padding-left: 0; margin-bottom: 0;">
+            {% for notif in user_notifications %}
+              <li style="margin-top: 0.5rem; padding-bottom: 0.5rem; border-bottom: 1px solid rgba(255, 255, 255, 0.08); display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.5rem;">
+                <span style="font-size: 0.88rem; color: #f1f5f9;">{{ notif.message }}</span>
+                <div style="display: flex; gap: 0.5rem;">
+                  {% if notif.claim_id and notif.claim and notif.claim.status == 'pending' and current_user.id != notif.claim.claimed_by_id %}
+                    <a href="{{ url_for('dashboard.handle_notification', notif_id=notif.id, action='accept') }}" class="btn btn-sm" style="background-color: #10b981; border:none; padding: 0.2rem 0.5rem; font-size: 0.75rem;">Accept</a>
+                    <a href="{{ url_for('dashboard.handle_notification', notif_id=notif.id, action='report') }}" class="btn btn-sm btn-secondary" style="padding: 0.2rem 0.5rem; font-size: 0.75rem;">Report</a>
+                    <a href="{{ url_for('dashboard.handle_notification', notif_id=notif.id, action='reject') }}" class="btn btn-sm btn-secondary" style="padding: 0.2rem 0.5rem; font-size: 0.75rem; background-color: rgba(239, 68, 68, 0.1); color: #ef4444;">Reject</a>
+                  {% else %}
+                    <a href="{{ url_for('dashboard.handle_notification', notif_id=notif.id, action='read') }}" class="btn btn-sm btn-secondary" style="padding: 0.2rem 0.5rem; font-size: 0.75rem;">Mark Read</a>
+                  {% endif %}
+                </div>
+              </li>
+            {% endfor %}
+          </ul>
+        </div>
+        {% endif %}
+
         {% block content %}{% endblock %}
       </main>
 
@@ -216,11 +262,37 @@
   (function() {
     // Nav highlight
     const currentPath = window.location.pathname;
+    let bestMatch = null;
+    let bestMatchLength = -1;
+
     document.querySelectorAll('.nav-item').forEach(link => {
-      if (link.getAttribute('href') && currentPath.includes(link.getAttribute('href'))) {
-        link.classList.add('active');
+      link.classList.remove('active');
+      const href = link.getAttribute('href');
+      if (!href || href.startsWith('#')) return;
+
+      try {
+        const linkUrl = new URL(href, window.location.origin);
+        const linkPath = linkUrl.pathname;
+
+        if (linkPath === currentPath) {
+          if (linkPath.length + 1000 > bestMatchLength) {
+            bestMatch = link;
+            bestMatchLength = linkPath.length + 1000;
+          }
+        } else if (linkPath !== '/' && currentPath.startsWith(linkPath.endsWith('/') ? linkPath : linkPath + '/')) {
+          if (linkPath.length > bestMatchLength) {
+            bestMatch = link;
+            bestMatchLength = linkPath.length;
+          }
+        }
+      } catch (e) {
+        // ignore invalid URL
       }
     });
+
+    if (bestMatch) {
+      bestMatch.classList.add('active');
+    }
 
     // Mobile menu toggle
     const menuBtn = document.getElementById('menu-toggle');
@@ -235,6 +307,14 @@
       overlay.addEventListener('click', () => {
         sidebar.classList.remove('show');
         overlay.classList.remove('show');
+      });
+      document.querySelectorAll('.nav-item').forEach(link => {
+        link.addEventListener('click', () => {
+          if (window.innerWidth <= 768) {
+            sidebar.classList.remove('show');
+            overlay.classList.remove('show');
+          }
+        });
       });
     }
 

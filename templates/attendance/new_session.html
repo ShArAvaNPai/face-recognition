@@ -8,11 +8,16 @@
       <h1>Start Session</h1>
       <p class="subtitle">Select subject and date to begin</p>
     </div>
-    <form method="post">
+    <form method="post" id="session-form">
+      {% if auto_slot and auto_slot.subject.faculty_id != current_user_id %}
+        <input type="hidden" name="takeover_slot_id" value="{{ auto_slot.id }}">
+        <input type="hidden" name="takeover_confirmed" id="takeover-confirmed" value="false">
+      {% endif %}
+      
       <label>Subject</label>
-      <select name="subject_id" required style="margin-bottom:0.5rem;">
+      <select name="subject_id" id="subject-select" required style="margin-bottom:0.5rem;">
         {% for s in subjects %}
-        <option value="{{ s.id }}">{{ s.code }} — {{ s.name }}</option>
+        <option value="{{ s.id }}" {% if auto_slot and auto_slot.subject_id == s.id %}selected{% endif %}>{{ s.code }} — {{ s.name }}</option>
         {% endfor %}
       </select>
       
@@ -20,18 +25,57 @@
       <select name="class_name" style="margin-bottom:0.5rem;">
         <option value="">All Classes</option>
         {% for c in classes %}
-        <option value="{{ c }}">{{ c }}</option>
+        <option value="{{ c }}" {% if auto_slot and auto_slot.department == c %}selected{% endif %}>{{ c }}</option>
         {% endfor %}
+        {% if auto_slot and auto_slot.department and auto_slot.department not in classes %}
+        <option value="{{ auto_slot.department }}" selected>{{ auto_slot.department }}</option>
+        {% endif %}
       </select>
       
       <label>Date</label>
       <input type="date" name="session_date" value="{{ today }}">
       
       <div class="btn-row" style="margin-top:2rem;">
-        <button class="btn" type="submit" style="flex:1;">Start Session</button>
+        <button class="btn" type="button" onclick="submitSession()" style="flex:1;">Start Session</button>
         <a class="btn btn-secondary" href="{{ url_for('attendance.index') }}">Cancel</a>
       </div>
     </form>
   </div>
 </div>
+
+<!-- Modal for takeover -->
+<div id="takeover-modal" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:9999; justify-content:center; align-items:center;">
+  <div class="card" style="width:100%; max-width:400px; text-align:center;">
+    <h2 style="margin-top:0;">Class Substitution</h2>
+    <p>This lecture is of another lecturer. Do you wish to take this class during this time?</p>
+    <div class="btn-row" style="margin-top:1.5rem;">
+      <button class="btn" onclick="confirmTakeover()">Yes, Take Class</button>
+      <button class="btn btn-secondary" onclick="cancelTakeover()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  const isTakeover = {% if auto_slot and auto_slot.subject.faculty_id != current_user_id %}true{% else %}false{% endif %};
+  const defaultSubjectId = "{{ auto_slot.subject_id if auto_slot else '' }}";
+  
+  function submitSession() {
+    const selectedSubject = document.getElementById('subject-select').value;
+    // If it's a takeover AND the user kept the default auto-assigned subject, show popup
+    if (isTakeover && selectedSubject == defaultSubjectId) {
+      document.getElementById('takeover-modal').style.display = 'flex';
+    } else {
+      document.getElementById('session-form').submit();
+    }
+  }
+  
+  function confirmTakeover() {
+    document.getElementById('takeover-confirmed').value = 'true';
+    document.getElementById('session-form').submit();
+  }
+  
+  function cancelTakeover() {
+    document.getElementById('takeover-modal').style.display = 'none';
+  }
+</script>
 {% endblock %}

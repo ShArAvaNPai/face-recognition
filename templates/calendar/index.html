@@ -1,0 +1,346 @@
+{% extends "base.html" %}
+{% block title %}Academic Calendar{% endblock %}
+
+{% block content %}
+<div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom: 1.25rem; flex-wrap:wrap; gap:1rem;">
+  <div>
+    <h1 style="display:flex; align-items:center; gap:0.5rem; margin:0;">
+      <span>📅</span> Academic Calendar
+    </h1>
+    <p class="subtitle" style="margin:0.25rem 0 0; color:var(--text-muted);">
+      Institution schedule: public holidays, exam schedules, and key academic milestones
+    </p>
+  </div>
+  <div style="display:flex; gap:0.75rem; align-items:center;">
+    {% if can_manage %}
+    <button class="btn" onclick="document.getElementById('add-event-modal').style.display='flex'">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+      Add Event / Holiday
+    </button>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Filters Bar -->
+<div class="card" style="padding: 0.75rem 1.25rem; margin-bottom: 1.25rem; background: var(--bg-card); border-radius: var(--radius);">
+  <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.85rem;">
+    <!-- Category Pills -->
+    <div style="display:flex; gap:0.5rem; flex-wrap:wrap; align-items:center;">
+      <a href="{{ url_for('calendar.index', year=current_year, month=current_month, category='all', department=dept_filter) }}"
+         class="btn btn-sm {% if cat_filter == 'all' %}btn-primary{% else %}btn-secondary{% endif %}" style="border-radius:20px; font-size:0.78rem; padding:0.3rem 0.85rem;">
+        🌟 All Events
+      </a>
+      <a href="{{ url_for('calendar.index', year=current_year, month=current_month, category='holiday', department=dept_filter) }}"
+         class="btn btn-sm {% if cat_filter == 'holiday' %}btn-primary{% else %}btn-secondary{% endif %}" style="border-radius:20px; font-size:0.78rem; padding:0.3rem 0.85rem; {% if cat_filter == 'holiday' %}background:#ef4444; border-color:#ef4444; color:#fff;{% endif %}">
+        🏖️ Public Holidays
+      </a>
+      <a href="{{ url_for('calendar.index', year=current_year, month=current_month, category='exam', department=dept_filter) }}"
+         class="btn btn-sm {% if cat_filter == 'exam' %}btn-primary{% else %}btn-secondary{% endif %}" style="border-radius:20px; font-size:0.78rem; padding:0.3rem 0.85rem; {% if cat_filter == 'exam' %}background:#f59e0b; border-color:#f59e0b; color:#000;{% endif %}">
+        📝 Exam Schedules
+      </a>
+      <a href="{{ url_for('calendar.index', year=current_year, month=current_month, category='academic', department=dept_filter) }}"
+         class="btn btn-sm {% if cat_filter == 'academic' %}btn-primary{% else %}btn-secondary{% endif %}" style="border-radius:20px; font-size:0.78rem; padding:0.3rem 0.85rem; {% if cat_filter == 'academic' %}background:#3b82f6; border-color:#3b82f6; color:#fff;{% endif %}">
+        🎓 Academic Milestones
+      </a>
+    </div>
+
+    <!-- Department Selector & Month Navigation -->
+    <div style="display:flex; align-items:center; gap:0.75rem; flex-wrap:wrap;">
+      <div style="display:flex; align-items:center; gap:0.4rem;">
+        <span style="font-size:0.78rem; font-weight:600; color:var(--text-muted);">Dept:</span>
+        <select class="form-control" style="font-size:0.78rem; padding:0.25rem 0.6rem; width:auto; border-radius:6px; margin:0;" onchange="location = this.value;">
+          <option value="{{ url_for('calendar.index', year=current_year, month=current_month, category=cat_filter, department='all') }}" {% if dept_filter == 'all' %}selected{% endif %}>All Departments</option>
+          <option value="{{ url_for('calendar.index', year=current_year, month=current_month, category=cat_filter, department='MCA') }}" {% if dept_filter == 'MCA' %}selected{% endif %}>MCA</option>
+          <option value="{{ url_for('calendar.index', year=current_year, month=current_month, category=cat_filter, department='MBA') }}" {% if dept_filter == 'MBA' %}selected{% endif %}>MBA</option>
+        </select>
+      </div>
+
+      <div style="display:flex; align-items:center; gap:0.3rem; background:var(--bg-darker); padding:3px 6px; border-radius:8px; border:1px solid var(--card-border);">
+        <a href="{{ prev_month_url }}" class="btn btn-secondary btn-sm" style="padding:0.2rem 0.55rem; font-size:0.8rem;" title="Previous Month">&larr;</a>
+        <span style="font-weight:700; font-size:0.88rem; min-width:125px; text-align:center; color:#ffffff;">{{ month_name }} {{ current_year }}</span>
+        <a href="{{ next_month_url }}" class="btn btn-secondary btn-sm" style="padding:0.2rem 0.55rem; font-size:0.8rem;" title="Next Month">&rarr;</a>
+        <a href="{{ url_for('calendar.index', year=today.year, month=today.month, category=cat_filter, department=dept_filter) }}" class="btn btn-secondary btn-sm" style="font-size:0.72rem; padding:0.2rem 0.55rem;">Today</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Calendar Layout Grid -->
+<div class="calendar-layout-grid" style="margin-bottom: 1.5rem;">
+  
+  <!-- Left Column: Month Calendar View -->
+  <div class="card calendar-main-card" style="margin-bottom:0; display:flex; flex-direction:column; justify-content:space-between;">
+    <div>
+      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.85rem; flex-wrap:wrap; gap:0.5rem;">
+        <h3 style="margin:0; font-size:1.05rem; color:#ffffff; font-weight:700;">{{ month_name }} {{ current_year }} Overview</h3>
+        <div style="display:flex; gap:0.75rem; font-size:0.75rem; color:var(--text-muted);">
+          <span style="display:flex; align-items:center; gap:5px;"><span style="width:8px; height:8px; border-radius:50%; background:#ef4444;"></span> Holiday</span>
+          <span style="display:flex; align-items:center; gap:5px;"><span style="width:8px; height:8px; border-radius:50%; background:#f59e0b;"></span> Exam</span>
+          <span style="display:flex; align-items:center; gap:5px;"><span style="width:8px; height:8px; border-radius:50%; background:#3b82f6;"></span> Academic</span>
+        </div>
+      </div>
+
+      <div class="table-responsive" style="border-radius: var(--radius-sm); border: 1px solid var(--card-border); overflow: hidden;">
+        <table class="calendar-table">
+          <thead>
+            <tr>
+              {% for dname in ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] %}
+              <th style="{% if loop.first %}color:#ef4444;{% endif %}">{{ dname }}</th>
+              {% endfor %}
+            </tr>
+          </thead>
+          <tbody>
+            {% for week in month_days %}
+            <tr>
+              {% for d in week %}
+                {% set day_str = d.isoformat() %}
+                {% set is_current_month = (d.month == current_month) %}
+                {% set is_today = (d == today) %}
+                {% set day_evts = day_events_map.get(day_str, []) %}
+                <td style="{% if not is_current_month %}opacity:0.3; background:rgba(0,0,0,0.25);{% endif %}
+                           {% if is_today %}background:rgba(59,130,246,0.09); border-color:#3b82f6; box-shadow: inset 0 0 0 1px #3b82f6;{% endif %}">
+                  <div class="calendar-day-header">
+                    <span class="calendar-day-num" style="{% if is_today %}color:#60a5fa; font-weight:800;{% elif d.weekday() == 6 %}color:#ef4444;{% endif %}">
+                      {{ d.day }}
+                    </span>
+                    {% if is_today %}
+                      <span style="font-size:0.6rem; background:#3b82f6; color:#fff; border-radius:3px; padding:1px 4px; font-weight:700;">Today</span>
+                    {% endif %}
+                  </div>
+                  <div class="calendar-events-wrap custom-scroll">
+                    {% for evt in day_evts %}
+                      <div title="{{ evt.title }} ({{ evt.start_date.strftime('%b %d') }} to {{ evt.end_date.strftime('%b %d') }}) - {{ evt.description or '' }}"
+                           class="calendar-event-pill {% if evt.category == 'holiday' %}evt-holiday{% elif evt.category == 'exam' %}evt-exam{% else %}evt-academic{% endif %}">
+                        {% if evt.category == 'holiday' %}🏖️{% elif evt.category == 'exam' %}📝{% else %}🎓{% endif %} {{ evt.title }}
+                      </div>
+                    {% endfor %}
+                  </div>
+                </td>
+              {% endfor %}
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right Column: Unified Upcoming Highlights Card (Fixed height with smooth tabs & scroll) -->
+  <div class="card" style="margin-bottom:0; padding:1.25rem; display:flex; flex-direction:column; min-width:0; max-height:510px;">
+    
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.85rem;">
+      <h3 style="margin:0; font-size:1.05rem; color:#ffffff; font-weight:700; display:flex; align-items:center; gap:6px;">
+        <span>⚡</span> Upcoming Highlights
+      </h3>
+    </div>
+
+    <!-- Switcher Tabs -->
+    <div style="display:flex; gap:0.4rem; margin-bottom:0.85rem; border-bottom:1px solid var(--card-border); padding-bottom:0.65rem;">
+      <button type="button" class="calendar-tab-btn active" id="tab-btn-exams" onclick="switchUpcomingTab('exams')">
+        📝 Exams <span class="badge" style="background:rgba(245,158,11,0.2); color:#f59e0b; padding:1px 5px; font-size:0.68rem;">{{ upcoming_exams|length }}</span>
+      </button>
+      <button type="button" class="calendar-tab-btn" id="tab-btn-holidays" onclick="switchUpcomingTab('holidays')">
+        🏖️ Holidays <span class="badge" style="background:rgba(239,68,68,0.2); color:#ef4444; padding:1px 5px; font-size:0.68rem;">{{ upcoming_holidays|length }}</span>
+      </button>
+    </div>
+
+    <!-- Tab 1 Content: Scheduled Exams -->
+    <div id="tab-content-exams" class="custom-scroll" style="display:flex; flex-direction:column; gap:0.65rem; overflow-y:auto; flex:1; padding-right:4px;">
+      {% if upcoming_exams %}
+        {% for ex in upcoming_exams %}
+          <div style="padding:0.65rem 0.85rem; background:var(--bg-dark); border-radius:var(--radius-sm); border:1px solid var(--card-border); border-left:3px solid #f59e0b;">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:0.5rem;">
+              <strong style="font-size:0.84rem; color:#ffffff; line-height:1.3;">{{ ex.title }}</strong>
+              <span class="badge" style="background:rgba(245,158,11,0.15); color:#f59e0b; font-size:0.68rem; white-space:nowrap;">
+                {{ ex.department }}
+              </span>
+            </div>
+            <div style="font-size:0.75rem; color:#fcd34d; margin-top:3px; font-weight:600;">
+              📅 {{ ex.start_date.strftime('%b %d, %Y') }} to {{ ex.end_date.strftime('%b %d, %Y') }}
+            </div>
+            {% if ex.description %}
+              <div style="font-size:0.75rem; color:var(--text-muted); margin-top:3px; line-height:1.3;">{{ ex.description }}</div>
+            {% endif %}
+          </div>
+        {% endfor %}
+      {% else %}
+        <div style="padding:1.5rem; text-align:center; color:var(--text-muted); font-size:0.85rem;">
+          No upcoming examinations scheduled in this period.
+        </div>
+      {% endif %}
+    </div>
+
+    <!-- Tab 2 Content: Public Holidays -->
+    <div id="tab-content-holidays" class="custom-scroll" style="display:none; flex-direction:column; gap:0.65rem; overflow-y:auto; flex:1; padding-right:4px;">
+      {% if upcoming_holidays %}
+        {% for h in upcoming_holidays %}
+          <div style="padding:0.65rem 0.85rem; background:var(--bg-dark); border-radius:var(--radius-sm); border:1px solid var(--card-border); border-left:3px solid #ef4444;">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; gap:0.5rem;">
+              <strong style="font-size:0.84rem; color:#ffffff; line-height:1.3;">{{ h.title }}</strong>
+              <span class="badge badge-muted" style="font-size:0.68rem; white-space:nowrap;">
+                {{ h.start_date.strftime('%b %d') }}{% if h.start_date != h.end_date %} - {{ h.end_date.strftime('%b %d') }}{% endif %}
+              </span>
+            </div>
+            {% if h.description %}
+              <div style="font-size:0.75rem; color:var(--text-muted); margin-top:3px; line-height:1.3;">{{ h.description }}</div>
+            {% endif %}
+          </div>
+        {% endfor %}
+      {% else %}
+        <div style="padding:1.5rem; text-align:center; color:var(--text-muted); font-size:0.85rem;">
+          No public holidays in the immediate schedule.
+        </div>
+      {% endif %}
+    </div>
+
+  </div>
+</div>
+
+<!-- Full Academic Year Events Agenda / List View -->
+<div class="card card-table">
+  <div class="card-table-header">
+    <div>
+      <h2 style="margin:0; font-size:1.1rem; color:#ffffff;">Academic Year Event Schedule & Agenda</h2>
+      <p class="subtitle" style="margin:0.2rem 0 0; font-size:0.82rem;">Complete directory of events, public holidays, and exams for the academic year</p>
+    </div>
+  </div>
+
+  <div class="table-responsive">
+    <table style="width:100%; border-collapse:collapse;">
+      <thead>
+        <tr style="border-bottom:1px solid var(--card-border);">
+          <th style="padding:0.75rem 1rem; width:16%;">Category</th>
+          <th style="padding:0.75rem 1rem; width:28%;">Event / Holiday Name</th>
+          <th style="padding:0.75rem 1rem; width:24%;">Dates</th>
+          <th style="padding:0.75rem 1rem; width:10%;">Course</th>
+          <th style="padding:0.75rem 1rem; width:18%;">Details</th>
+          {% if can_manage %}
+          <th style="padding:0.75rem 1rem; width:4%; text-align:center;">Action</th>
+          {% endif %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for evt in events %}
+        <tr style="border-bottom:1px solid var(--card-border);">
+          <td style="padding:0.75rem 1rem; vertical-align:middle;">
+            {% if evt.category == 'holiday' %}
+              <span class="badge" style="background:rgba(239,68,68,0.15); color:#ef4444; border:1px solid rgba(239,68,68,0.3); font-weight:700;">🏖️ Public Holiday</span>
+            {% elif evt.category == 'exam' %}
+              <span class="badge" style="background:rgba(245,158,11,0.15); color:#f59e0b; border:1px solid rgba(245,158,11,0.3); font-weight:700;">📝 Examination</span>
+            {% else %}
+              <span class="badge" style="background:rgba(59,130,246,0.15); color:#60a5fa; border:1px solid rgba(59,130,246,0.3); font-weight:700;">🎓 Academic</span>
+            {% endif %}
+          </td>
+          <td style="padding:0.75rem 1rem; vertical-align:middle; font-weight:600; color:#ffffff;">
+            {{ evt.title }}
+          </td>
+          <td style="padding:0.75rem 1rem; vertical-align:middle; font-size:0.85rem;">
+            <strong>{{ evt.start_date.strftime('%d %b %Y') }}</strong>
+            {% if evt.start_date != evt.end_date %}
+              <span style="color:var(--text-muted);"> to </span><strong>{{ evt.end_date.strftime('%d %b %Y') }}</strong>
+            {% endif %}
+          </td>
+          <td style="padding:0.75rem 1rem; vertical-align:middle;">
+            <span class="badge badge-muted" style="font-size:0.75rem;">{{ evt.department }}</span>
+          </td>
+          <td style="padding:0.75rem 1rem; vertical-align:middle; font-size:0.8rem; color:var(--text-muted);">
+            {{ evt.description or '—' }}
+          </td>
+          {% if can_manage %}
+          <td style="padding:0.75rem 1rem; vertical-align:middle; text-align:center;">
+            <form method="POST" action="{{ url_for('calendar.delete_event', event_id=evt.id) }}" onsubmit="return confirm('Remove this event from calendar?');" style="margin:0;">
+              <button type="submit" class="user-action-btn logout-btn" title="Delete event" style="width:28px; height:28px; padding:0; display:inline-flex; align-items:center; justify-content:center;">
+                <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+              </button>
+            </form>
+          </td>
+          {% endif %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+{% if can_manage %}
+<!-- Modal to Add Event -->
+<div id="add-event-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.8); backdrop-filter:blur(4px); z-index:999; align-items:center; justify-content:center;">
+  <div class="card" style="width:100%; max-width:480px; padding:1.75rem; margin:1rem; border:1px solid #3f3f46; box-shadow:0 10px 30px rgba(0,0,0,0.8);">
+    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:1.25rem;">
+      <h2 style="margin:0; font-size:1.2rem; color:#ffffff;">Add Calendar Event / Schedule</h2>
+      <button onclick="document.getElementById('add-event-modal').style.display='none'" style="background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:1.5rem; line-height:1;">&times;</button>
+    </div>
+
+    <form method="POST" action="{{ url_for('calendar.add_event') }}">
+      <div style="margin-bottom:1rem;">
+        <label class="form-label" style="margin-top:0;">Event / Holiday Title</label>
+        <input type="text" name="title" class="form-control" placeholder="e.g. Mid-Semester Exam or Diwali Holiday" required>
+      </div>
+
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem; margin-bottom:1rem;">
+        <div>
+          <label class="form-label" style="margin-top:0;">Category</label>
+          <select name="category" class="form-control" required>
+            <option value="holiday">🏖️ Public Holiday</option>
+            <option value="exam">📝 Examination Schedule</option>
+            <option value="academic">🎓 Academic Milestone</option>
+          </select>
+        </div>
+        <div>
+          <label class="form-label" style="margin-top:0;">Department</label>
+          <select name="department" class="form-control" required>
+            <option value="All">All Departments</option>
+            <option value="MCA">MCA</option>
+            <option value="MBA">MBA</option>
+          </select>
+        </div>
+      </div>
+
+      <div style="display:grid; grid-template-columns:1fr 1fr; gap:0.75rem; margin-bottom:1rem;">
+        <div>
+          <label class="form-label" style="margin-top:0;">Start Date</label>
+          <input type="date" name="start_date" class="form-control" value="{{ today.isoformat() }}" required>
+        </div>
+        <div>
+          <label class="form-label" style="margin-top:0;">End Date</label>
+          <input type="date" name="end_date" class="form-control" value="{{ today.isoformat() }}" required>
+        </div>
+      </div>
+
+      <div style="margin-bottom:1.25rem;">
+        <label class="form-label" style="margin-top:0;">Description / Notes</label>
+        <textarea name="description" class="form-control" rows="2" placeholder="Additional details or timings..."></textarea>
+      </div>
+
+      <div style="display:flex; justify-content:flex-end; gap:0.75rem;">
+        <button type="button" class="btn btn-secondary" onclick="document.getElementById('add-event-modal').style.display='none'">Cancel</button>
+        <button type="submit" class="btn">Save Event</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+function switchUpcomingTab(tabName) {
+  const examsTab = document.getElementById('tab-content-exams');
+  const holidaysTab = document.getElementById('tab-content-holidays');
+  const examsBtn = document.getElementById('tab-btn-exams');
+  const holidaysBtn = document.getElementById('tab-btn-holidays');
+
+  if (tabName === 'exams') {
+    examsTab.style.display = 'flex';
+    holidaysTab.style.display = 'none';
+    examsBtn.classList.add('active');
+    holidaysBtn.classList.remove('active');
+  } else {
+    examsTab.style.display = 'none';
+    holidaysTab.style.display = 'flex';
+    holidaysBtn.classList.add('active');
+    examsBtn.classList.remove('active');
+  }
+}
+</script>
+{% endblock %}

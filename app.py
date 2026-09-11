@@ -14,6 +14,7 @@ Run:
     python app.py
 """
 from flask import Flask, render_template
+from flask_login import current_user
 
 from config import Config
 from extensions import db, login_manager
@@ -42,6 +43,7 @@ def create_app(config_class=Config):
     from blueprints.director import director_bp
     from blueprints.faculty import faculty_bp
     from blueprints.parents import parents_bp
+    from blueprints.academic_calendar import calendar_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(dashboard_bp)
@@ -53,6 +55,15 @@ def create_app(config_class=Config):
     app.register_blueprint(director_bp)
     app.register_blueprint(faculty_bp)
     app.register_blueprint(parents_bp)
+    app.register_blueprint(calendar_bp)
+
+    @app.context_processor
+    def inject_global_data():
+        if current_user.is_authenticated:
+            from models import Notification
+            notifs = Notification.query.filter_by(user_id=current_user.id, is_read=False).order_by(Notification.created_at.desc()).all()
+            return {"user_notifications": notifs, "unread_notifications_count": len(notifs)}
+        return {"user_notifications": [], "unread_notifications_count": 0}
 
     # Error pages
     @app.errorhandler(403)
@@ -93,6 +104,20 @@ def create_app(config_class=Config):
                 if 'end_date' not in med_cols:
                     db.session.execute(text("ALTER TABLE medical_certificates ADD COLUMN end_date DATE"))
                     db.session.commit()
+
+            # Migrate timetable_claims table
+            if inspector.has_table('timetable_claims'):
+                claim_cols = [c['name'] for c in inspector.get_columns('timetable_claims')]
+                if 'status' not in claim_cols:
+                    db.session.execute(text("ALTER TABLE timetable_claims ADD COLUMN status VARCHAR(20) DEFAULT 'approved'"))
+                    db.session.commit()
+                if 'reported_to_id' not in claim_cols:
+                    db.session.execute(text("ALTER TABLE timetable_claims ADD COLUMN reported_to_id INTEGER"))
+                    db.session.commit()
+                if 'created_at' not in claim_cols:
+                    db.session.execute(text("ALTER TABLE timetable_claims ADD COLUMN created_at DATETIME"))
+                    db.session.commit()
+
         except Exception as ex:
             print(f"[migration] Note on schema check: {ex}")
         _seed_admin(app)

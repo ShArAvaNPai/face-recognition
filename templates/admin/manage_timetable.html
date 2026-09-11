@@ -9,14 +9,27 @@
   </div>
   <a class="btn btn-secondary" href="{{ url_for('dashboard.index') }}#weekly-timetable">← Back to Dashboard</a>
 </div>
-<div style="margin-bottom: 2rem;">
-  <form method="GET" action="{{ url_for('admin.manage_timetable') }}" style="display:flex; gap:10px; align-items:center;">
-    <label class="form-label" style="margin-bottom:0;">Select Course (Department):</label>
-    <select name="dept" class="form-control" style="max-width: 200px;" onchange="this.form.submit()">
-      <option value="MCA" {% if department == 'MCA' %}selected{% endif %}>MCA</option>
-      <option value="MBA" {% if department == 'MBA' %}selected{% endif %}>MBA</option>
-    </select>
-  </form>
+<div style="margin-bottom: 2rem; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:1rem;">
+  {% if current_user.role in ['admin', 'director'] %}
+  <div style="display:flex; align-items:center; gap:0.6rem; background:var(--bg-card); padding:4px 6px; border-radius:8px; border:1px solid var(--border);">
+    <span style="font-size:0.85rem; font-weight:600; color:var(--text-muted); padding:0 0.5rem;">Course:</span>
+    <a href="{{ url_for('admin.manage_timetable', dept='MCA') }}" 
+       class="btn btn-sm {% if department == 'MCA' %}btn-primary{% else %}btn-secondary{% endif %}"
+       style="padding:0.4rem 1.1rem; font-weight:700; border-radius:6px;">
+      MCA Timetable
+    </a>
+    <a href="{{ url_for('admin.manage_timetable', dept='MBA') }}" 
+       class="btn btn-sm {% if department == 'MBA' %}btn-primary{% else %}btn-secondary{% endif %}"
+       style="padding:0.4rem 1.1rem; font-weight:700; border-radius:6px;">
+      MBA Timetable
+    </a>
+  </div>
+  {% endif %}
+  <div>
+    <span class="badge" style="font-size:0.9rem; padding:0.4rem 0.8rem; background:rgba(59,130,246,0.15); color:#60a5fa; border:1px solid rgba(59,130,246,0.3);">
+      Currently Editing: <strong>{{ department }} Timetable</strong>
+    </span>
+  </div>
 </div>
 
 <div class="card" style="margin-bottom:2rem;">

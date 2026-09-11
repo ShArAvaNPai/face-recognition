@@ -4,7 +4,8 @@ from flask import Blueprint, render_template, redirect, url_for, request, flash,
 from flask_login import login_required, current_user
 
 from extensions import db
-from models import FacultyAttendanceSession, FacultyAttendance, LeaveApplication, User, ROLE_FACULTY, Student, ROLE_STUDENT
+from models import (FacultyAttendanceSession, FacultyAttendance, LeaveApplication,
+                    User, ROLE_FACULTY, Student, ROLE_STUDENT, Subject)
 from blueprints.reports import _student_stats
 from blueprints.decorators import director_required
 from face_engine import engine, feature_from_bytes
@@ -156,10 +157,26 @@ from blueprints.decorators import hod_required
 @login_required
 @hod_required
 def leaves_index():
-    if current_user.role == 'hod' and current_user.department:
-        leaves = LeaveApplication.query.join(User).filter(User.department == current_user.department).order_by(LeaveApplication.created_at.desc()).all()
+    if current_user.role == 'hod':
+        # HOD only reviews faculty in their department, NOT their own leave requests
+        if current_user.department:
+            leaves = (LeaveApplication.query
+                      .join(User)
+                      .filter(User.department == current_user.department,
+                              User.role == ROLE_FACULTY,
+                              User.id != current_user.id)
+                      .order_by(LeaveApplication.created_at.desc())
+                      .all())
+        else:
+            leaves = (LeaveApplication.query
+                      .join(User)
+                      .filter(User.role == ROLE_FACULTY,
+                              User.id != current_user.id)
+                      .order_by(LeaveApplication.created_at.desc())
+                      .all())
     else:
-        leaves = LeaveApplication.query.order_by(LeaveApplication.created_at.desc()).all()
+        # Director and Admin review all leaves (including HOD leaves submitted to Director)
+        leaves = LeaveApplication.query.join(User).order_by(LeaveApplication.created_at.desc()).all()
     return render_template("director/leaves.html", leaves=leaves)
 
 @director_bp.route("/leaves/<int:leave_id>/update", methods=["POST"])
@@ -167,11 +184,42 @@ def leaves_index():
 @hod_required
 def update_leave(leave_id):
     leave = LeaveApplication.query.get_or_404(leave_id)
+    
+    # Check permissions: HOD cannot approve their own leave or non-faculty leaves
+    if current_user.role == 'hod':
+        if leave.user_id == current_user.id:
+            flash("HOD cannot approve their own leave. HOD leave must be approved by the Director.", "danger")
+            return redirect(url_for("director.leaves_index"))
+        if leave.user.role != ROLE_FACULTY:
+            flash("HOD can only review faculty leave applications.", "danger")
+            return redirect(url_for("director.leaves_index"))
+        if current_user.department and leave.user.department != current_user.department:
+            flash("You can only review leaves for faculty in your department.", "danger")
+            return redirect(url_for("director.leaves_index"))
+
     action = request.form.get("action")
     if action in ["approved", "rejected"]:
         leave.status = action
+        
+        # 1. Notify the faculty who applied
+        from models import Notification
+        db.session.add(Notification(
+            user_id=leave.user_id,
+            message=f"Leave Application {action.upper()}: Your leave application from {leave.start_date} to {leave.end_date} has been {action} by {current_user.username}."
+        ))
+
+        # 2. If approved, notify students in their department
+        if action == "approved" and leave.user.department:
+            dept_students = User.query.filter_by(role=ROLE_STUDENT, department=leave.user.department).all()
+            for st in dept_students:
+                db.session.add(Notification(
+                    user_id=st.id,
+                    message=f"Faculty Notice: {leave.user.username} is on approved leave from {leave.start_date} to {leave.end_date}. Classes will be taken by substitutes."
+                ))
+
         db.session.commit()
-        flash(f"Leave application {action}.", "success")
+        applicant_type = "HOD" if leave.user.role == 'hod' else "Faculty"
+        flash(f"Leave application for {applicant_type} {leave.user.username} {action}. Notification sent.", "success")
     return redirect(url_for("director.leaves_index"))
 
 # --- Director Roster Views ---
@@ -198,7 +246,8 @@ def lecturers_index():
             "lecturer": lec,
             "present": present,
             "total": total_sessions,
-            "percentage": pct
+            "percentage": pct,
+            "subjects": Subject.query.filter_by(faculty_id=lec.id).all()
         })
     return render_template("director/lecturers.html", rows=rows)
 

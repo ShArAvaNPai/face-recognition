@@ -11,8 +11,20 @@
 <div class="card">
   <h2>Add Subject</h2>
   <form method="post" style="display:flex; gap:1rem; align-items:flex-end; flex-wrap:wrap">
+    <input type="hidden" name="action" value="add">
     <div style="flex:1; min-width:140px"><label>Code</label><input name="code" required placeholder="e.g. CS101"></div>
     <div style="flex:2; min-width:200px"><label>Name</label><input name="name" required placeholder="e.g. Data Structures"></div>
+    {% if current_user.role in ['admin', 'director', 'hod'] %}
+    <div style="flex:2; min-width:200px">
+      <label>Assign Lecturer (Optional)</label>
+      <select name="faculty_id">
+        <option value="">-- No Lecturer Assigned --</option>
+        {% for lec in lecturers %}
+        <option value="{{ lec.id }}">{{ lec.username }} ({{ lec.email }})</option>
+        {% endfor %}
+      </select>
+    </div>
+    {% endif %}
     <button class="btn" type="submit" style="margin-top:auto;">Add Subject</button>
   </form>
 </div>
@@ -25,15 +37,51 @@
     {% if subjects %}
     <table>
       <thead>
-        <tr><th>Code</th><th>Name</th><th>Faculty</th><th>Sessions Count</th></tr>
+        <tr>
+          <th>Code</th>
+          <th>Name</th>
+          <th>Assigned Lecturer</th>
+          <th>Sessions Count</th>
+          {% if current_user.role in ['admin', 'director', 'hod'] %}
+          <th>Change Lecturer</th>
+          {% endif %}
+        </tr>
       </thead>
       <tbody>
         {% for s in subjects %}
         <tr>
           <td><span class="badge badge-muted">{{ s.code }}</span></td>
           <td style="font-weight:600; color:#fff;">{{ s.name }}</td>
-          <td>{{ s.faculty.username if s.faculty else '—' }}</td>
+          <td>
+            {% if s.faculty %}
+              <div style="display:flex; align-items:center; gap:0.5rem;">
+                <span class="badge" style="background:rgba(99,102,241,0.15); color:#818cf8; border-color:rgba(99,102,241,0.3);">
+                  👤 {{ s.faculty.username }}
+                </span>
+                <span style="font-size:0.75rem; color:var(--text-muted);">{{ s.faculty.department if s.faculty.department else '' }}</span>
+              </div>
+            {% else %}
+              <span class="muted" style="font-style:italic;">Unassigned</span>
+            {% endif %}
+          </td>
           <td><span class="badge badge-yes">{{ s.sessions|length }}</span></td>
+          {% if current_user.role in ['admin', 'director', 'hod'] %}
+          <td>
+            <form method="post" style="display:inline-flex; align-items:center; gap:0.5rem; margin:0;">
+              <input type="hidden" name="action" value="assign_faculty">
+              <input type="hidden" name="subject_id" value="{{ s.id }}">
+              <select name="faculty_id" style="padding:0.3rem 0.6rem; font-size:0.85rem; border-radius:6px; min-width:160px;">
+                <option value="">-- Unassign --</option>
+                {% for lec in lecturers %}
+                <option value="{{ lec.id }}" {% if s.faculty_id == lec.id %}selected{% endif %}>
+                  {{ lec.username }}
+                </option>
+                {% endfor %}
+              </select>
+              <button class="btn btn-sm" type="submit" style="padding:0.35rem 0.75rem;">Update</button>
+            </form>
+          </td>
+          {% endif %}
         </tr>
         {% endfor %}
       </tbody>

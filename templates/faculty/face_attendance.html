@@ -18,10 +18,35 @@
 
 <div class="card" style="max-width: 600px; margin: 0 auto; text-align: center;">
   {% if is_present %}
-    <div style="padding: 3rem 1rem;">
-      <svg width="64" height="64" fill="none" stroke="#22c55e" stroke-width="2" style="margin-bottom: 1rem;"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
-      <h2>You are marked present for today!</h2>
-      <p class="muted">No further action is required.</p>
+    <div style="padding: 2rem 1rem;">
+      <svg width="56" height="56" fill="none" stroke="#22c55e" stroke-width="2" style="margin-bottom: 0.75rem;"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+      <h2 style="margin-bottom:0.5rem;">Checked In Successfully!</h2>
+      <p class="muted" style="margin-bottom: 1.5rem;">You are marked present for {{ today }} ({{ today_day_name }}).</p>
+
+      <div style="text-align: left; margin-top: 1.5rem; border-top: 1px solid var(--border-color); padding-top: 1.5rem;">
+        <h3 style="margin-bottom: 0.75rem; font-size: 1.1rem; color: var(--text-color);">Your Schedule for Today</h3>
+        {% if today_schedule %}
+          <div style="display: flex; flex-direction: column; gap: 0.75rem;">
+            {% for slot in today_schedule %}
+              <div style="display: flex; justify-content: space-between; align-items: center; padding: 0.75rem 1rem; border-radius: 6px; background: rgba(59, 130, 246, 0.08); border: 1px solid rgba(59, 130, 246, 0.2);">
+                <div>
+                  <span class="badge badge-muted" style="font-size:0.75rem; margin-bottom: 0.25rem; display:inline-block;">{{ slot.time }}</span>
+                  <div style="font-weight: 600; color: #3b82f6;">{{ slot.subject }} {% if slot.code %}<span style="font-size:0.8rem; color:var(--text-muted);">({{ slot.code }})</span>{% endif %}</div>
+                </div>
+                {% if slot.is_claimed %}
+                  <span class="badge" style="background:#10b981; color:#fff; font-size:0.7rem;">Substitute</span>
+                {% endif %}
+              </div>
+            {% endfor %}
+          </div>
+        {% else %}
+          <p class="muted" style="font-size: 0.9rem; text-align: center; margin: 1rem 0;">No classes scheduled for you today.</p>
+        {% endif %}
+      </div>
+
+      <div style="margin-top: 2rem;">
+        <a href="{{ url_for('dashboard.index') }}" class="btn" style="width: 100%;">Go to Dashboard</a>
+      </div>
     </div>
   {% else %}
     <div style="display:flex; flex-direction:column; align-items:center;">
@@ -88,7 +113,7 @@
       if (j.success) {
         statusDiv.innerHTML = `<span style="color:#22c55e;font-weight:bold;">${j.message}</span>`;
         if (stream) stream.getTracks().forEach(t => t.stop());
-        setTimeout(() => location.reload(), 2000);
+        setTimeout(() => window.location.href = "{{ url_for('dashboard.index') }}", 1200);
       } else {
         statusDiv.innerHTML = `<span style="color:#ef4444;">${j.message}</span>`;
         scanBtn.disabled = false;

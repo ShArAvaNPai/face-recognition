@@ -1,6 +1,6 @@
 """Admin Blueprint: user management, creating accounts."""
 from flask import Blueprint, render_template, redirect, url_for, request, flash
-from flask_login import login_required
+from flask_login import login_required, current_user
 
 from extensions import db
 from models import User, Student, ROLES, ROLE_STUDENT, ROLE_FACULTY, ROLE_DIRECTOR, Subject, TimetableSlot
@@ -86,12 +86,20 @@ def manage_timetable():
         "09:00 - 10:00", "10:00 - 11:00", "11:00 - 12:00",
         "13:00 - 14:00", "14:00 - 15:00", "15:00 - 16:00"
     ]
-    subjects = Subject.query.order_by(Subject.name).all()
 
     if current_user.role == 'hod' and current_user.department:
         department = current_user.department
+        dept_subjs = Subject.query.filter(
+            Subject.code.ilike(f"{department}%") |
+            Subject.faculty.has(User.department == department)
+        ).order_by(Subject.code).all()
+        subjects = dept_subjs if dept_subjs else Subject.query.order_by(Subject.code).all()
     else:
         department = request.args.get("dept", "MCA")
+        all_subjs = Subject.query.order_by(Subject.code).all()
+        dept_subjs = [s for s in all_subjs if (s.faculty and s.faculty.department == department) or s.code.upper().startswith(department.upper())]
+        other_subjs = [s for s in all_subjs if s not in dept_subjs]
+        subjects = dept_subjs + other_subjs
 
     if request.method == "POST":
         action = request.form.get("action")
@@ -187,9 +195,23 @@ def edit_user(user_id):
                         user.student.class_name = class_name
                     user.student.department = new_dept
 
+                # Manage subject assignments for faculty members
+                if user.role == ROLE_FACULTY:
+                    selected_subject_ids = request.form.getlist("subject_ids", type=int)
+                    # Unassign subjects previously assigned to this user that are no longer checked
+                    for subj in Subject.query.filter_by(faculty_id=user.id).all():
+                        if subj.id not in selected_subject_ids:
+                            subj.faculty_id = None
+                    # Assign selected subjects to this user
+                    for subj_id in selected_subject_ids:
+                        subj = Subject.query.get(subj_id)
+                        if subj:
+                            subj.faculty_id = user.id
+
                 db.session.commit()
                 flash(f"User '{user.username}' updated successfully.", "success")
                 return redirect(url_for("admin.list_users"))
 
-    return render_template("admin/edit_user.html", user=user, roles=ROLES)
+    all_subjects = Subject.query.order_by(Subject.code).all()
+    return render_template("admin/edit_user.html", user=user, roles=ROLES, all_subjects=all_subjects)
 

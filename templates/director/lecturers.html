@@ -19,9 +19,13 @@
         <tr>
           <th>Username</th>
           <th>Email</th>
+          <th>Assigned Subjects</th>
           <th>Total Sessions</th>
           <th>Attended</th>
           <th>Percentage</th>
+          {% if current_user.role == 'admin' %}
+          <th>Action</th>
+          {% endif %}
         </tr>
       </thead>
       <tbody>
@@ -29,19 +33,39 @@
         <tr>
           <td style="font-weight:600; color:#fff;">{{ r.lecturer.username }}</td>
           <td>{{ r.lecturer.email }}</td>
+          <td>
+            {% if r.subjects %}
+              <div style="display:flex; flex-wrap:wrap; gap:0.35rem;">
+                {% for subj in r.subjects %}
+                <span class="badge badge-muted" title="{{ subj.name }}" style="font-size:0.75rem;">
+                  {{ subj.code }}
+                </span>
+                {% endfor %}
+              </div>
+            {% else %}
+              <span class="muted" style="font-size:0.8rem; font-style:italic;">None</span>
+            {% endif %}
+          </td>
           <td>{{ r.total }}</td>
           <td><span class="badge badge-yes">{{ r.present }}</span></td>
           <td>
             <div style="display:flex; align-items:center; gap:0.5rem;">
               <span>{{ r.percentage }}%</span>
-              <div style="flex-grow:1; background:var(--bg-lighter); height:6px; border-radius:3px; overflow:hidden;">
+              <div style="flex-grow:1; background:var(--bg-lighter); height:6px; border-radius:3px; overflow:hidden; min-width:60px;">
                 <div style="width:{{ r.percentage }}%; height:100%; background:var(--primary); border-radius:3px;"></div>
               </div>
             </div>
           </td>
+          {% if current_user.role == 'admin' %}
+          <td>
+            <a href="{{ url_for('admin.edit_user', user_id=r.lecturer.id) }}" class="btn btn-sm btn-secondary" style="padding:0.3rem 0.6rem; font-size:0.8rem;">
+              Set Subjects
+            </a>
+          </td>
+          {% endif %}
         </tr>
         {% else %}
-        <tr><td colspan="5" style="text-align:center;padding:3rem 2rem;" class="muted">No lecturers found.</td></tr>
+        <tr><td colspan="{% if current_user.role == 'admin' %}7{% else %}6{% endif %}" style="text-align:center;padding:3rem 2rem;" class="muted">No lecturers found.</td></tr>
         {% endfor %}
       </tbody>
     </table>

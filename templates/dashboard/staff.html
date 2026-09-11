@@ -8,6 +8,8 @@
   </div>
 </div>
 
+
+
 <div class="stat-grid">
   <div class="stat">
     <div class="num">{{ stats.students }}</div>
@@ -101,19 +103,94 @@
   {% endif %}
 </div>
 
+<!-- Today's Schedule Section -->
+<div class="card" style="margin-top:2rem; border-left: 4px solid var(--primary-color);">
+  <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem; margin-bottom:1rem;">
+    <div>
+      <h2 style="margin-bottom:0.25rem;">Today's Schedule ({{ today_day_name }}, {{ today_date.strftime('%b %d, %Y') }})</h2>
+      <p class="subtitle" style="margin-bottom:0;">Classes scheduled for you today</p>
+    </div>
+    <div>
+      {% if not is_on_leave_today %}
+      <a class="btn btn-sm" href="{{ url_for('attendance.new_session') }}">
+        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+        Start Class Attendance
+      </a>
+      {% endif %}
+    </div>
+  </div>
+
+  {% if is_on_leave_today %}
+    <div style="padding: 1rem 1.25rem; border-radius: 8px; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); display: flex; align-items: center; gap: 0.75rem; color: #ef4444; margin-bottom: 0.5rem;">
+      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+      <div>
+        <strong>You have an active leave application / are marked absent today.</strong>
+        <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 2px;">You cannot conduct classes today. Your classes are released and open for substitute claims.</div>
+      </div>
+    </div>
+  {% else %}
+    {% set my_today_slots = today_schedule | selectattr('is_mine', 'equalto', True) | list %}
+    {% if my_today_slots %}
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem;">
+        {% for slot in my_today_slots %}
+          <div style="padding: 1rem; border-radius: 8px; background: rgba(59, 130, 246, 0.08); border: 1px solid rgba(59, 130, 246, 0.25);">
+            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:0.5rem;">
+              <span class="badge badge-muted" style="font-weight:600; font-size:0.75rem;">{{ slot.time }}</span>
+              {% if slot.is_claimed %}
+                <span class="badge" style="background:#10b981; color:#fff; font-size:0.7rem;">Substitute Claim</span>
+              {% endif %}
+            </div>
+            <div style="font-weight: 700; font-size: 1.05rem; color: #3b82f6;">{{ slot.subject }}</div>
+            {% if slot.code %}<div style="font-size:0.8rem; color:var(--text-muted); margin-top:2px;">{{ slot.code }}</div>{% endif %}
+            <div style="margin-top: 0.75rem;">
+              <a href="{{ url_for('attendance.new_session') }}" class="btn btn-sm" style="font-size:0.75rem; padding:0.25rem 0.6rem; width:100%;">Take Attendance</a>
+            </div>
+          </div>
+        {% endfor %}
+      </div>
+    {% else %}
+      <div style="padding: 1.25rem; background: rgba(255,255,255,0.02); border-radius: 6px; text-align:center;">
+        <p class="muted" style="margin:0;">You have no classes directly assigned to you for today.</p>
+      </div>
+    {% endif %}
+  {% endif %}
+</div>
+
 <div class="card" id="weekly-timetable" style="margin-top:2rem">
   <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; margin-bottom:1.5rem; gap: 1rem;">
     <div>
-      <h2 style="margin-bottom: 0.25rem;">Weekly Timetable</h2>
+      <div style="display:flex; align-items:center; gap:0.75rem;">
+        <h2 style="margin-bottom: 0.25rem;">Weekly Timetable</h2>
+        <span class="badge" style="font-size:0.85rem; font-weight:700; background:rgba(59,130,246,0.15); color:#60a5fa; border:1px solid rgba(59,130,246,0.3);">
+          {{ selected_dept }}
+        </span>
+      </div>
       <p class="subtitle" style="margin-bottom:0;">Week of {{ week_dates['Monday'].strftime('%b %d, %Y') }} to {{ week_dates['Friday'].strftime('%b %d, %Y') }}</p>
     </div>
+
+    <!-- Department Selector (MCA / MBA) -->
+    {% if current_user.role in ['admin', 'director'] %}
+    <div style="display:flex; align-items:center; gap:0.5rem; background:var(--bg-card); padding:4px; border-radius:8px; border:1px solid var(--border);">
+      <a href="{{ url_for('dashboard.index', dept='MCA', date=current_date_str) }}#weekly-timetable" 
+         class="btn btn-sm {% if selected_dept == 'MCA' %}btn-primary{% else %}btn-secondary{% endif %}"
+         style="padding:0.35rem 0.9rem; font-weight:600; border-radius:6px;">
+        MCA Timetable
+      </a>
+      <a href="{{ url_for('dashboard.index', dept='MBA', date=current_date_str) }}#weekly-timetable" 
+         class="btn btn-sm {% if selected_dept == 'MBA' %}btn-primary{% else %}btn-secondary{% endif %}"
+         style="padding:0.35rem 0.9rem; font-weight:600; border-radius:6px;">
+        MBA Timetable
+      </a>
+    </div>
+    {% endif %}
     
     <div style="display:flex; align-items:center; gap:0.75rem;">
-      <a class="btn btn-secondary btn-sm" href="{{ url_for('dashboard.index', date=prev_week_date) }}">&larr; Prev Week</a>
+      <a class="btn btn-secondary btn-sm" href="{{ url_for('dashboard.index', dept=selected_dept, date=prev_week_date) }}#weekly-timetable">&larr; Prev Week</a>
       <form method="GET" action="{{ url_for('dashboard.index') }}" style="display:inline-flex; align-items:center; gap:0.5rem; margin:0;">
+        <input type="hidden" name="dept" value="{{ selected_dept }}">
         <input type="date" name="date" value="{{ current_date_str }}" class="form-control" style="padding:0.25rem 0.5rem; font-size:0.875rem;" onchange="this.form.submit()">
       </form>
-      <a class="btn btn-secondary btn-sm" href="{{ url_for('dashboard.index', date=next_week_date) }}">Next Week &rarr;</a>
+      <a class="btn btn-secondary btn-sm" href="{{ url_for('dashboard.index', dept=selected_dept, date=next_week_date) }}#weekly-timetable">Next Week &rarr;</a>
     </div>
   </div>
 
@@ -138,9 +215,11 @@
           </td>
           {% for day in timetable_days %}
             {% set cell = row.days[day] %}
-            {% set is_my_subject = (cell.faculty and cell.faculty.id == current_user.id) %}
+            {% set is_my_subject = (cell.faculty and cell.faculty.id == current_user.id and not cell.is_absent) %}
+            {% set is_today = (cell.cell_date == current_date_str) %}
             <td style="padding:0.75rem; text-align:center; vertical-align:top;
-                       {% if is_my_subject %}background-color: rgba(59, 130, 246, 0.1); border: 2px solid rgba(59, 130, 246, 0.4); border-radius: 8px;{% endif %}">
+                       {% if is_my_subject %}background-color: rgba(59, 130, 246, 0.1); border: 2px solid rgba(59, 130, 246, 0.4); border-radius: 8px;{% endif %}
+                       {% if is_today and not is_my_subject %}background-color: rgba(245, 158, 11, 0.05); border: 2px solid rgba(245, 158, 11, 0.3); border-radius: 8px;{% endif %}">
               {% if cell.slot %}
                 {% if cell.is_claimed %}
                   <div style="padding:0.4rem; border-radius:6px; background-color:rgba(16, 185, 129, 0.08); border:1px solid rgba(16, 185, 129, 0.3);">
@@ -154,6 +233,59 @@
                       <form method="POST" action="{{ url_for('dashboard.release_slot', claim_id=cell.claim_id) }}" style="margin-top:0.4rem;">
                         <button type="submit" class="btn btn-sm btn-secondary" style="font-size:0.7rem; padding:0.2rem 0.5rem; width:100%;" title="Release re-assignment">Release / Revert</button>
                       </form>
+                    {% endif %}
+                  </div>
+                {% elif cell.is_absent %}
+                  <div style="padding:0.5rem; border-radius:6px; background-color:rgba(239, 68, 68, 0.08); border:1px solid rgba(239, 68, 68, 0.35);">
+                    <div class="badge" style="background:rgba(239,68,68,0.2); color:#ef4444; border:1px solid rgba(239,68,68,0.4); font-size:0.72rem; font-weight:700; padding:2px 6px;">On Leave / Absent</div>
+                    {% if cell.default_subject %}
+                      <div style="font-weight:700; font-size:0.875rem; color:#ffffff; margin-top:0.35rem;">{{ cell.default_subject.name }}</div>
+                      <div style="font-size:0.75rem; color:var(--text-muted); margin-bottom:0.35rem;">
+                        {{ cell.default_faculty.username if cell.default_faculty else 'Faculty' }} ({{ cell.default_subject.code }})
+                      </div>
+                    {% else %}
+                      <div style="font-weight:600; color:rgba(239, 68, 68, 0.8); font-size:0.825rem; margin:0.35rem 0;">Lecturer Absent</div>
+                    {% endif %}
+
+                    {% if current_user.role in ['hod', 'director', 'admin'] %}
+                      <form method="POST" action="{{ url_for('dashboard.claim_slot') }}" style="margin:0.3rem 0 0 0;">
+                        <input type="hidden" name="slot_id" value="{{ cell.slot.id }}">
+                        <input type="hidden" name="claim_date" value="{{ cell.cell_date }}">
+                        {% if cell.default_subject %}
+                          <input type="hidden" name="subject_id" value="{{ cell.default_subject.id }}">
+                        {% endif %}
+                        
+                        <select name="assignee_id" class="form-control" style="font-size:0.75rem; padding:0.2rem; margin-bottom:0.25rem; width:100%; border-radius:4px;" required>
+                          <option value="{{ current_user.id }}">Assign to Me ({{ current_user.username }})</option>
+                          {% for fac in department_faculty %}
+                            {% if fac.id != current_user.id and fac.id != cell.default_faculty.id %}
+                            <option value="{{ fac.id }}">Assign to {{ fac.username }}</option>
+                            {% endif %}
+                          {% endfor %}
+                        </select>
+                        <button type="submit" class="btn btn-sm" style="font-size:0.725rem; padding:0.2rem 0.4rem; width:100%; background:#ef4444; border-color:#ef4444;">Assign Substitute</button>
+                      </form>
+                    {% elif cell.claimable %}
+                      <form method="POST" action="{{ url_for('dashboard.claim_slot') }}" style="margin:0.3rem 0 0 0;">
+                        <input type="hidden" name="slot_id" value="{{ cell.slot.id }}">
+                        <input type="hidden" name="claim_date" value="{{ cell.cell_date }}">
+                        {% if cell.default_subject %}
+                          <input type="hidden" name="subject_id" value="{{ cell.default_subject.id }}">
+                        {% elif my_subjects | length > 1 %}
+                          <select name="subject_id" class="form-control" style="font-size:0.75rem; padding:0.2rem; margin-bottom:0.25rem; width:100%;" required>
+                            {% for sub in my_subjects %}
+                              <option value="{{ sub.id }}">{{ sub.name }}</option>
+                            {% endfor %}
+                          </select>
+                        {% elif my_subjects | length == 1 %}
+                          <input type="hidden" name="subject_id" value="{{ my_subjects[0].id }}">
+                        {% endif %}
+                        <button type="submit" class="btn btn-sm" style="font-size:0.75rem; padding:0.25rem 0.5rem; width:100%; background:#10b981; border-color:#10b981;">Claim Class</button>
+                      </form>
+                    {% elif cell.default_faculty and current_user.id == cell.default_faculty.id %}
+                      <div style="font-size:0.72rem; color:#ef4444; font-weight:600; margin-top:2px;">(Your leave · Up for claim)</div>
+                    {% else %}
+                      <div class="subtitle" style="font-size:0.72rem; margin-top:2px;">Up for claim</div>
                     {% endif %}
                   </div>
                 {% elif current_user.role in ['hod', 'director', 'admin'] %}
@@ -184,8 +316,8 @@
                     </form>
                   </div>
                 {% elif cell.is_empty %}
-                  <div style="padding:0.5rem; border-radius:6px; background-color:rgba(239, 68, 68, 0.05); border:1px dashed rgba(239, 68, 68, 0.3);">
-                    <div style="font-weight:600; color:rgba(239, 68, 68, 0.8); font-size:0.825rem;">{% if cell.is_absent %}Lecturer Absent{% else %}Empty Slot{% endif %}</div>
+                  <div style="padding:0.5rem; border-radius:6px; background-color:rgba(255, 255, 255, 0.02); border:1px dashed rgba(255, 255, 255, 0.15);">
+                    <div style="font-weight:600; color:var(--text-muted); font-size:0.825rem;">Empty Slot</div>
                     {% if cell.claimable %}
                       <form method="POST" action="{{ url_for('dashboard.claim_slot') }}" style="margin: 0.5rem 0 0 0;">
                         <input type="hidden" name="slot_id" value="{{ cell.slot.id }}">
@@ -202,7 +334,7 @@
                         <button type="submit" class="btn btn-sm" style="font-size:0.75rem; padding:0.25rem 0.5rem; width:100%;">Claim Slot</button>
                       </form>
                     {% else %}
-                      <div class="subtitle" style="font-size:0.75rem; margin-top:2px;">Unclaimed</div>
+                      <div class="subtitle" style="font-size:0.75rem; margin-top:2px;">Free Period</div>
                     {% endif %}
                   </div>
                 {% else %}
@@ -229,4 +361,99 @@
     </table>
   </div>
 </div>
+
+{% if requires_daily_attendance %}
+<div id="daily-attendance-modal" style="position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); z-index:9999; display:flex; justify-content:center; align-items:center;">
+  <div class="card" style="width:100%; max-width:400px; text-align:center;">
+    <h2 style="margin-top:0;">Daily Attendance</h2>
+    <p class="subtitle">Please confirm your attendance for today.</p>
+    
+    <div id="video-container" style="margin:1.5rem 0;">
+      <video id="video" width="320" height="240" autoplay muted style="border-radius:8px; width:100%; height:auto; display:none; border: 2px solid var(--border-color);"></video>
+      <div id="scan-status" style="margin-top:0.75rem; font-weight:600; color:var(--primary-color);">Starting camera...</div>
+    </div>
+    
+    <button id="use-code-btn" class="btn btn-secondary" style="width:100%;" onclick="showCodeInput()">Use Code Instead</button>
+    
+    <div id="code-container" style="display:none; margin-top:1.5rem;">
+      <input type="text" id="attendance-code" class="form-control" placeholder="Enter code (1234)" style="text-align:center; font-size: 1.2rem; letter-spacing: 2px;">
+      <button class="btn" style="margin-top:0.75rem; width:100%;" onclick="submitCode()">Submit Code</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  let videoStream = null;
+  let scanInterval = null;
+  const video = document.getElementById('video');
+  const scanStatus = document.getElementById('scan-status');
+  
+  async function startCamera() {
+    try {
+      videoStream = await navigator.mediaDevices.getUserMedia({ video: true });
+      video.srcObject = videoStream;
+      video.style.display = 'block';
+      scanStatus.innerText = "Scanning face...";
+      scanInterval = setInterval(recognizeFace, 2000);
+    } catch (e) {
+      scanStatus.innerText = "Camera not available.";
+    }
+  }
+
+  function recognizeFace() {
+    if(!videoStream) return;
+    const canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    canvas.getContext('2d').drawImage(video, 0, 0);
+    const dataUrl = canvas.toDataURL('image/jpeg');
+    
+    fetch('{{ url_for("faculty.face_attendance_recognize") }}', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ image: dataUrl })
+    })
+    .then(r => r.json())
+    .then(data => {
+      if(data.success) {
+        clearInterval(scanInterval);
+        scanStatus.innerText = "Attendance Confirmed!";
+        scanStatus.style.color = "#10b981";
+        setTimeout(() => window.location.reload(), 1500);
+      }
+    });
+  }
+
+  function showCodeInput() {
+    document.getElementById('video-container').style.display = 'none';
+    document.getElementById('use-code-btn').style.display = 'none';
+    document.getElementById('code-container').style.display = 'block';
+    if(videoStream) {
+      videoStream.getTracks().forEach(t => t.stop());
+      clearInterval(scanInterval);
+    }
+  }
+  
+  function submitCode() {
+    const code = document.getElementById('attendance-code').value;
+    fetch('{{ url_for("faculty.face_attendance_code") }}', {
+      method: 'POST',
+      headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ code: code })
+    })
+    .then(r => r.json())
+    .then(data => {
+      if(data.success) {
+        window.location.reload();
+      } else {
+        alert(data.message);
+      }
+    });
+  }
+  
+  // Need to start automatically since it is a forced modal
+  window.addEventListener('load', startCamera);
+</script>
+{% endif %}
+
 {% endblock %}

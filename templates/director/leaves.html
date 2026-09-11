@@ -1,23 +1,30 @@
 {% extends "base.html" %}
-{% block title %}Leave Applications{% endblock %}
+{% block title %}{% if current_user.role == 'hod' %}Department Faculty Leaves{% else %}Leave Applications Review{% endif %}{% endblock %}
 
 {% block content %}
 <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom: 2rem;">
   <div>
-    <h1>Leave Applications</h1>
-    <p class="subtitle" style="margin-bottom:0;">Review and manage faculty leave requests</p>
+    <h1>{% if current_user.role == 'hod' %}Faculty Leave Applications{% else %}Leave Applications Management{% endif %}</h1>
+    <p class="subtitle" style="margin-bottom:0;">
+      {% if current_user.role == 'hod' %}
+        Review and manage leave requests submitted by faculty in your department
+      {% else %}
+        Review and manage leave requests submitted by HODs and faculty
+      {% endif %}
+    </p>
   </div>
 </div>
 
 <div class="card card-table">
   <div class="card-table-header">
-    <h2>All Applications</h2>
+    <h2>{% if current_user.role == 'hod' %}Faculty Applications ({{ current_user.department or 'Department' }}){% else %}All Applications{% endif %}</h2>
   </div>
   <div class="table-responsive">
     <table>
       <thead>
         <tr>
-          <th>Faculty</th>
+          <th>Applicant</th>
+          <th>Role / Dept</th>
           <th>Start Date</th>
           <th>End Date</th>
           <th>Reason</th>
@@ -30,6 +37,16 @@
         {% for leave in leaves %}
         <tr>
           <td style="font-weight:600; color:#fff;">{{ leave.user.username }}</td>
+          <td>
+            {% if leave.user.role == 'hod' %}
+              <span class="badge badge-accent">HOD</span>
+            {% else %}
+              <span class="badge badge-muted">Faculty</span>
+            {% endif %}
+            {% if leave.user.department %}
+              <span class="muted" style="font-size:0.8rem; margin-left:4px;">({{ leave.user.department }})</span>
+            {% endif %}
+          </td>
           <td><span class="badge badge-muted">{{ leave.start_date }}</span></td>
           <td><span class="badge badge-muted">{{ leave.end_date }}</span></td>
           <td>{{ leave.reason }}</td>
@@ -61,7 +78,7 @@
           </td>
         </tr>
         {% else %}
-        <tr><td colspan="7" style="text-align:center;padding:3rem 2rem;" class="muted">No leave applications found.</td></tr>
+        <tr><td colspan="8" style="text-align:center;padding:3rem 2rem;" class="muted">No leave applications found.</td></tr>
         {% endfor %}
       </tbody>
     </table>

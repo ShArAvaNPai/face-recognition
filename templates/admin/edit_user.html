@@ -48,6 +48,49 @@
       <input type="text" name="class_name" value="{{ user.student.class_name }}" style="margin-bottom:0.8rem;">
       {% endif %}
 
+      <div id="faculty-subjects-section" style="{% if user.role != 'faculty' %}display:none;{% endif %} margin-top:1.5rem;">
+        <hr style="border-color:var(--border); margin:1.5rem 0;">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.8rem;">
+          <div>
+            <h3 style="margin:0; font-size:1.1rem; color:var(--primary-light); display:flex; align-items:center; gap:0.5rem;">
+              <span>📚</span> Assigned Subjects
+            </h3>
+            <p class="muted" style="font-size:0.82rem; margin:0.2rem 0 0;">Select the subjects this lecturer is authorized to teach.</p>
+          </div>
+          <span class="badge badge-muted" id="selected-subj-count">
+            {% set assigned_count = all_subjects | selectattr('faculty_id', 'equalto', user.id) | list | length %}
+            {{ assigned_count }} assigned
+          </span>
+        </div>
+
+        {% if all_subjects %}
+        <div style="background:var(--bg-lighter, rgba(255,255,255,0.03)); border:1px solid var(--border); border-radius:8px; padding:0.8rem; max-height:240px; overflow-y:auto; display:flex; flex-direction:column; gap:0.5rem;">
+          {% for s in all_subjects %}
+          {% set is_assigned = (s.faculty_id == user.id) %}
+          {% set assigned_to_other = (s.faculty_id and s.faculty_id != user.id) %}
+          <label style="display:flex; align-items:center; gap:0.75rem; padding:0.6rem 0.8rem; background:var(--bg-card); border:1px solid {% if is_assigned %}var(--primary){% else %}var(--border){% endif %}; border-radius:6px; cursor:pointer; margin-bottom:0; transition:all 0.15s ease;">
+            <input type="checkbox" name="subject_ids" value="{{ s.id }}" {% if is_assigned %}checked{% endif %} style="width:16px; height:16px; accent-color:var(--primary); cursor:pointer;">
+            <div style="flex:1; display:flex; justify-content:space-between; align-items:center;">
+              <div>
+                <strong style="color:#fff; font-size:0.9rem;">{{ s.code }}</strong>
+                <span style="color:var(--text-muted); font-size:0.85rem; margin-left:0.5rem;">{{ s.name }}</span>
+              </div>
+              {% if is_assigned %}
+                <span class="badge badge-yes" style="font-size:0.75rem;">Current</span>
+              {% elif assigned_to_other %}
+                <span class="badge badge-muted" style="font-size:0.72rem;">Assigned to: {{ s.faculty.username }}</span>
+              {% else %}
+                <span class="badge" style="font-size:0.72rem; background:rgba(255,255,255,0.05); color:var(--text-muted);">Unassigned</span>
+              {% endif %}
+            </div>
+          </label>
+          {% endfor %}
+        </div>
+        {% else %}
+        <p class="muted" style="font-size:0.85rem;">No subjects registered yet. Create subjects in <a href="{{ url_for('attendance.subjects') }}">Subjects Roster</a>.</p>
+        {% endif %}
+      </div>
+
       <div class="btn-row" style="margin-top:2rem;">
         <button class="btn" type="submit" style="flex:1;">Save Changes</button>
         <a class="btn btn-secondary" href="{{ url_for('admin.list_users') }}">Cancel</a>
@@ -55,4 +98,19 @@
     </form>
   </div>
 </div>
+
+<script>
+  // Show/hide subjects section dynamically if role dropdown changes
+  const roleSelect = document.querySelector('select[name="role"]');
+  const subjectsSec = document.getElementById('faculty-subjects-section');
+  if (roleSelect && subjectsSec) {
+    roleSelect.addEventListener('change', function() {
+      if (this.value === 'faculty') {
+        subjectsSec.style.display = 'block';
+      } else {
+        subjectsSec.style.display = 'none';
+      }
+    });
+  }
+</script>
 {% endblock %}

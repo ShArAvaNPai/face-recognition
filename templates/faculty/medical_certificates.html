@@ -19,6 +19,7 @@
         <tr>
           <th>Uploaded</th>
           <th>Student</th>
+          <th>Dept / Class</th>
           <th>Reason</th>
           <th>Leave Period</th>
           <th>Status</th>
@@ -31,6 +32,12 @@
         <tr>
           <td><span class="badge badge-muted">{{ cert.upload_date.strftime('%Y-%m-%d') }}</span></td>
           <td style="font-weight:600; color:#fff;">{{ cert.student.name }} <small class="muted">({{ cert.student.roll_number }})</small></td>
+          <td>
+            <span class="badge badge-muted">{{ cert.student.department or 'General' }}</span>
+            {% if cert.student.class_name %}
+              <small class="muted" style="display:block; font-size:0.75rem;">{{ cert.student.class_name }}</small>
+            {% endif %}
+          </td>
           <td>{{ cert.reason or '—' }}</td>
           <td>
             <span style="font-size:0.82rem;">
@@ -65,7 +72,7 @@
           </td>
         </tr>
         {% else %}
-        <tr><td colspan="7" style="text-align:center;padding:3rem 2rem;" class="muted">No medical certificates found.</td></tr>
+        <tr><td colspan="8" style="text-align:center;padding:3rem 2rem;" class="muted">No medical certificates found.</td></tr>
         {% endfor %}
       </tbody>
     </table>

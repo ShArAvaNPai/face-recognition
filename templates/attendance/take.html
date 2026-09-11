@@ -101,7 +101,7 @@ const scanBtn = document.getElementById('scan-once');
 const autoBtn = document.getElementById('auto-scan');
 const presentCount = document.getElementById('present-count');
 const camBadge = document.getElementById('cam-badge');
-let stream = null, autoTimer = null, presentSet = new Set();
+let stream = null, autoTimer = null, presentSet = new Set({{ present_ids|list|tojson }});
 
 function log(msg){ const t = new Date().toLocaleTimeString();
   logEl.innerHTML = `[${t}] ${msg}<br>` + logEl.innerHTML; }

@@ -266,6 +266,9 @@ class TimetableClaim(db.Model):
     claimed_by = db.relationship("User", foreign_keys=[claimed_by_id])
     subject_id = db.Column(db.Integer, db.ForeignKey("subjects.id"), nullable=True)
     subject = db.relationship("Subject", foreign_keys=[subject_id])
+    status = db.Column(db.String(20), default="approved") # approved, pending, reported
+    reported_to_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     def __repr__(self):
         return f"<TimetableClaim slot={self.slot_id} date={self.claim_date} claimed_by={self.claimed_by_id}>"
@@ -306,3 +309,38 @@ class Fee(db.Model):
 
     def __repr__(self):
         return f"<Fee {self.student_id} {self.fee_type} {self.status}>"
+
+
+class Notification(db.Model):
+    """Notification for takeover requests, reports, etc."""
+    __tablename__ = "notifications"
+
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
+    user = db.relationship("User", foreign_keys=[user_id], backref=db.backref("notifications", cascade="all, delete-orphan"))
+    message = db.Column(db.String(255), nullable=False)
+    is_read = db.Column(db.Boolean, default=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    action_url = db.Column(db.String(255), nullable=True)
+    claim_id = db.Column(db.Integer, db.ForeignKey("timetable_claims.id", ondelete="CASCADE"), nullable=True)
+    claim = db.relationship("TimetableClaim", backref=db.backref("notifications", cascade="all, delete-orphan"))
+
+    def __repr__(self):
+        return f"<Notification {self.id} for user={self.user_id}>"
+
+
+class AcademicCalendarEvent(db.Model):
+    """Academic calendar events including public holidays, exam schedules, and academic milestones."""
+    __tablename__ = "academic_calendar_events"
+
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(150), nullable=False)
+    description = db.Column(db.Text, nullable=True)
+    category = db.Column(db.String(50), nullable=False)  # 'holiday', 'exam', 'academic'
+    start_date = db.Column(db.Date, nullable=False)
+    end_date = db.Column(db.Date, nullable=False)
+    department = db.Column(db.String(80), default="All")  # 'All', 'MCA', 'MBA'
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def __repr__(self):
+        return f"<AcademicCalendarEvent {self.title} ({self.category}) {self.start_date}>"

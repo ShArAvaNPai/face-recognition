@@ -5,10 +5,11 @@ from werkzeug.utils import secure_filename
 from flask import Blueprint, render_template, request, flash, redirect, url_for, current_app
 from flask_login import login_required, current_user
 
+from extensions import db
 from models import (Student, Subject, AttendanceSession, Attendance, User,
                     FaceSample, MedicalCertificate, ROLE_STUDENT, TimetableSlot,
                     TimetableClaim, LeaveApplication, FacultyAttendanceSession,
-                    FacultyAttendance)
+                    FacultyAttendance, Notification)
 
 dashboard_bp = Blueprint("dashboard", __name__)
 
@@ -74,11 +75,32 @@ def _staff_dashboard():
     # Navigation dates relative to the week's Monday
     prev_week_date = (monday - timedelta(days=7)).isoformat()
     next_week_date = (monday + timedelta(days=7)).isoformat()
+
+    # Daily attendance check
+    requires_daily_attendance = False
+    if current_user.role in ['faculty', 'hod', 'director'] and ref_date == date.today():
+        sess = FacultyAttendanceSession.query.filter_by(session_date=date.today()).first()
+        if sess:
+            att = FacultyAttendance.query.filter_by(session_id=sess.id, faculty_id=current_user.id).first()
+            if not att:
+                requires_daily_attendance = True
+        else:
+            requires_daily_attendance = True
+
+    notifications = Notification.query.filter_by(user_id=current_user.id, is_read=False).order_by(Notification.created_at.desc()).all()
     
     # Subjects of current user for the claim form dropdown
     my_subjects = []
     all_subjects = []
-    if current_user.role in ['director', 'hod']:
+    if current_user.role == 'hod':
+        dept_filter = current_user.department or "MCA"
+        my_subjects = Subject.query.filter(
+            Subject.code.ilike(f"{dept_filter}%") |
+            Subject.faculty.has(User.department == dept_filter)
+        ).all()
+        if not my_subjects:
+            my_subjects = Subject.query.filter_by(faculty_id=current_user.id).all()
+    elif current_user.role == 'director':
         my_subjects = Subject.query.filter_by(code="research").all()
         if not my_subjects:
             my_subjects = Subject.query.filter_by(faculty_id=current_user.id).all()
@@ -103,8 +125,17 @@ def _staff_dashboard():
     days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
     grid = []
     
-    dept = current_user.department or request.args.get("dept") or "MCA"
-    department_faculty = User.query.filter(User.role.in_(['faculty', 'hod']), (User.department == dept) | (User.department == '')).order_by(User.username).all()
+    if current_user.role == 'hod' and current_user.department:
+        dept = current_user.department
+    elif current_user.role in ['admin', 'director']:
+        dept = request.args.get("dept") or "MCA"
+    else:
+        dept = current_user.department or request.args.get("dept") or "MCA"
+
+    if current_user.role == 'hod' and current_user.department:
+        department_faculty = User.query.filter(User.role.in_(['faculty', 'hod']), User.department == current_user.department).order_by(User.username).all()
+    else:
+        department_faculty = User.query.filter(User.role.in_(['faculty', 'hod']), (User.department == dept) | (User.department == '')).order_by(User.username).all()
 
     for time_str in slot_times:
         row = {"time": time_str, "days": {}}
@@ -114,6 +145,8 @@ def _staff_dashboard():
                 "slot": slot,
                 "subject": None,
                 "faculty": None,
+                "default_subject": None,
+                "default_faculty": None,
                 "is_empty": True,
                 "is_absent": False,
                 "is_claimed": False,
@@ -127,6 +160,8 @@ def _staff_dashboard():
                 default_faculty_id = slot.subject.faculty_id if slot.subject else None
                 is_absent = is_faculty_absent(default_faculty_id, cell_date)
                 cell["is_absent"] = is_absent
+                cell["default_subject"] = slot.subject
+                cell["default_faculty"] = slot.subject.faculty if slot.subject else None
                 
                 # Check for claim
                 claim = TimetableClaim.query.filter_by(slot_id=slot.id, claim_date=cell_date).first()
@@ -138,17 +173,59 @@ def _staff_dashboard():
                     cell["can_release"] = (claim.claimed_by_id == current_user.id or current_user.role in ['admin', 'hod', 'director'])
                     cell["claim_id"] = claim.id
                 else:
-                    if is_absent or slot.subject is None:
+                    if is_absent:
+                        # Lecturer is absent/on leave -> class is up for claims
                         cell["is_empty"] = True
-                        cell["claimable"] = (current_user.role != ROLE_STUDENT and current_user.id != default_faculty_id)
+                        cell["subject"] = slot.subject
+                        cell["faculty"] = slot.subject.faculty if slot.subject else None
+                        cell["claimable"] = (
+                            current_user.role != ROLE_STUDENT and
+                            current_user.id != default_faculty_id and
+                            not is_faculty_absent(current_user.id, cell_date)
+                        )
+                    elif slot.subject is None:
+                        cell["is_empty"] = True
+                        cell["claimable"] = (
+                            current_user.role != ROLE_STUDENT and
+                            not is_faculty_absent(current_user.id, cell_date)
+                        )
                     else:
                         cell["subject"] = slot.subject
                         cell["faculty"] = slot.subject.faculty if slot.subject else None
-                        cell["is_empty"] = (slot.subject is None)
-                        cell["claimable"] = (current_user.role in ['hod', 'director', 'admin'])
+                        cell["is_empty"] = False
+                        cell["claimable"] = (
+                            current_user.role in ['hod', 'director', 'admin'] and
+                            not is_faculty_absent(current_user.id, cell_date)
+                        )
             row["days"][day] = cell
         grid.append(row)
         
+    # Get today's specific schedule for current user
+    today_date = date.today()
+    today_day_name = today_date.strftime("%A")
+    today_schedule = []
+    is_on_leave_today = is_faculty_absent(current_user.id, today_date)
+    if not is_on_leave_today and today_day_name in days:
+        for time_str in slot_times:
+            # find slot in grid for today
+            for row in grid:
+                if row["time"] == time_str:
+                    c = row["days"].get(today_day_name)
+                    if c and c["slot"]:
+                        # Check if it belongs to current_user (assigned or claimed)
+                        fac = c["faculty"]
+                        is_mine = (fac and fac.id == current_user.id and not c["is_absent"])
+                        if is_mine or (c["is_claimed"] and fac and fac.id == current_user.id):
+                            today_schedule.append({
+                                "time": time_str,
+                                "subject": c["subject"].name if c["subject"] else ("Empty Slot" if c["is_empty"] else "Class"),
+                                "code": c["subject"].code if c["subject"] else "",
+                                "faculty": fac.username if fac else ("Absent" if c["is_absent"] else "None"),
+                                "is_mine": True,
+                                "is_claimed": c["is_claimed"],
+                                "is_absent": c["is_absent"]
+                            })
+
     return render_template("dashboard/staff.html", stats=stats,
                            recent_sessions=recent_sessions,
                            timetable_grid=grid,
@@ -159,7 +236,14 @@ def _staff_dashboard():
                            my_subjects=my_subjects,
                            all_subjects=all_subjects,
                            department_faculty=department_faculty,
-                           current_date_str=ref_date.isoformat())
+                           current_date_str=ref_date.isoformat(),
+                           requires_daily_attendance=requires_daily_attendance,
+                           notifications=notifications,
+                           today_date=today_date,
+                           today_day_name=today_day_name,
+                           today_schedule=today_schedule,
+                           selected_dept=dept,
+                           is_on_leave_today=is_on_leave_today)
 
 
 @dashboard_bp.route("/timetable/claim", methods=["POST"])
@@ -179,14 +263,18 @@ def claim_slot():
         flash("Invalid claim date.", "danger")
         return redirect(url_for("dashboard.index"))
         
+    if is_faculty_absent(current_user.id, claim_date) and current_user.role not in ['admin', 'director']:
+        flash("You are on leave / marked absent on this date and cannot claim classes.", "danger")
+        return redirect(url_for("dashboard.index", date=claim_date_str))
+
     slot = TimetableSlot.query.get_or_404(slot_id)
     
-    # Verify default lecturer is absent, unless HOD/Director/Admin is reassigning an emergency slot
+    # Verify default lecturer is absent. If not, this is a "takeover" request
     default_faculty_id = slot.subject.faculty_id if slot.subject else None
+    is_takeover = False
     if slot.subject and not is_faculty_absent(default_faculty_id, claim_date):
         if current_user.role not in ['hod', 'director', 'admin']:
-            flash("Cannot claim slot: Default lecturer is not absent.", "danger")
-            return redirect(url_for("dashboard.index", date=claim_date_str))
+            is_takeover = True
         
     # Check if already claimed
     existing = TimetableClaim.query.filter_by(slot_id=slot.id, claim_date=claim_date).first()
@@ -207,6 +295,10 @@ def claim_slot():
     else:
         claimed_by_id = current_user.id
 
+    if is_faculty_absent(claimed_by_id, claim_date):
+        flash("The selected faculty member is on leave / marked absent on this date and cannot be assigned.", "danger")
+        return redirect(url_for("dashboard.index", date=claim_date_str))
+
     # Determine subject
     subject = None
     if subject_id:
@@ -225,12 +317,56 @@ def claim_slot():
         slot_id=slot.id,
         claim_date=claim_date,
         claimed_by_id=claimed_by_id,
-        subject_id=subject.id if subject else None
+        subject_id=subject.id if subject else None,
+        status="pending" if is_takeover else "approved"
     )
     db.session.add(claim)
-    
+    db.session.flush()
+
     assigned_user = User.query.get(claimed_by_id)
     assignee_name = assigned_user.username if assigned_user else 'faculty'
+    subject_title = subject.name if subject else (slot.subject.name if slot.subject else "Class")
+
+    if is_takeover and default_faculty_id:
+        notif = Notification(
+            user_id=default_faculty_id,
+            message=f"{current_user.username} wants to take your class '{subject_title}' at {slot.slot_time} on {claim_date}.",
+            claim_id=claim.id
+        )
+        db.session.add(notif)
+    elif default_faculty_id and default_faculty_id != claimed_by_id:
+        # Original faculty gets notification that their class is substituted
+        db.session.add(Notification(
+            user_id=default_faculty_id,
+            message=f"Class Substituted: {assignee_name} will be taking your '{subject_title}' class on {claim_date} ({slot.slot_time})."
+        ))
+
+    # If assigned by someone else (e.g. HOD / Admin assigned to substitute faculty)
+    if claimed_by_id != current_user.id:
+        db.session.add(Notification(
+            user_id=claimed_by_id,
+            message=f"Substitution Assigned: You have been assigned by {current_user.username} to take '{subject_title}' ({slot.department or ''}) on {claim_date} at {slot.slot_time}."
+        ))
+
+    # Notify students in that department
+    dept = slot.department or (subject.code[:3] if subject and len(subject.code) >= 3 else "")
+    if dept:
+        student_users = User.query.filter_by(role=ROLE_STUDENT, department=dept).all()
+        for su in student_users:
+            db.session.add(Notification(
+                user_id=su.id,
+                message=f"Class Notice: {assignee_name} will take your '{subject_title}' class on {claim_date} at {slot.slot_time} as substitute."
+            ))
+
+    # Notify HOD of the department if someone else substituted/assigned
+    if dept:
+        dept_hods = User.query.filter_by(role=ROLE_HOD, department=dept).all()
+        for h in dept_hods:
+            if h.id != current_user.id and h.id != claimed_by_id:
+                db.session.add(Notification(
+                    user_id=h.id,
+                    message=f"Timetable Update: {assignee_name} substituted for '{subject_title}' ({dept}) on {claim_date} at {slot.slot_time}."
+                ))
 
     if subject:
         # Create attendance session for substitute lecturer
@@ -249,15 +385,65 @@ def claim_slot():
             db.session.add(session)
         db.session.commit()
         
-        flash(f"Slot reassigned to {assignee_name} for {claim_date}. Attendance session created.", "success")
+        flash(f"Slot reassigned to {assignee_name} for {claim_date}. Notifications sent.", "success")
         if claimed_by_id == current_user.id:
             return redirect(url_for("attendance.take", session_id=session.id))
         else:
             return redirect(url_for("dashboard.index", date=claim_date_str))
     else:
         db.session.commit()
-        flash(f"Slot reassigned to {assignee_name} for {claim_date}.", "success")
+        if is_takeover:
+            flash(f"Slot takeover requested. {assigned_user.username if assigned_user else 'faculty'} will be notified.", "success")
+        else:
+            flash(f"Slot reassigned to {assignee_name} for {claim_date}. Notifications sent.", "success")
         return redirect(url_for("dashboard.index", date=claim_date_str))
+
+@dashboard_bp.route("/notification/<int:notif_id>/<action>")
+@login_required
+def handle_notification(notif_id, action):
+    notif = Notification.query.get_or_404(notif_id)
+    if notif.user_id != current_user.id:
+        flash("Unauthorized.", "danger")
+        return redirect(request.referrer or url_for("dashboard.index"))
+        
+    if action in ["read", "dismiss"]:
+        notif.is_read = True
+        db.session.commit()
+        return redirect(request.referrer or url_for("dashboard.index"))
+
+    claim = notif.claim
+    if not claim:
+        notif.is_read = True
+        db.session.commit()
+        flash("Related claim no longer exists.", "info")
+        return redirect(url_for("dashboard.index"))
+
+    if action == "accept":
+        claim.status = "approved"
+        notif.is_read = True
+        db.session.commit()
+        flash("You accepted the class takeover.", "success")
+    elif action == "report":
+        claim.status = "reported"
+        notif.is_read = True
+        # Notify HODs and Directors
+        authorities = User.query.filter(User.role.in_(['hod', 'director'])).all()
+        for auth in authorities:
+            report_notif = Notification(
+                user_id=auth.id,
+                message=f"Lecturer {current_user.username} reported a takeover claim by {claim.claimed_by.username} for slot {claim.slot.slot_time}.",
+                claim_id=claim.id
+            )
+            db.session.add(report_notif)
+        db.session.commit()
+        flash("You reported the takeover to the HOD/Director.", "info")
+    elif action == "reject":
+        db.session.delete(claim)
+        notif.is_read = True
+        db.session.commit()
+        flash("You rejected the class takeover.", "warning")
+
+    return redirect(url_for("dashboard.index"))
 
 
 @dashboard_bp.route("/timetable/release/<int:claim_id>", methods=["POST"])

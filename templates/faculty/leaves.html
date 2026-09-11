@@ -1,18 +1,24 @@
 {% extends "base.html" %}
-{% block title %}My Leave Applications{% endblock %}
+{% block title %}{% if current_user.role == 'hod' %}Apply Leave to Director{% else %}My Leave Applications{% endif %}{% endblock %}
 
 {% block content %}
 <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom: 2rem;">
   <div>
-    <h1>My Leave Applications</h1>
-    <p class="subtitle" style="margin-bottom:0;">Submit and track your leave requests</p>
+    <h1>{% if current_user.role == 'hod' %}Apply Leave (to Director){% else %}My Leave Applications{% endif %}</h1>
+    <p class="subtitle" style="margin-bottom:0;">
+      {% if current_user.role == 'hod' %}
+        Submit your leave request to the Director and track status
+      {% else %}
+        Submit your leave request to the HOD and track status
+      {% endif %}
+    </p>
   </div>
 </div>
 
 <div style="display:flex; gap:1.5rem; flex-wrap:wrap; align-items:flex-start;">
   <div style="flex:0 0 340px; min-width:280px;">
     <div class="card">
-      <h2 style="margin-top:0;">Apply for Leave</h2>
+      <h2 style="margin-top:0;">{% if current_user.role == 'hod' %}Apply to Director{% else %}Apply for Leave{% endif %}</h2>
       <form method="post" action="{{ url_for('faculty.leaves') }}">
         <label>Start Date</label>
         <input type="date" name="start_date" required min="{{ today }}">
@@ -24,7 +30,9 @@
         <textarea name="reason" rows="3" required placeholder="Reason for leave application..."></textarea>
         
         <div class="btn-row" style="margin-top:1.5rem;">
-          <button type="submit" class="btn" style="width:100%;">Submit Application</button>
+          <button type="submit" class="btn" style="width:100%;">
+            {% if current_user.role == 'hod' %}Submit to Director{% else %}Submit Application{% endif %}
+          </button>
         </div>
       </form>
     </div>
