@@ -157,52 +157,42 @@
 </div>
 
 <div class="card" id="weekly-timetable" style="margin-top:2rem">
-  <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; margin-bottom:1.5rem; gap: 1rem;">
+  <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; margin-bottom:1.25rem; gap: 1rem;">
     <div>
       <div style="display:flex; align-items:center; gap:0.75rem;">
-        <h2 style="margin-bottom: 0.25rem;">Weekly Timetable</h2>
+        <h2 style="margin: 0; font-size:1.2rem; color:#ffffff;">📅 Academic Master Timetable</h2>
         <span class="badge" style="font-size:0.85rem; font-weight:700; background:rgba(59,130,246,0.15); color:#60a5fa; border:1px solid rgba(59,130,246,0.3);">
           {{ selected_dept }}
         </span>
       </div>
-      <p class="subtitle" style="margin-bottom:0;">Week of {{ week_dates['Monday'].strftime('%b %d, %Y') }} to {{ week_dates['Friday'].strftime('%b %d, %Y') }}</p>
+      <p class="subtitle" style="margin:0.25rem 0 0; font-size:0.85rem;">Standard weekly class schedule (Monday to Friday)</p>
     </div>
 
     <!-- Department Selector (MCA / MBA) -->
     {% if current_user.role in ['admin', 'director'] %}
     <div style="display:flex; align-items:center; gap:0.5rem; background:var(--bg-card); padding:4px; border-radius:8px; border:1px solid var(--border);">
-      <a href="{{ url_for('dashboard.index', dept='MCA', date=current_date_str) }}#weekly-timetable" 
+      <a href="{{ url_for('dashboard.index', dept='MCA') }}#weekly-timetable" 
          class="btn btn-sm {% if selected_dept == 'MCA' %}btn-primary{% else %}btn-secondary{% endif %}"
          style="padding:0.35rem 0.9rem; font-weight:600; border-radius:6px;">
         MCA Timetable
       </a>
-      <a href="{{ url_for('dashboard.index', dept='MBA', date=current_date_str) }}#weekly-timetable" 
+      <a href="{{ url_for('dashboard.index', dept='MBA') }}#weekly-timetable" 
          class="btn btn-sm {% if selected_dept == 'MBA' %}btn-primary{% else %}btn-secondary{% endif %}"
          style="padding:0.35rem 0.9rem; font-weight:600; border-radius:6px;">
         MBA Timetable
       </a>
     </div>
     {% endif %}
-    
-    <div style="display:flex; align-items:center; gap:0.75rem;">
-      <a class="btn btn-secondary btn-sm" href="{{ url_for('dashboard.index', dept=selected_dept, date=prev_week_date) }}#weekly-timetable">&larr; Prev Week</a>
-      <form method="GET" action="{{ url_for('dashboard.index') }}" style="display:inline-flex; align-items:center; gap:0.5rem; margin:0;">
-        <input type="hidden" name="dept" value="{{ selected_dept }}">
-        <input type="date" name="date" value="{{ current_date_str }}" class="form-control" style="padding:0.25rem 0.5rem; font-size:0.875rem;" onchange="this.form.submit()">
-      </form>
-      <a class="btn btn-secondary btn-sm" href="{{ url_for('dashboard.index', dept=selected_dept, date=next_week_date) }}#weekly-timetable">Next Week &rarr;</a>
-    </div>
   </div>
 
   <div class="table-responsive">
     <table style="width:100%; border-collapse:collapse; min-width:800px;">
       <thead>
         <tr style="border-bottom: 2px solid var(--border-color, #eee);">
-          <th style="width:12%; padding:0.75rem; text-align:left;">Time Slot</th>
+          <th style="width:12%; padding:0.75rem; text-align:left;">TIME SLOT</th>
           {% for day in timetable_days %}
           <th style="width:17.6%; padding:0.75rem; text-align:center;">
-            <div>{{ day }}</div>
-            <div class="subtitle" style="font-size:0.75rem; margin-top:2px;">{{ week_dates[day].strftime('%b %d') }}</div>
+            {{ day | upper }}
           </th>
           {% endfor %}
         </tr>

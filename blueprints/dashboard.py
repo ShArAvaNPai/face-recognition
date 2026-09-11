@@ -7,7 +7,8 @@ from flask_login import login_required, current_user
 
 from extensions import db
 from models import (Student, Subject, AttendanceSession, Attendance, User,
-                    FaceSample, MedicalCertificate, ROLE_STUDENT, TimetableSlot,
+                    FaceSample, MedicalCertificate, ROLE_STUDENT, ROLE_HOD,
+                    ROLE_FACULTY, ROLE_ADMIN, ROLE_DIRECTOR, TimetableSlot,
                     TimetableClaim, LeaveApplication, FacultyAttendanceSession,
                     FacultyAttendance, Notification)
 
