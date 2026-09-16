@@ -47,7 +47,9 @@
     </table>
   </div>
   <div class="card-table-footer">
+    {% if session.session_date >= today_date %}
     <a class="btn" href="{{ url_for('attendance.take', session_id=session.id) }}">Continue Taking</a>
+    {% endif %}
     <a class="btn btn-secondary" href="{{ url_for('attendance.index') }}">All Sessions</a>
   </div>
 </div>

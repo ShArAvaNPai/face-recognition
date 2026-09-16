@@ -80,48 +80,7 @@
         </div>
       </div>
 
-      <div class="table-responsive" style="border-radius: var(--radius-sm); border: 1px solid var(--card-border); overflow: hidden;">
-        <table class="calendar-table">
-          <thead>
-            <tr>
-              {% for dname in ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] %}
-              <th style="{% if loop.first %}color:#ef4444;{% endif %}">{{ dname }}</th>
-              {% endfor %}
-            </tr>
-          </thead>
-          <tbody>
-            {% for week in month_days %}
-            <tr>
-              {% for d in week %}
-                {% set day_str = d.isoformat() %}
-                {% set is_current_month = (d.month == current_month) %}
-                {% set is_today = (d == today) %}
-                {% set day_evts = day_events_map.get(day_str, []) %}
-                <td style="{% if not is_current_month %}opacity:0.3; background:rgba(0,0,0,0.25);{% endif %}
-                           {% if is_today %}background:rgba(59,130,246,0.09); border-color:#3b82f6; box-shadow: inset 0 0 0 1px #3b82f6;{% endif %}">
-                  <div class="calendar-day-header">
-                    <span class="calendar-day-num" style="{% if is_today %}color:#60a5fa; font-weight:800;{% elif d.weekday() == 6 %}color:#ef4444;{% endif %}">
-                      {{ d.day }}
-                    </span>
-                    {% if is_today %}
-                      <span style="font-size:0.6rem; background:#3b82f6; color:#fff; border-radius:3px; padding:1px 4px; font-weight:700;">Today</span>
-                    {% endif %}
-                  </div>
-                  <div class="calendar-events-wrap custom-scroll">
-                    {% for evt in day_evts %}
-                      <div title="{{ evt.title }} ({{ evt.start_date.strftime('%b %d') }} to {{ evt.end_date.strftime('%b %d') }}) - {{ evt.description or '' }}"
-                           class="calendar-event-pill {% if evt.category == 'holiday' %}evt-holiday{% elif evt.category == 'exam' %}evt-exam{% else %}evt-academic{% endif %}">
-                        {% if evt.category == 'holiday' %}🏖️{% elif evt.category == 'exam' %}📝{% else %}🎓{% endif %} {{ evt.title }}
-                      </div>
-                    {% endfor %}
-                  </div>
-                </td>
-              {% endfor %}
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
+      <div id="fullcalendar" style="background: var(--bg-card); color: #fff; padding: 10px; border-radius: var(--radius-sm); border: 1px solid var(--card-border); overflow: hidden;"></div>
     </div>
   </div>
 
@@ -342,5 +301,30 @@ function switchUpcomingTab(tabName) {
     examsBtn.classList.remove('active');
   }
 }
+</script>
+<script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.15/index.global.min.js'></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  const calendarEl = document.getElementById('fullcalendar');
+  if (calendarEl) {
+    const calendar = new FullCalendar.Calendar(calendarEl, {
+      initialView: 'dayGridMonth',
+      height: 'auto',
+      events: [
+        {% for evt in events %}
+        {
+          title: "{{ evt.title }}",
+          start: "{{ evt.start_date.isoformat() }}",
+          end: "{{ (evt.end_date).isoformat() }}T23:59:00",
+          backgroundColor: "{% if evt.category == 'holiday' %}#ef4444{% elif evt.category == 'exam' %}#f59e0b{% else %}#3b82f6{% endif %}",
+          borderColor: "transparent",
+          description: "{{ evt.description }}"
+        },
+        {% endfor %}
+      ]
+    });
+    calendar.render();
+  }
+});
 </script>
 {% endblock %}

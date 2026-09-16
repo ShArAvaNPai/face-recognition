@@ -7,6 +7,12 @@
     <p class="subtitle" style="margin-bottom:0;">Performance statistics across {{ total_sessions }} session(s)</p>
   </div>
 </div>
+<div class="card" style="margin-bottom: 2rem;">
+  <h2>Attendance Distribution</h2>
+  <div style="height: 300px; position: relative; width: 100%;">
+    <canvas id="attendanceChart"></canvas>
+  </div>
+</div>
 
 <div class="card card-table">
   <div class="card-table-header">
@@ -56,4 +62,43 @@
     {% endif %}
   </div>
 </div>
+{% endblock %}
+
+{% block scripts %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const ctx = document.getElementById('attendanceChart').getContext('2d');
+    
+    // Calculate distributions from rows
+    let good = 0; // >= 75
+    let average = 0; // 50-74
+    let poor = 0; // < 50
+    
+    {% for r in rows %}
+      {% if r.percentage >= 75 %} good++;
+      {% elif r.percentage >= 50 %} average++;
+      {% else %} poor++; {% endif %}
+    {% endfor %}
+    
+    new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Good (>=75%)', 'Average (50-74%)', 'Poor (<50%)'],
+            datasets: [{
+                data: [good, average, poor],
+                backgroundColor: ['#10b981', '#f59e0b', '#ef4444'],
+                borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { position: 'right', labels: { color: '#f1f5f9' } }
+            }
+        }
+    });
+});
+</script>
 {% endblock %}

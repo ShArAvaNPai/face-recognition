@@ -18,13 +18,14 @@ dashboard_bp = Blueprint("dashboard", __name__)
 def is_faculty_absent(faculty_id, check_date):
     if not faculty_id:
         return False
-    # 1. Check approved or pending leaves
+    # 1. Check approved leaves only
     leave = LeaveApplication.query.filter(
         LeaveApplication.user_id == faculty_id,
-        LeaveApplication.status.in_(['approved', 'pending']),
+        LeaveApplication.status == 'approved',
         LeaveApplication.start_date <= check_date,
         LeaveApplication.end_date >= check_date
     ).first()
+
     if leave:
         return True
     # 2. Check if marked absent in faculty attendance session
@@ -221,6 +222,8 @@ def _staff_dashboard():
                                 "time": time_str,
                                 "subject": c["subject"].name if c["subject"] else ("Empty Slot" if c["is_empty"] else "Class"),
                                 "code": c["subject"].code if c["subject"] else "",
+                                "subject_id": c["subject"].id if c["subject"] else None,
+                                "department": c["slot"].department if c["slot"] else None,
                                 "faculty": fac.username if fac else ("Absent" if c["is_absent"] else "None"),
                                 "is_mine": True,
                                 "is_claimed": c["is_claimed"],
@@ -229,21 +232,183 @@ def _staff_dashboard():
 
     return render_template("dashboard/staff.html", stats=stats,
                            recent_sessions=recent_sessions,
-                           timetable_grid=grid,
-                           timetable_days=days,
-                           week_dates=week_dates,
-                           prev_week_date=prev_week_date,
-                           next_week_date=next_week_date,
-                           my_subjects=my_subjects,
-                           all_subjects=all_subjects,
-                           department_faculty=department_faculty,
-                           current_date_str=ref_date.isoformat(),
                            requires_daily_attendance=requires_daily_attendance,
                            notifications=notifications,
                            today_date=today_date,
                            today_day_name=today_day_name,
                            today_schedule=today_schedule,
                            selected_dept=dept,
+                           is_on_leave_today=is_on_leave_today)
+
+
+@dashboard_bp.route("/timetable")
+@login_required
+def timetable_view():
+    year_param = request.args.get("year", type=int)
+
+    if current_user.role == ROLE_STUDENT:
+        student = current_user.student
+        dept = student.department if student and student.department else "MCA"
+        # Determine student enrolled year strictly from class_name
+        year = 2 if (student and student.class_name and "2" in student.class_name) else 1
+
+        DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
+        TIMES = [
+            "09:00 - 10:00", "10:00 - 11:00", "11:00 - 12:00",
+            "13:00 - 14:00", "14:00 - 15:00", "15:00 - 16:00"
+        ]
+        timetable_grid = []
+        for time_slot in TIMES:
+            row = {"time": time_slot, "days": {}}
+            for day in DAYS:
+                slot = TimetableSlot.query.filter_by(department=dept, year=year, day_of_week=day, slot_time=time_slot).first()
+                row["days"][day] = slot
+            timetable_grid.append(row)
+
+        return render_template("dashboard/timetable.html",
+                               is_student=True,
+                               student=student,
+                               timetable_grid=timetable_grid,
+                               timetable_days=DAYS,
+                               selected_dept=dept,
+                               selected_year=year)
+
+    # For Faculty / HOD / Admin / Director
+    date_param = request.args.get("date")
+    try:
+        ref_date = date.fromisoformat(date_param) if date_param else date.today()
+    except ValueError:
+        ref_date = date.today()
+
+    week_dates = get_week_dates(ref_date)
+    monday = week_dates['Monday']
+    prev_week_date = (monday - timedelta(days=7)).isoformat()
+    next_week_date = (monday + timedelta(days=7)).isoformat()
+
+    my_subjects = []
+    if current_user.role == 'hod':
+        dept_filter = current_user.department or "MCA"
+        my_subjects = Subject.query.filter(
+            Subject.code.ilike(f"{dept_filter}%") |
+            Subject.faculty.has(User.department == dept_filter)
+        ).all()
+        if not my_subjects:
+            my_subjects = Subject.query.filter_by(faculty_id=current_user.id).all()
+    elif current_user.role == 'director':
+        my_subjects = Subject.query.filter_by(code="research").all()
+        if not my_subjects:
+            my_subjects = Subject.query.filter_by(faculty_id=current_user.id).all()
+    elif current_user.role == 'admin':
+        my_subjects = Subject.query.filter(Subject.faculty_id != None).all()
+    else:
+        my_subjects = Subject.query.filter_by(faculty_id=current_user.id).all()
+
+    slot_times = ["09:00 - 10:00", "10:00 - 11:00", "11:00 - 12:00", "13:00 - 14:00", "14:00 - 15:00", "15:00 - 16:00"]
+    days = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
+    grid = []
+
+    if current_user.role == 'hod' and current_user.department:
+        dept = current_user.department
+    elif current_user.role in ['admin', 'director']:
+        dept = request.args.get("dept") or "MCA"
+    else:
+        dept = current_user.department or request.args.get("dept") or "MCA"
+
+    year = year_param if year_param in [1, 2] else 1
+
+    if current_user.role == 'hod' and current_user.department:
+        department_faculty = User.query.filter(User.role.in_(['faculty', 'hod']), User.department == current_user.department).order_by(User.username).all()
+    else:
+        department_faculty = User.query.filter(User.role.in_(['faculty', 'hod']), (User.department == dept) | (User.department == '')).order_by(User.username).all()
+
+    for time_str in slot_times:
+        row = {"time": time_str, "days": {}}
+        for day in days:
+            slot = TimetableSlot.query.filter_by(department=dept, year=year, day_of_week=day, slot_time=time_str).first()
+            cell = {
+                "slot": slot,
+                "subject": None,
+                "faculty": None,
+                "default_subject": None,
+                "default_faculty": None,
+                "is_empty": True,
+                "is_absent": False,
+                "is_claimed": False,
+                "claimable": False,
+                "can_release": False,
+                "claim_id": None,
+                "cell_date": week_dates[day].isoformat()
+            }
+            if slot:
+                cell_date = week_dates[day]
+                default_faculty_id = slot.subject.faculty_id if slot.subject else None
+                is_absent = is_faculty_absent(default_faculty_id, cell_date)
+                cell["is_absent"] = is_absent
+                cell["default_subject"] = slot.subject
+                cell["default_faculty"] = slot.subject.faculty if slot.subject else None
+                
+                claim = TimetableClaim.query.filter_by(slot_id=slot.id, claim_date=cell_date).first()
+                if claim:
+                    cell["is_claimed"] = True
+                    cell["subject"] = claim.subject
+                    cell["faculty"] = claim.claimed_by
+                    cell["is_empty"] = False
+                    cell["claim_id"] = claim.id
+                    if claim.claimed_by_id == current_user.id or current_user.role in ['admin', 'director', 'hod']:
+                        cell["can_release"] = True
+                else:
+                    if slot.subject:
+                        cell["is_empty"] = False
+                        cell["subject"] = slot.subject
+                        cell["faculty"] = slot.subject.faculty
+                    
+                    if is_absent:
+                        cell["claimable"] = True
+
+            row["days"][day] = cell
+        grid.append(row)
+
+    today_date = date.today()
+    today_day_name = today_date.strftime("%A")
+    today_schedule = []
+    is_on_leave_today = is_faculty_absent(current_user.id, today_date)
+    if not is_on_leave_today and today_day_name in days:
+        for time_str in slot_times:
+            for row in grid:
+                if row["time"] == time_str:
+                    c = row["days"].get(today_day_name)
+                    if c and c["slot"]:
+                        fac = c["faculty"]
+                        is_mine = (fac and fac.id == current_user.id and not c["is_absent"])
+                        if is_mine or (c["is_claimed"] and fac and fac.id == current_user.id):
+                            today_schedule.append({
+                                "time": time_str,
+                                "subject": c["subject"].name if c["subject"] else ("Empty Slot" if c["is_empty"] else "Class"),
+                                "code": c["subject"].code if c["subject"] else "",
+                                "subject_id": c["subject"].id if c["subject"] else None,
+                                "department": c["slot"].department if c["slot"] else None,
+                                "year": c["slot"].year if c["slot"] else 1,
+                                "faculty": fac.username if fac else ("Absent" if c["is_absent"] else "None"),
+                                "is_mine": True,
+                                "is_claimed": c["is_claimed"],
+                                "is_absent": c["is_absent"]
+                            })
+
+    return render_template("dashboard/timetable.html",
+                           is_student=False,
+                           timetable_grid=grid,
+                           timetable_days=days,
+                           week_dates=week_dates,
+                           prev_week_date=prev_week_date,
+                           next_week_date=next_week_date,
+                           my_subjects=my_subjects,
+                           department_faculty=department_faculty,
+                           current_date_str=ref_date.isoformat(),
+                           today_date=today_date,
+                           today_day_name=today_day_name,
+                           today_schedule=today_schedule,
+                           selected_dept=dept,
+                           selected_year=year,
                            is_on_leave_today=is_on_leave_today)
 
 
@@ -302,12 +467,15 @@ def claim_slot():
 
     # Determine subject
     subject = None
-    if subject_id:
+    claimed_user = User.query.get(claimed_by_id)
+    if (claimed_user and claimed_user.role == 'director') or (current_user.role == 'director' and claimed_by_id == current_user.id):
+        subject = Subject.query.filter(
+            (Subject.code.ilike("%research%")) | (Subject.name.ilike("%research%")) | (Subject.faculty_id == claimed_by_id)
+        ).first()
+    elif subject_id:
         subject = Subject.query.get(subject_id)
-    elif current_user.role in ['director', 'hod']:
-        subject = Subject.query.filter_by(code="research").first()
-        if not subject:
-            subject = Subject.query.filter_by(faculty_id=claimed_by_id).first()
+    elif current_user.role == 'hod':
+        subject = Subject.query.filter_by(faculty_id=claimed_by_id).first()
     elif current_user.role in ['faculty', 'admin']:
         subject = Subject.query.filter_by(faculty_id=claimed_by_id).first()
         
@@ -466,44 +634,43 @@ def release_slot(claim_id):
 def _student_dashboard():
     student = current_user.student
     dept = (student.department if student else current_user.department) or "MCA"
+    # Determine student academic year (1st Year or 2nd Year)
+    student_year = 2 if (student and student.class_name and "2" in student.class_name) else 1
     present = total = pct = 0
     subject_stats = []
     
     if student:
-        # Filter subjects belonging to student's department
-        subjects = Subject.query.filter(Subject.code.ilike(f"{dept}%")).all()
-        if not subjects:
-            subjects = Subject.query.all()
-
-        subj_ids = [s.id for s in subjects]
-        total = AttendanceSession.query.filter(AttendanceSession.subject_id.in_(subj_ids)).count() if subj_ids else 0
-
-        present = Attendance.query.join(AttendanceSession).filter(
-            Attendance.student_id == student.id,
-            AttendanceSession.subject_id.in_(subj_ids),
-            Attendance.status.in_(["present", "excused"])
-        ).count() if subj_ids else 0
-
+        # Calculate accurate attendance from this student's actual attendance records
+        records = (Attendance.query
+                   .filter_by(student_id=student.id)
+                   .join(AttendanceSession)
+                   .order_by(AttendanceSession.session_date.desc())
+                   .all())
+        total = len(records)
+        present = sum(1 for r in records if r.status in ["present", "excused"])
         pct = round(100.0 * present / total, 1) if total else 0.0
 
-        # Calculate subject-wise attendance for department subjects
-        for subj in subjects:
-            subj_total = AttendanceSession.query.filter_by(subject_id=subj.id).count()
-            if subj_total > 0:
-                subj_present = Attendance.query.join(AttendanceSession).filter(
-                    Attendance.student_id == student.id,
-                    AttendanceSession.subject_id == subj.id,
-                    Attendance.status.in_(["present", "excused"])
-                ).count()
-                subj_pct = round(100.0 * subj_present / subj_total, 1)
-                subject_stats.append({
+        # Calculate subject-wise attendance for student's attended/enrolled subjects
+        subjects_map = {}
+        for r in records:
+            subj = r.session.subject
+            if subj.id not in subjects_map:
+                subjects_map[subj.id] = {
                     "subject": subj,
-                    "present": subj_present,
-                    "total": subj_total,
-                    "percentage": subj_pct
-                })
+                    "present": 0,
+                    "total": 0,
+                    "percentage": 0.0
+                }
+            subjects_map[subj.id]["total"] += 1
+            if r.status in ["present", "excused"]:
+                subjects_map[subj.id]["present"] += 1
 
-    # Build student's timetable based on their department (MCA / MBA)
+        for s_id, s_data in subjects_map.items():
+            if s_data["total"] > 0:
+                s_data["percentage"] = round(100.0 * s_data["present"] / s_data["total"], 1)
+        subject_stats = list(subjects_map.values())
+
+    # Build student's timetable based on their department (MCA / MBA) and year (1st or 2nd Year)
     DAYS = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday"]
     TIMES = [
         "09:00 - 10:00", "10:00 - 11:00", "11:00 - 12:00",
@@ -514,7 +681,7 @@ def _student_dashboard():
     for time_slot in TIMES:
         row = {"time": time_slot, "days": {}}
         for day in DAYS:
-            slot = TimetableSlot.query.filter_by(department=dept, day_of_week=day, slot_time=time_slot).first()
+            slot = TimetableSlot.query.filter_by(department=dept, year=student_year, day_of_week=day, slot_time=time_slot).first()
             row["days"][day] = slot
         timetable_grid.append(row)
 
@@ -522,7 +689,8 @@ def _student_dashboard():
                            present=present, total=total, percentage=pct,
                            subject_stats=subject_stats,
                            timetable_grid=timetable_grid,
-                           timetable_days=DAYS)
+                           timetable_days=DAYS,
+                           student_year=student_year)
 
 
 @dashboard_bp.route("/upload-certificate", methods=["POST"])

@@ -4,7 +4,9 @@ from flask import Blueprint, render_template, redirect, url_for, request, flash,
 from flask_login import login_required, current_user
 
 from extensions import db
-from models import LeaveApplication, FacultyAttendanceSession, FacultyAttendance, User, ROLE_FACULTY, ROLE_HOD, MedicalCertificate, Attendance, AttendanceSession, Subject, Student
+from models import (LeaveApplication, FacultyAttendanceSession, FacultyAttendance,
+                    User, ROLE_FACULTY, ROLE_HOD, ROLE_DIRECTOR, MedicalCertificate,
+                    Attendance, AttendanceSession, Subject, Student)
 from blueprints.decorators import roles_required, hod_required
 from face_engine import engine, feature_from_bytes
 from blueprints.imaging import decode_data_url
@@ -13,7 +15,7 @@ faculty_bp = Blueprint("faculty", __name__, url_prefix="/faculty")
 
 @faculty_bp.route("/leaves", methods=["GET", "POST"])
 @login_required
-@roles_required(ROLE_FACULTY, ROLE_HOD)
+@roles_required(ROLE_FACULTY, ROLE_HOD, ROLE_DIRECTOR)
 def leaves():
     if request.method == "POST":
         start_date_str = request.form.get("start_date")
@@ -79,11 +81,13 @@ def leaves():
 
 @faculty_bp.route("/face-attendance")
 @login_required
-@roles_required(ROLE_FACULTY, ROLE_HOD)
+@roles_required(ROLE_FACULTY, ROLE_HOD, ROLE_DIRECTOR)
 def face_attendance():
     today = date.today()
     today_day_name = today.strftime("%A")
-    # Find if marked today
+    from blueprints.dashboard import is_faculty_absent
+    is_on_leave = is_faculty_absent(current_user.id, today)
+
     session = FacultyAttendanceSession.query.filter_by(session_date=today).first()
     is_present = False
     if session:
@@ -91,7 +95,6 @@ def face_attendance():
         if att and att.status == "present":
             is_present = True
             
-    # Fetch today's schedule for faculty
     from models import TimetableSlot, TimetableClaim
     slots = TimetableSlot.query.filter_by(day_of_week=today_day_name).order_by(TimetableSlot.slot_time).all()
     today_schedule = []
@@ -110,12 +113,18 @@ def face_attendance():
     return render_template("faculty/face_attendance.html", 
                            today=today, today_day_name=today_day_name, 
                            today_schedule=today_schedule,
-                           is_present=is_present, engine_ready=engine.available)
+                           is_present=is_present,
+                           is_on_leave=is_on_leave,
+                           engine_ready=engine.available)
 
 @faculty_bp.route("/face-attendance/recognize", methods=["POST"])
 @login_required
-@roles_required(ROLE_FACULTY, ROLE_HOD)
+@roles_required(ROLE_FACULTY, ROLE_HOD, ROLE_DIRECTOR)
 def face_attendance_recognize():
+    from blueprints.dashboard import is_faculty_absent
+    if is_faculty_absent(current_user.id, date.today()):
+        return jsonify(success=False, message="You are currently on approved leave today and cannot check in.")
+
     if not engine.available:
         return jsonify(success=False, message="Face models not installed.")
         
@@ -123,7 +132,6 @@ def face_attendance_recognize():
     if image is None:
         return jsonify(success=False, message="Could not read frame.")
         
-    # Get current user samples
     candidates = []
     for sample in current_user.face_samples:
         candidates.append((current_user.id, feature_from_bytes(sample.feature)))
@@ -135,7 +143,6 @@ def face_attendance_recognize():
     for bbox, feat in detections:
         faculty_id, score = engine.match(feat, candidates)
         if faculty_id == current_user.id:
-            # Match found! Mark present.
             today = date.today()
             session = FacultyAttendanceSession.query.filter_by(session_date=today).first()
             if not session:
@@ -159,6 +166,15 @@ def face_attendance_recognize():
 @faculty_bp.route("/face-attendance/code", methods=["POST"])
 @login_required
 def face_attendance_code():
+    from blueprints.dashboard import is_faculty_absent
+    if is_faculty_absent(current_user.id, date.today()):
+        msg = "You are currently on approved leave today and cannot check in."
+        if request.is_json:
+            return jsonify(success=False, message=msg)
+        else:
+            flash(msg, "danger")
+            return redirect(url_for("dashboard.index"))
+
     code = request.json.get("code") if request.is_json else request.form.get("code")
     if code == "1234":
         today = date.today()
@@ -187,6 +203,7 @@ def face_attendance_code():
     else:
         flash("Invalid code.", "danger")
         return redirect(url_for("dashboard.index"))
+
 
 # --- Student Medical Certificates (HOD only) ---
 

@@ -305,3 +305,10 @@ attendance.db           The SQLite database (created automatically).
 ================================================================================
                                 END OF DOCUMENT
 ================================================================================
+
+
+
+
+
+
+.\.venv\Scripts\python app.py

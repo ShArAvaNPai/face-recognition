@@ -16,24 +16,24 @@
   <div class="card-table-header">
     <h2>Student Directory</h2>
 
-    <form method="get" style="display:flex; gap:10px; align-items:center; flex-wrap:wrap;">
+    <form method="get" style="display:flex; gap:0.6rem; align-items:center; flex-wrap:wrap;">
 
       {# Text search #}
-      <div style="position:relative;">
+      <div style="position:relative; width:220px;">
         <input name="q" value="{{ q }}" placeholder="Search name or roll…"
-               style="width:200px; padding-left:2.4rem;">
-        <svg width="18" height="18" fill="none" stroke="var(--text-muted)" stroke-width="2"
-             style="position:absolute; left:0.75rem; top:50%; transform:translateY(-50%);">
+               style="width:100%; padding:0.45rem 0.8rem 0.45rem 2.2rem; font-size:0.85rem; border-radius:6px; background:var(--bg-card,#121215); border:1px solid var(--card-border,#27272a); color:var(--text-main,#fafafa);">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="var(--text-muted)" stroke-width="2.2"
+             style="position:absolute; left:0.65rem; top:50%; transform:translateY(-50%); pointer-events:none;">
           <circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line>
         </svg>
       </div>
 
       {# Department dropdown #}
       <select name="dept"
-              style="padding:0.5rem 0.8rem; border-radius:8px;
-                     background:var(--surface-2,#1e293b);
-                     border:1px solid var(--border,#334155);
-                     color:var(--text,#f1f5f9);">
+              style="padding:0.45rem 0.75rem; border-radius:6px; font-size:0.85rem;
+                     background:var(--bg-card,#121215);
+                     border:1px solid var(--card-border,#27272a);
+                     color:var(--text-main,#fafafa); cursor:pointer;">
         <option value="">All Departments</option>
         {% for d in all_depts %}
         <option value="{{ d }}" {% if dept_filter == d %}selected{% endif %}>{{ d }}</option>
@@ -42,22 +42,25 @@
 
       {# Year dropdown #}
       <select name="class_name"
-              style="padding:0.5rem 0.8rem; border-radius:8px;
-                     background:var(--surface-2,#1e293b);
-                     border:1px solid var(--border,#334155);
-                     color:var(--text,#f1f5f9);">
+              style="padding:0.45rem 0.75rem; border-radius:6px; font-size:0.85rem;
+                     background:var(--bg-card,#121215);
+                     border:1px solid var(--card-border,#27272a);
+                     color:var(--text-main,#fafafa); cursor:pointer;">
         <option value="">All Years</option>
-        {% for c in all_classes %}
-        <option value="{{ c }}" {% if class_filter == c %}selected{% endif %}>{{ c }}</option>
+        {% for y in all_years %}
+        <option value="{{ y }}" {% if class_filter == y %}selected{% endif %}>{{ y }}</option>
         {% endfor %}
       </select>
 
-      <button class="btn btn-secondary btn-sm" type="submit">Filter</button>
+      <button class="btn btn-secondary btn-sm" type="submit" style="padding:0.45rem 0.85rem; display:inline-flex; align-items:center; gap:0.35rem;">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+        Filter
+      </button>
 
       {% if q or dept_filter or class_filter %}
       <a href="{{ url_for('director.students_index') }}"
          class="btn btn-sm"
-         style="background:transparent; border:1px solid var(--border,#334155);">
+         style="padding:0.45rem 0.75rem; background:transparent; border:1px solid var(--card-border,#27272a); color:var(--text-muted); display:inline-flex; align-items:center;">
         ✕ Clear
       </a>
       {% endif %}
@@ -103,10 +106,12 @@
             {% else %}—{% endif %}
           </td>
           <td>
-            {% if r.student.class_name %}
-            <span class="badge" style="background:rgba(16,185,129,0.15); color:#6ee7b7;">
-              {{ r.student.class_name }}
-            </span>
+            {% if '1' in (r.student.class_name or '') %}
+            <span class="badge" style="background:rgba(59,130,246,0.15); color:#93c5fd;">1st Year</span>
+            {% elif '2' in (r.student.class_name or '') %}
+            <span class="badge" style="background:rgba(16,185,129,0.15); color:#6ee7b7;">2nd Year</span>
+            {% elif r.student.class_name %}
+            <span class="badge badge-muted">{{ r.student.class_name }}</span>
             {% else %}—{% endif %}
           </td>
           <td>{{ r.total }}</td>

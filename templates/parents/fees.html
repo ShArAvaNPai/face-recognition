@@ -35,17 +35,20 @@
             {% endif %}
           </td>
           <td>
-            {% if f.status == 'Pending' %}
-            <form action="{{ url_for('parents.fees') }}" method="POST" enctype="multipart/form-data" style="display: flex; gap: 10px;">
-              <input type="hidden" name="fee_id" value="{{ f.id }}">
-              <input type="file" name="receipt" required accept="image/*,.pdf" style="max-width: 200px;">
-              <button type="submit" class="btn btn-primary btn-sm">Upload Receipt</button>
-            </form>
-            {% elif f.receipt_path %}
-            <a href="{{ f.receipt_path }}" target="_blank">View Receipt</a>
-            {% else %}
-            N/A
-            {% endif %}
+            <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+              {% if f.status == 'Pending' %}
+              <form action="{{ url_for('parents.fees') }}" method="POST" enctype="multipart/form-data" style="display: flex; gap: 8px; align-items:center; margin:0;">
+                <input type="hidden" name="fee_id" value="{{ f.id }}">
+                <input type="file" name="receipt" required accept="image/*,.pdf" style="max-width: 180px; padding:0.25rem; font-size:0.75rem;">
+                <button type="submit" class="btn btn-primary btn-sm">Upload Receipt</button>
+              </form>
+              {% endif %}
+              {% if f.receipt_path %}
+                <a class="btn btn-sm" style="background:#ffffff; color:#000000; border:1px solid #ffffff; font-weight:700;" href="{{ f.receipt_path }}" target="_blank">📄 View Receipt</a>
+              {% else %}
+                <a class="btn btn-sm" style="background:#ffffff; color:#000000; border:1px solid #ffffff; font-weight:700;" href="{{ url_for('admin.view_fee_receipt', fee_id=f.id) }}" target="_blank">📄 View Receipt</a>
+              {% endif %}
+            </div>
           </td>
         </tr>
         {% endfor %}

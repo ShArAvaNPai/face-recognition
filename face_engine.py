@@ -106,8 +106,12 @@ class FaceEngine:
         candidates: iterable of (key, feature_vector).
         """
         best_id, best_score = None, -1.0
+        probe_shape = np.asarray(probe_feature).shape
         for key, feat in candidates:
-            score = self.cosine_similarity(probe_feature, feat)
+            feat_arr = np.asarray(feat)
+            if feat_arr.shape != probe_shape:
+                continue
+            score = self.cosine_similarity(probe_feature, feat_arr)
             if score > best_score:
                 best_score, best_id = score, key
         if best_score >= self.threshold:

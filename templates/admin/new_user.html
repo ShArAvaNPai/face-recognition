@@ -38,8 +38,11 @@
           </select>
         </div>
         <div style="flex:1; min-width:240px;">
-          <label>Department (e.g. MCA, MBA)</label>
-          <input type="text" name="department" placeholder="e.g. MCA or MBA">
+          <label>Department</label>
+          <select name="department">
+            <option value="MCA">MCA</option>
+            <option value="MBA">MBA</option>
+          </select>
         </div>
       </div>
 
@@ -62,15 +65,26 @@
         
         <div style="display:flex; gap:1.5rem; flex-wrap:wrap;">
           <div style="flex:1; min-width:240px;">
-            <label>Department</label>
-            <input type="text" name="department" placeholder="Computer Science">
+            <label>Student Department</label>
+            <select name="student_department">
+              <option value="MCA">MCA</option>
+              <option value="MBA">MBA</option>
+            </select>
           </div>
           <div style="flex:1; min-width:240px;">
             <label>Class</label>
-            <input type="text" name="class_name" placeholder="MCA-1A">
+            <select name="class_name">
+              <option value="MCA-1A">MCA-1A</option>
+              <option value="MCA-1B">MCA-1B</option>
+              <option value="MCA-2A">MCA-2A</option>
+              <option value="MBA-1A">MBA-1A</option>
+              <option value="MBA-1B">MBA-1B</option>
+              <option value="MBA-2A">MBA-2A</option>
+            </select>
           </div>
         </div>
       </div>
+
 
       <div class="btn-row" style="margin-top:2rem;">
         <button type="submit" class="btn" style="flex:1;">Create User</button>

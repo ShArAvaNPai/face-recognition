@@ -2,38 +2,76 @@
 {% block title %}My Marks{% endblock %}
 
 {% block content %}
-<div class="page-header">
-  <h2 class="page-title">My Marks</h2>
+<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 2rem; flex-wrap:wrap; gap:1rem;">
+  <div>
+    <h1>My Academic Marks</h1>
+    <p class="subtitle" style="margin-bottom:0;">Subject-wise exam performance report card</p>
+  </div>
 </div>
 
-<div class="card">
-  <div class="card-body">
-    {% if marks %}
-    <table class="data-table">
+{# 1. Standard Report Card Table: Each Subject is a Row, Exams are Columns #}
+<div class="card card-table" style="margin-bottom: 2rem;">
+  <div class="card-table-header">
+    <h2>Academic Marksheet</h2>
+    <span class="text-muted" style="font-size:0.875rem;">Subjects as Rows · Exams as Columns</span>
+  </div>
+
+  <div class="table-responsive">
+    {% if subjects_matrix %}
+    <table>
       <thead>
         <tr>
-          <th>Subject</th>
-          <th>Exam</th>
-          <th>Marks</th>
-          <th>Percentage</th>
-          <th>Remarks</th>
+          <th style="min-width:140px;">Subject Code</th>
+          <th style="min-width:200px;">Subject Name</th>
+          {% for exam in exam_names %}
+          <th style="text-align:center; min-width:120px;">{{ exam }}</th>
+          {% endfor %}
+          <th style="text-align:center; min-width:120px;">Total</th>
+          <th style="text-align:center; min-width:110px;">Percentage</th>
+          <th style="min-width:130px;">Performance</th>
         </tr>
       </thead>
       <tbody>
-        {% for m in marks %}
+        {% for row in subjects_matrix %}
         <tr>
-          <td>{{ m.subject.name }}</td>
-          <td>{{ m.exam_name }}</td>
-          <td>{{ m.marks_obtained }}/{{ m.total_marks }}</td>
-          <td>{{ (m.marks_obtained / m.total_marks * 100)|round(2) }}%</td>
-          <td>{{ m.remarks }}</td>
+          <td><span class="badge badge-muted">{{ row.subject.code }}</span></td>
+          <td style="font-weight:600; color:#fff;">{{ row.subject.name }}</td>
+          {% for exam in exam_names %}
+            {% set m = row.exams.get(exam) %}
+            <td style="text-align:center;">
+              {% if m %}
+                <div style="font-weight:600; color:#fafafa;">{{ m.marks_obtained }} <span style="font-size:0.75rem; color:var(--text-muted);">/ {{ m.total_marks }}</span></div>
+                {% if m.remarks %}
+                  <div style="font-size:0.75rem; color:#a1a1aa; font-style:italic;" title="{{ m.remarks }}">({{ m.remarks }})</div>
+                {% endif %}
+              {% else %}
+                <span class="muted" style="font-size:0.85rem;">—</span>
+              {% endif %}
+            </td>
+          {% endfor %}
+          <td style="text-align:center; font-weight:700; color:#fff;">
+            {{ row.total_obtained }} / {{ row.total_max }}
+          </td>
+          <td style="text-align:center;">
+            <span class="badge {{ 'badge-yes' if row.percentage >= 60 else ('badge-no' if row.percentage < 40 else 'badge-muted') }}">
+              {{ row.percentage }}%
+            </span>
+          </td>
+          <td>
+            <div style="display:flex; align-items:center; gap:0.5rem;">
+              <div style="flex-grow:1; background:var(--bg-lighter,#1e293b); height:6px; border-radius:3px; overflow:hidden;">
+                <div style="width:{{ row.percentage }}%; height:100%; background:{% if row.percentage >= 75 %}#10b981{% elif row.percentage >= 50 %}#f59e0b{% else %}#ef4444{% endif %}; border-radius:3px;"></div>
+              </div>
+            </div>
+          </td>
         </tr>
         {% endfor %}
       </tbody>
     </table>
     {% else %}
-    <p>No marks found.</p>
+    <p class="muted" style="padding:3rem 2rem; text-align:center;">No marks have been recorded for your account yet.</p>
     {% endif %}
   </div>
 </div>
+
 {% endblock %}

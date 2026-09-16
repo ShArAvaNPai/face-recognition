@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% block title %}Edit Mark{% endblock %}
+{% block content %}
+
+<div class="auth-wrap" style="max-width: 550px;">
+  <div class="card">
+    <div style="margin-bottom: 2rem;">
+      <h1>Edit Student Mark</h1>
+      <p class="subtitle">{{ mark.student.name }} ({{ mark.student.roll_number }}) · {{ mark.subject.name }}</p>
+    </div>
+
+    <form method="post" id="edit-mark-form" onsubmit="return validateEditForm()">
+      <div style="margin-bottom: 1rem;">
+        <label style="font-weight:600; display:block; margin-bottom:0.4rem;">Exam Name *</label>
+        <select name="exam_name" id="exam_name_select" onchange="toggleCustomExamInput(this.value)" required style="width:100%; margin-bottom:0.5rem;">
+          {% for ex in exam_choices %}
+          <option value="{{ ex }}" {% if mark.exam_name == ex %}selected{% endif %}>{{ ex }}</option>
+          {% endfor %}
+          <option value="__custom__" {% if mark.exam_name not in exam_choices %}selected{% endif %}>+ Add Custom Exam Name...</option>
+        </select>
+        <input type="text" id="custom_exam_name" name="custom_exam_name" value="{% if mark.exam_name not in exam_choices %}{{ mark.exam_name }}{% endif %}" placeholder="Type custom exam title..." style="display:{% if mark.exam_name not in exam_choices %}block{% else %}none{% endif %}; width:100%;">
+      </div>
+
+      <div style="display:grid; grid-template-columns: 1fr 1fr; gap: 1rem; margin-bottom: 1rem;">
+        <div>
+          <label style="font-weight:600; display:block; margin-bottom:0.4rem;">Marks Obtained *</label>
+          <input type="number" step="0.5" min="0" id="marks_obtained" name="marks_obtained" value="{{ mark.marks_obtained }}" required oninput="checkMarksLimit()">
+          <span id="marks-warn" style="display:none; color:#ef4444; font-size:0.75rem; font-weight:600; margin-top:4px;">Cannot exceed Total Marks</span>
+        </div>
+        <div>
+          <label style="font-weight:600; display:block; margin-bottom:0.4rem;">Total / Max Marks *</label>
+          <input type="number" step="0.5" min="0.5" id="total_marks" name="total_marks" value="{{ mark.total_marks }}" required oninput="checkMarksLimit()">
+        </div>
+      </div>
+
+      <div style="margin-bottom: 1.5rem;">
+        <label style="font-weight:600; display:block; margin-bottom:0.4rem;">Remarks</label>
+        <input type="text" name="remarks" value="{{ mark.remarks or '' }}" placeholder="e.g. Needs improvement in Question 2">
+      </div>
+
+      <div class="btn-row">
+        <button class="btn" type="submit">Save Changes</button>
+        <a class="btn btn-secondary" href="{{ url_for('marks.index', subject_id=mark.subject_id) }}">Cancel</a>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+function toggleCustomExamInput(val) {
+  const customInput = document.getElementById('custom_exam_name');
+  if (val === '__custom__') {
+    customInput.style.display = 'block';
+    customInput.required = true;
+    customInput.focus();
+  } else {
+    customInput.style.display = 'none';
+    customInput.required = false;
+  }
+}
+
+function checkMarksLimit() {
+  const obt = parseFloat(document.getElementById('marks_obtained').value);
+  const tot = parseFloat(document.getElementById('total_marks').value);
+  const warn = document.getElementById('marks-warn');
+  const obtInput = document.getElementById('marks_obtained');
+
+  if (!isNaN(obt) && !isNaN(tot) && obt > tot) {
+    warn.innerText = `Cannot exceed maximum marks (${tot})`;
+    warn.style.display = 'block';
+    obtInput.style.borderColor = '#ef4444';
+  } else {
+    warn.style.display = 'none';
+    obtInput.style.borderColor = '';
+  }
+}
+
+function validateEditForm() {
+  const obt = parseFloat(document.getElementById('marks_obtained').value);
+  const tot = parseFloat(document.getElementById('total_marks').value);
+  if (isNaN(tot) || tot <= 0) {
+    alert("Total / Maximum marks must be greater than 0.");
+    return false;
+  }
+  if (!isNaN(obt) && obt > tot) {
+    alert(`Marks obtained (${obt}) cannot be greater than Maximum Marks (${tot})!`);
+    document.getElementById('marks_obtained').focus();
+    return false;
+  }
+  return true;
+}
+</script>
+
+{% endblock %}

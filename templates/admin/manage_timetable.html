@@ -7,36 +7,55 @@
     <h1>Manage Weekly Timetable</h1>
     <p class="subtitle" style="margin-bottom:0;">Assign subjects to day/time slots. Changes reflect immediately on all dashboards.</p>
   </div>
-  <a class="btn btn-secondary" href="{{ url_for('dashboard.index') }}#weekly-timetable">← Back to Dashboard</a>
+  <a class="btn btn-secondary" href="{{ url_for('dashboard.timetable_view') }}">← Back to Timetable</a>
 </div>
 <div style="margin-bottom: 2rem; display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:1rem;">
-  {% if current_user.role in ['admin', 'director'] %}
-  <div style="display:flex; align-items:center; gap:0.6rem; background:var(--bg-card); padding:4px 6px; border-radius:8px; border:1px solid var(--border);">
-    <span style="font-size:0.85rem; font-weight:600; color:var(--text-muted); padding:0 0.5rem;">Course:</span>
-    <a href="{{ url_for('admin.manage_timetable', dept='MCA') }}" 
-       class="btn btn-sm {% if department == 'MCA' %}btn-primary{% else %}btn-secondary{% endif %}"
-       style="padding:0.4rem 1.1rem; font-weight:700; border-radius:6px;">
-      MCA Timetable
-    </a>
-    <a href="{{ url_for('admin.manage_timetable', dept='MBA') }}" 
-       class="btn btn-sm {% if department == 'MBA' %}btn-primary{% else %}btn-secondary{% endif %}"
-       style="padding:0.4rem 1.1rem; font-weight:700; border-radius:6px;">
-      MBA Timetable
-    </a>
+  <div style="display:flex; align-items:center; flex-wrap:wrap; gap:1rem;">
+    {% if current_user.role in ['admin', 'director'] %}
+    <div style="display:flex; align-items:center; gap:0.6rem; background:var(--bg-card); padding:4px 6px; border-radius:8px; border:1px solid var(--border);">
+      <span style="font-size:0.85rem; font-weight:600; color:var(--text-muted); padding:0 0.5rem;">Course:</span>
+      <a href="{{ url_for('admin.manage_timetable', dept='MCA', year=year) }}" 
+         class="btn btn-sm {% if department == 'MCA' %}btn-primary{% else %}btn-secondary{% endif %}"
+         style="padding:0.4rem 1.1rem; font-weight:700; border-radius:6px;">
+        MCA
+      </a>
+      <a href="{{ url_for('admin.manage_timetable', dept='MBA', year=year) }}" 
+         class="btn btn-sm {% if department == 'MBA' %}btn-primary{% else %}btn-secondary{% endif %}"
+         style="padding:0.4rem 1.1rem; font-weight:700; border-radius:6px;">
+        MBA
+      </a>
+    </div>
+    {% endif %}
+
+    {# Year selector #}
+    <div style="display:flex; align-items:center; gap:0.6rem; background:var(--bg-card); padding:4px 6px; border-radius:8px; border:1px solid var(--border);">
+      <span style="font-size:0.85rem; font-weight:600; color:var(--text-muted); padding:0 0.5rem;">Academic Year:</span>
+      <a href="{{ url_for('admin.manage_timetable', dept=department, year=1) }}" 
+         class="btn btn-sm {% if year == 1 %}btn-primary{% else %}btn-secondary{% endif %}"
+         style="padding:0.4rem 1.1rem; font-weight:700; border-radius:6px;">
+        🎓 1st Year Timetable
+      </a>
+      <a href="{{ url_for('admin.manage_timetable', dept=department, year=2) }}" 
+         class="btn btn-sm {% if year == 2 %}btn-primary{% else %}btn-secondary{% endif %}"
+         style="padding:0.4rem 1.1rem; font-weight:700; border-radius:6px;">
+        🎓 2nd Year Timetable
+      </a>
+    </div>
   </div>
-  {% endif %}
+
   <div>
     <span class="badge" style="font-size:0.9rem; padding:0.4rem 0.8rem; background:rgba(59,130,246,0.15); color:#60a5fa; border:1px solid rgba(59,130,246,0.3);">
-      Currently Editing: <strong>{{ department }} Timetable</strong>
+      Currently Editing: <strong>{{ department }} ({{ year }}{% if year == 1 %}st{% else %}nd{% endif %} Year)</strong>
     </span>
   </div>
 </div>
 
 <div class="card" style="margin-bottom:2rem;">
-  <h2 style="margin-bottom:1.25rem;">Add / Update a Slot</h2>
+  <h2 style="margin-bottom:1.25rem;">Add / Update a Slot for {{ department }} ({{ year }}{% if year == 1 %}st{% else %}nd{% endif %} Year)</h2>
   <form method="POST" action="{{ url_for('admin.manage_timetable') }}" style="display:flex; flex-wrap:wrap; gap:1rem; align-items:flex-end;">
     <input type="hidden" name="action" value="create">
     <input type="hidden" name="dept" value="{{ department }}">
+    <input type="hidden" name="year" value="{{ year }}">
     <div style="flex:1; min-width:160px;">
       <label class="form-label">Day</label>
       <select name="day_of_week" id="tt-day" class="form-control" required>
@@ -108,6 +127,7 @@
                     <form method="POST" action="{{ url_for('admin.manage_timetable') }}" style="display:inline;">
                       <input type="hidden" name="action" value="delete">
                       <input type="hidden" name="dept" value="{{ department }}">
+                      <input type="hidden" name="year" value="{{ year }}">
                       <input type="hidden" name="slot_id" value="{{ slot.id }}">
                       <button type="submit" class="btn btn-sm btn-secondary" style="font-size:0.7rem; padding:2px 6px; color:#ef4444;" title="Delete slot" onclick="return confirm('Delete this slot?')">✕ Delete</button>
                     </form>
@@ -115,6 +135,7 @@
                     <form method="POST" action="{{ url_for('admin.manage_timetable') }}" style="display:inline;">
                       <input type="hidden" name="action" value="clear_subject">
                       <input type="hidden" name="dept" value="{{ department }}">
+                      <input type="hidden" name="year" value="{{ year }}">
                       <input type="hidden" name="slot_id" value="{{ slot.id }}">
                       <button type="submit" class="btn btn-sm btn-secondary" style="font-size:0.7rem; padding:2px 6px;" title="Clear subject">Clear</button>
                     </form>

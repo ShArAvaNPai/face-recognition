@@ -3,6 +3,12 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#4338ca">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="SmartAttend">
+  <link rel="apple-touch-icon" href="{{ url_for('static', filename='icons/icon-192.png') }}">
+  <link rel="manifest" href="/manifest.json">
   <title>{% block title %}Smart Attendance{% endblock %} · Smart Attendance</title>
   <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
 </head>
@@ -42,18 +48,27 @@
         {% endif %}
 
         {% if current_user.role in ['admin', 'faculty', 'director', 'hod'] %}
-        <a href="{{ url_for('dashboard.index') }}#weekly-timetable" class="nav-item">
+        <a href="{{ url_for('dashboard.timetable_view') }}" class="nav-item{% if request.endpoint == 'dashboard.timetable_view' %} active{% endif %}">
           <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
           <span>Timetable</span>
         </a>
         {% endif %}
 
         {% if current_user.role == 'admin' %}
-          <a href="{{ url_for('admin.list_users') }}" class="nav-item">
+          <a href="{{ url_for('admin.list_users') }}" class="nav-item{% if request.endpoint == 'admin.list_users' %} active{% endif %}">
             <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path><circle cx="9" cy="7" r="4"></circle><path d="M23 21v-2a4 4 0 0 0-3-3.87"></path><path d="M16 3.13a4 4 0 0 1 0 7.75"></path></svg>
             <span>Manage Users</span>
           </a>
+          <a href="{{ url_for('admin.manage_parents') }}" class="nav-item{% if request.endpoint == 'admin.manage_parents' %} active{% endif %}">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
+            <span>Parent Emails & Alerts</span>
+          </a>
+          <a href="{{ url_for('admin.manage_fees') }}" class="nav-item{% if request.endpoint == 'admin.manage_fees' %} active{% endif %}">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><rect x="1" y="4" width="22" height="16" rx="2" ry="2"></rect><line x1="1" y1="10" x2="23" y2="10"></line></svg>
+            <span>Fees & Receipts</span>
+          </a>
         {% endif %}
+
         
         {% if current_user.role in ['admin', 'faculty', 'director', 'hod'] %}
           <div class="nav-section-label">Academic & Faces</div>
@@ -74,6 +89,10 @@
           <a href="{{ url_for('attendance.index') }}" class="nav-item">
             <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path><polyline points="14 2 14 8 20 8"></polyline><line x1="16" y1="13" x2="8" y2="13"></line><line x1="16" y1="17" x2="8" y2="17"></line><polyline points="10 9 9 9 8 9"></polyline></svg>
             <span>Stud. Attendance</span>
+          </a>
+          <a href="{{ url_for('marks.index') }}" class="nav-item">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
+            <span>Student Marks</span>
           </a>
           <a href="{{ url_for('reports.index') }}" class="nav-item">
             <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"></line><line x1="12" y1="20" x2="12" y2="4"></line><line x1="6" y1="20" x2="6" y2="14"></line></svg>
@@ -111,6 +130,18 @@
           </a>
         {% endif %}
 
+        {% if current_user.role == 'director' %}
+          <div class="nav-section-label">Director Portal</div>
+          <a href="{{ url_for('faculty.face_attendance') }}" class="nav-item">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"></path><circle cx="12" cy="13" r="4"></circle></svg>
+            <span>Face Check-In</span>
+          </a>
+          <a href="{{ url_for('faculty.leaves') }}" class="nav-item">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+            <span>My Leaves</span>
+          </a>
+        {% endif %}
+
         {% if current_user.role == 'hod' %}
           <div class="nav-section-label">HOD Portal</div>
           <a href="{{ url_for('faculty.face_attendance') }}" class="nav-item">
@@ -145,6 +176,10 @@
           <a href="{{ url_for('students.my_marks') }}" class="nav-item">
             <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20V10M18 20V4M6 20v-4"></path></svg>
             <span>My Marks</span>
+          </a>
+          <a href="{{ url_for('dashboard.timetable_view') }}" class="nav-item{% if request.endpoint == 'dashboard.timetable_view' %} active{% endif %}">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line></svg>
+            <span>My Timetable</span>
           </a>
           <a href="{{ url_for('students.my_fees') }}" class="nav-item">
             <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
@@ -361,6 +396,307 @@
       }
     });
   })();
+
+  // Smart Context-Aware Table Filter & Sort Enhancer
+  (function initUniversalTableControls() {
+    function enhanceTables() {
+      // Exclude matrix/grid tables like timetable or calendar grids
+      const tables = document.querySelectorAll('table:not(.no-auto-table-controls):not(.calendar-table)');
+      tables.forEach((table) => {
+        if (table.dataset.enhanced === 'true') return;
+
+        const thead = table.querySelector('thead');
+        const tbody = table.querySelector('tbody') || table;
+        if (!thead) return;
+
+        const headerCells = Array.from(thead.querySelectorAll('th'));
+        if (headerCells.length === 0) return;
+
+        // Skip matrix/grid tables (e.g. days of week timetable grids)
+        const headerTexts = headerCells.map(th => th.textContent.trim().toLowerCase());
+        if (headerTexts.includes('monday') || headerTexts.includes('time slot') && headerTexts.includes('tuesday')) {
+          return;
+        }
+
+        table.dataset.enhanced = 'true';
+
+        const rows = Array.from(tbody.querySelectorAll('tr')).filter(r => !r.querySelector('td[colspan]'));
+
+        // Identify sortable columns & column-specific discrete categories for dropdown filtering
+        const sortableCols = [];
+        const categoricalFilters = []; // { colIndex, title, options: Set }
+
+        headerCells.forEach((th, idx) => {
+          const text = th.textContent.trim().replace(/\s+/g, ' ');
+          const lower = text.toLowerCase();
+          const isActionCol = lower === 'actions' || lower === 'action' || lower === 'select' || lower === '' || lower === 'details' || lower === 'view' || lower === 'certificate';
+          
+          if (!isActionCol && !th.classList.contains('no-sort')) {
+            th.classList.add('sortable-th');
+            const sortIcon = document.createElement('span');
+            sortIcon.className = 'th-sort-icon';
+            sortIcon.innerHTML = '⇅';
+            th.appendChild(sortIcon);
+            th.title = `Click to sort by ${text}`;
+
+            sortableCols.push({ index: idx, title: text });
+
+            th.addEventListener('click', () => {
+              const isAsc = th.classList.contains('sorted-asc');
+              headerCells.forEach(h => {
+                h.classList.remove('sorted-asc', 'sorted-desc');
+                const icon = h.querySelector('.th-sort-icon');
+                if (icon) icon.innerHTML = '⇅';
+              });
+
+              if (isAsc) {
+                th.classList.add('sorted-desc');
+                const icon = th.querySelector('.th-sort-icon');
+                if (icon) icon.innerHTML = '▼';
+                sortTable(table, idx, 'desc');
+              } else {
+                th.classList.add('sorted-asc');
+                const icon = th.querySelector('.th-sort-icon');
+                if (icon) icon.innerHTML = '▲';
+                sortTable(table, idx, 'asc');
+              }
+            });
+          }
+        });
+
+        // Check if the page already has a server-side filter bar in its header
+        const cardHeader = table.closest('.card-table, .card')?.querySelector('.card-table-header, form[method="get"]');
+        const hasExistingFilterForm = cardHeader && cardHeader.querySelector('input, select');
+
+        // Only add dropdown filter if there's no server-side filter form and there is a clear status/category column
+        let primaryCategoryFilter = null;
+        if (!hasExistingFilterForm) {
+          headerCells.forEach((th, idx) => {
+            const text = th.textContent.trim().replace(/\s+/g, ' ');
+            const lower = text.toLowerCase();
+            const isActionCol = lower === 'actions' || lower === 'action' || lower === 'select' || lower === '' || lower === 'details' || lower === 'view' || lower === 'certificate';
+            
+            if (!isActionCol && !primaryCategoryFilter) {
+              const isStatusOrKeyCat = /^(status|role|state)$/i.test(lower);
+              if (isStatusOrKeyCat && rows.length > 0) {
+                const distinctValues = new Set();
+                rows.forEach(r => {
+                  const cell = r.children[idx];
+                  if (cell) {
+                    const val = cell.innerText.trim();
+                    if (val && val !== '—' && val !== 'None' && val.length <= 25 && !val.includes('\n')) {
+                      distinctValues.add(val);
+                    }
+                  }
+                });
+                if (distinctValues.size >= 2 && distinctValues.size <= 8) {
+                  primaryCategoryFilter = {
+                    colIndex: idx,
+                    title: text,
+                    options: Array.from(distinctValues).sort()
+                  };
+                }
+              }
+            }
+          });
+        }
+
+        // If the card already has a dedicated server-side filter form, skip injecting a duplicate toolbar
+        if (hasExistingFilterForm) return;
+
+        // Create Filter & Sort Toolbar
+        const toolbar = document.createElement('div');
+        toolbar.className = 'table-controls-bar';
+
+        // Left controls: Clean Search input + at most 1 Status filter
+        const leftBox = document.createElement('div');
+        leftBox.className = 'table-controls-left';
+
+        // Search box with SVG icon
+        const searchBox = document.createElement('div');
+        searchBox.className = 'table-search-box';
+        searchBox.innerHTML = `
+          <span class="table-search-icon">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+          </span>
+        `;
+
+        const filterInput = document.createElement('input');
+        filterInput.type = 'text';
+        filterInput.className = 'table-search-input';
+        filterInput.placeholder = 'Filter rows…';
+        filterInput.setAttribute('aria-label', 'Filter table rows');
+        searchBox.appendChild(filterInput);
+        leftBox.appendChild(searchBox);
+
+        // Optional single categorical filter dropdown (e.g. All Statuses)
+        let catSelect = null;
+        if (primaryCategoryFilter) {
+          catSelect = document.createElement('select');
+          catSelect.className = 'table-sort-select';
+          catSelect.innerHTML = `<option value="">All ${primaryCategoryFilter.title}es</option>`;
+          primaryCategoryFilter.options.forEach(opt => {
+            catSelect.innerHTML += `<option value="${opt.toLowerCase()}">${opt}</option>`;
+          });
+          catSelect.dataset.colIndex = primaryCategoryFilter.colIndex;
+          leftBox.appendChild(catSelect);
+        }
+
+        // Clear button
+        const clearBtn = document.createElement('button');
+        clearBtn.type = 'button';
+        clearBtn.className = 'table-clear-btn';
+        clearBtn.style.display = 'none';
+        clearBtn.innerHTML = `✕ Clear`;
+        clearBtn.title = 'Reset filter';
+        leftBox.appendChild(clearBtn);
+
+        const rowCountBadge = document.createElement('span');
+        rowCountBadge.className = 'table-row-count-badge';
+        rowCountBadge.textContent = `${rows.length} row(s)`;
+        leftBox.appendChild(rowCountBadge);
+
+        toolbar.appendChild(leftBox);
+
+        // Insert toolbar before the table or table responsive wrapper
+        const responsiveWrapper = table.closest('.table-responsive');
+        if (responsiveWrapper) {
+          responsiveWrapper.parentNode.insertBefore(toolbar, responsiveWrapper);
+        } else {
+          table.parentNode.insertBefore(toolbar, table);
+        }
+
+        // Clean & fast filter handler
+        function applyFilters() {
+          const searchTerm = filterInput.value.toLowerCase().trim();
+          const allRows = Array.from(tbody.querySelectorAll('tr')).filter(r => !r.querySelector('td[colspan]'));
+          let visibleCount = 0;
+          let hasActiveFilter = searchTerm.length > 0;
+
+          if (catSelect && catSelect.value) {
+            catSelect.classList.add('filter-active');
+            hasActiveFilter = true;
+          } else if (catSelect) {
+            catSelect.classList.remove('filter-active');
+          }
+
+          clearBtn.style.display = hasActiveFilter ? 'inline-flex' : 'none';
+
+          allRows.forEach(row => {
+            let matchesText = !searchTerm || row.textContent.toLowerCase().includes(searchTerm);
+            let matchesCategory = true;
+
+            if (catSelect && catSelect.value) {
+              const colIdx = parseInt(catSelect.dataset.colIndex);
+              const cell = row.children[colIdx];
+              const cellText = cell ? cell.innerText.toLowerCase() : '';
+              if (!cellText.includes(catSelect.value)) {
+                matchesCategory = false;
+              }
+            }
+
+            if (matchesText && matchesCategory) {
+              row.style.display = '';
+              visibleCount++;
+            } else {
+              row.style.display = 'none';
+            }
+          });
+
+          rowCountBadge.textContent = `${visibleCount} of ${allRows.length} row(s)`;
+        }
+
+        clearBtn.addEventListener('click', () => {
+          filterInput.value = '';
+          if (catSelect) {
+            catSelect.value = '';
+            catSelect.classList.remove('filter-active');
+          }
+          applyFilters();
+        });
+
+        filterInput.addEventListener('input', applyFilters);
+        if (catSelect) catSelect.addEventListener('change', applyFilters);
+      });
+    }
+
+    function sortTable(table, colIndex, direction) {
+      const tbody = table.querySelector('tbody') || table;
+      const rows = Array.from(tbody.querySelectorAll('tr')).filter(r => !r.querySelector('td[colspan]'));
+      if (rows.length <= 1) return;
+
+      rows.sort((rowA, rowB) => {
+        const cellA = rowA.children[colIndex];
+        const cellB = rowB.children[colIndex];
+        if (!cellA || !cellB) return 0;
+
+        let valA = cellA.innerText.trim();
+        let valB = cellB.innerText.trim();
+
+        // 1. Ratio check e.g. "85 / 100" or "14 / 20"
+        if (valA.includes('/') && valB.includes('/')) {
+          const parseRatio = (s) => {
+            const parts = s.split('/');
+            const num = parseFloat(parts[0]);
+            const den = parseFloat(parts[1]);
+            return (!isNaN(num) && !isNaN(den) && den !== 0) ? num / den : NaN;
+          };
+          const rA = parseRatio(valA);
+          const rB = parseRatio(valB);
+          if (!isNaN(rA) && !isNaN(rB)) {
+            return direction === 'asc' ? rA - rB : rB - rA;
+          }
+        }
+
+        // 2. Numeric / Percentage check
+        const cleanA = valA.replace(/[^0-9.-]/g, '');
+        const cleanB = valB.replace(/[^0-9.-]/g, '');
+        const numA = parseFloat(cleanA);
+        const numB = parseFloat(cleanB);
+
+        const isNumA = !isNaN(numA) && cleanA.length > 0;
+        const isNumB = !isNaN(numB) && cleanB.length > 0;
+
+        if (isNumA && isNumB && /^[0-9%$/., -]+$/.test(valA) && /^[0-9%$/., -]+$/.test(valB)) {
+          return direction === 'asc' ? numA - numB : numB - numA;
+        }
+
+        // 3. Date check (YYYY-MM-DD, DD Mon YYYY, etc.)
+        const dateA = Date.parse(valA);
+        const dateB = Date.parse(valB);
+        if (!isNaN(dateA) && !isNaN(dateB) && valA.length >= 8 && valB.length >= 8 && (valA.includes('-') || valA.includes('/') || valA.includes(' '))) {
+          return direction === 'asc' ? dateA - dateB : dateB - dateA;
+        }
+
+        // 4. Standard Case-Insensitive String comparison
+        return direction === 'asc'
+          ? valA.localeCompare(valB, undefined, { numeric: true, sensitivity: 'base' })
+          : valB.localeCompare(valA, undefined, { numeric: true, sensitivity: 'base' });
+      });
+
+      rows.forEach(r => tbody.appendChild(r));
+    }
+
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', enhanceTables);
+    } else {
+      enhanceTables();
+    }
+    window.enhanceTables = enhanceTables;
+  })();
+
+  // Register Service Worker for PWA
+  if ('serviceWorker' in navigator) {
+    window.addEventListener('load', () => {
+      navigator.serviceWorker.register('/sw.js')
+        .then((reg) => {
+          console.log('[PWA] Service Worker registered successfully:', reg.scope);
+        })
+        .catch((err) => {
+          console.log('[PWA] Service Worker registration failed:', err);
+        });
+    });
+  }
   </script>
   {% block scripts %}{% endblock %}
 </body>

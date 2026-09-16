@@ -96,9 +96,36 @@ def student_detail(student_id):
                .join(AttendanceSession)
                .order_by(AttendanceSession.session_date.desc())
                .all())
-    total_sessions = AttendanceSession.query.count()
+               
+    total_sessions = len(records)
     present = sum(1 for r in records if r.status in ["present", "excused"])
     pct = round(100.0 * present / total_sessions, 1) if total_sessions else 0.0
+
+    # Subject-wise attendance breakdown (Subjects as rows)
+    subjects_map = {}
+    for r in records:
+        subj = r.session.subject
+        if subj.id not in subjects_map:
+            subjects_map[subj.id] = {
+                'subject': subj,
+                'total': 0,
+                'present': 0,
+                'absent': 0,
+                'excused': 0
+            }
+        subjects_map[subj.id]['total'] += 1
+        if r.status == 'present':
+            subjects_map[subj.id]['present'] += 1
+        elif r.status == 'excused':
+            subjects_map[subj.id]['excused'] += 1
+            subjects_map[subj.id]['present'] += 1 # excused counts toward presence
+        else:
+            subjects_map[subj.id]['absent'] += 1
+
+    for s_id, s_data in subjects_map.items():
+        s_data['percentage'] = round((s_data['present'] / s_data['total']) * 100, 1) if s_data['total'] > 0 else 0.0
+
     return render_template("reports/student.html", student=student,
                            records=records, present=present,
-                           total_sessions=total_sessions, percentage=pct)
+                           total_sessions=total_sessions, percentage=pct,
+                           subject_attendance=list(subjects_map.values()))

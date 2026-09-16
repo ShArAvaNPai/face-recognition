@@ -35,11 +35,15 @@
             {% endif %}
           </td>
           <td>
-            {% if f.receipt_path %}
-            <a href="{{ f.receipt_path }}" target="_blank">View Receipt</a>
-            {% else %}
-            N/A
-            {% endif %}
+              {% if f.receipt_path %}
+                <a class="btn btn-sm" style="background:#ffffff; color:#000000; border:1px solid #ffffff; font-weight:700;" href="{{ f.receipt_path }}" target="_blank">
+                  📄 View Receipt
+                </a>
+              {% else %}
+                <a class="btn btn-sm" style="background:#ffffff; color:#000000; border:1px solid #ffffff; font-weight:700;" href="{{ url_for('admin.view_fee_receipt', fee_id=f.id) }}" target="_blank">
+                  📄 View Receipt
+                </a>
+              {% endif %}
           </td>
         </tr>
         {% endfor %}

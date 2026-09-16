@@ -15,7 +15,8 @@ from sqlalchemy.exc import IntegrityError
 
 from extensions import db
 from models import (User, Subject, AttendanceSession, Attendance, Student,
-                    ROLE_ADMIN, ROLE_FACULTY, TimetableSlot, TimetableClaim, Notification)
+                    ROLE_ADMIN, ROLE_FACULTY, ROLE_DIRECTOR, ROLE_HOD,
+                    TimetableSlot, TimetableClaim, Notification)
 from face_engine import engine, feature_from_bytes
 from blueprints.decorators import staff_required
 from blueprints.imaging import decode_data_url
@@ -54,9 +55,17 @@ def subjects():
 
         code = request.form.get("code", "").strip()
         name = request.form.get("name", "").strip()
+        dept = request.form.get("department", "").strip()
+        year = request.form.get("year", type=int) or 1
+        if year not in [1, 2]:
+            year = 1
         faculty_id = request.form.get("faculty_id", type=int)
         
-        # If admin/director/hod picks a lecturer, use it; otherwise default to current_user
+        if current_user.role == ROLE_HOD and current_user.department:
+            dept = current_user.department
+        elif not dept:
+            dept = "MCA"
+
         assigned_faculty_id = current_user.id
         if current_user.role in [ROLE_ADMIN, "director", "hod"]:
             if faculty_id:
@@ -69,15 +78,37 @@ def subjects():
         elif Subject.query.filter_by(code=code).first():
             flash("A subject with that code already exists.", "danger")
         else:
-            db.session.add(Subject(code=code, name=name, faculty_id=assigned_faculty_id))
+            db.session.add(Subject(code=code, name=name, department=dept, year=year, faculty_id=assigned_faculty_id))
             db.session.commit()
-            flash(f"Subject {name} created.", "success")
-        return redirect(url_for("attendance.subjects"))
+            flash(f"Subject {name} ({dept} - {year}{'st' if year == 1 else 'nd'} Year) created.", "success")
+        return redirect(url_for("attendance.subjects", dept=dept, year=year))
 
-    lecturers = User.query.filter_by(role=ROLE_FACULTY).order_by(User.username).all()
+    dept_filter = request.args.get("dept", "").strip()
+    year_filter = request.args.get("year", type=int)
+
+    query = Subject.query
+    if current_user.role == ROLE_HOD and current_user.department:
+        query = query.filter(
+            (Subject.department == current_user.department) |
+            (Subject.code.ilike(f"{current_user.department}%"))
+        )
+        lecturers = User.query.filter_by(role=ROLE_FACULTY, department=current_user.department).order_by(User.username).all()
+    else:
+        if dept_filter:
+            query = query.filter_by(department=dept_filter)
+        lecturers = User.query.filter_by(role=ROLE_FACULTY).order_by(User.username).all()
+
+    if year_filter in [1, 2]:
+        query = query.filter_by(year=year_filter)
+
+    subjects_list = query.order_by(Subject.department, Subject.year, Subject.code).all()
+
     return render_template("attendance/subjects.html",
-                           subjects=Subject.query.order_by(Subject.code).all(),
-                           lecturers=lecturers)
+                           subjects=subjects_list,
+                           lecturers=lecturers,
+                           dept_filter=dept_filter,
+                           year_filter=year_filter)
+
 
 
 # -- Sessions ----------------------------------------------------------------
@@ -89,15 +120,42 @@ def index():
                 .order_by(AttendanceSession.session_date.desc(),
                           AttendanceSession.id.desc())
                 .all())
-    return render_template("attendance/index.html", sessions=sessions)
+    return render_template("attendance/index.html", sessions=sessions, today_date=date.today())
 
 
 @attendance_bp.route("/new", methods=["GET", "POST"])
 @login_required
 @staff_required
 def new_session():
+    if current_user.role == ROLE_ADMIN:
+        flash("Administrators cannot conduct or start class attendance sessions.", "warning")
+        return redirect(url_for("dashboard.index"))
+
     from blueprints.dashboard import is_faculty_absent
-    subjects_list = Subject.query.order_by(Subject.code).all()
+    
+    # Filter available subjects based on user role
+    if current_user.role in [ROLE_FACULTY, "faculty"]:
+        subjects_list = Subject.query.filter_by(faculty_id=current_user.id).order_by(Subject.code).all()
+    elif current_user.role in [ROLE_DIRECTOR, "director"]:
+        # Director should only take Research
+        subjects_list = Subject.query.filter(
+            (Subject.code.ilike("%research%")) | (Subject.name.ilike("%research%")) | (Subject.faculty_id == current_user.id)
+        ).order_by(Subject.code).all()
+        if not subjects_list:
+            res_sub = Subject.query.filter_by(code="research").first()
+            if res_sub:
+                subjects_list = [res_sub]
+    elif current_user.role == "hod" and current_user.department:
+        subjects_list = Subject.query.filter(
+            (Subject.faculty_id == current_user.id) |
+            (Subject.code.ilike(f"{current_user.department}%")) |
+            (Subject.faculty.has(User.department == current_user.department))
+        ).order_by(Subject.code).all()
+        if not subjects_list:
+            subjects_list = Subject.query.order_by(Subject.code).all()
+    else:
+        subjects_list = Subject.query.order_by(Subject.code).all()
+
     available_classes = sorted(list(set([c[0] for c in db.session.query(Student.class_name).distinct().all() if c[0]] + [d[0] for d in db.session.query(Student.department).distinct().all() if d[0]])))
     
     if request.method == "POST":
@@ -107,11 +165,26 @@ def new_session():
         except ValueError:
             sd = date.today()
 
+        # Enforce current day only
+        if sd != date.today():
+            flash("Attendance can only be created for the current day.", "danger")
+            return redirect(url_for("attendance.new_session"))
+
+        # Enforce college hours (9:00 AM to 5:00 PM / 17:00)
+        now_hour = datetime.now().hour
+        if not (9 <= now_hour < 17):
+            flash("Attendance can only be started during college working hours (09:00 AM – 05:00 PM).", "danger")
+            return redirect(url_for("attendance.new_session"))
+
         if is_faculty_absent(current_user.id, sd):
             flash(f"You cannot start class attendance for {sd} because you are on leave / marked absent on that date.", "danger")
             return redirect(url_for("dashboard.index"))
 
         subject_id = request.form.get("subject_id", type=int)
+        # Default to faculty/director's only assigned subject if not explicitly supplied
+        if not subject_id and (current_user.role in [ROLE_FACULTY, ROLE_DIRECTOR, "faculty", "director"]) and len(subjects_list) == 1:
+            subject_id = subjects_list[0].id
+
         class_name = request.form.get("class_name", "").strip()
         takeover_confirmed = request.form.get("takeover_confirmed") == "true"
         
@@ -160,8 +233,12 @@ def new_session():
         return redirect(url_for("dashboard.index"))
         
     if not subjects_list:
-        flash("Create a subject first.", "warning")
-        return redirect(url_for("attendance.subjects"))
+        if current_user.role == ROLE_FACULTY:
+            flash("No subject has been assigned to you. Please contact your HOD or Admin.", "warning")
+            return redirect(url_for("dashboard.index"))
+        else:
+            flash("Create a subject first.", "warning")
+            return redirect(url_for("attendance.subjects"))
         
     # Auto-assign logic based on current time
     now = datetime.now()
@@ -185,8 +262,8 @@ def new_session():
             Subject.faculty_id == current_user.id
         ).first()
         
-        # If not found, get any slot at this time (could be someone else's)
-        if not auto_slot:
+        # If not found, get any slot at this time (could be someone else's) for staff/admin
+        if not auto_slot and current_user.role in ['admin', 'director', 'hod']:
             dept = current_user.department or "MCA"
             auto_slot = TimetableSlot.query.filter_by(
                 department=dept,
@@ -194,17 +271,35 @@ def new_session():
                 slot_time=current_time_slot
             ).first()
 
+    req_subject_id = request.args.get("subject_id", type=int)
+    req_class_name = request.args.get("class_name", "").strip()
+
     return render_template("attendance/new_session.html",
                            subjects=subjects_list, classes=available_classes, 
                            today=date.today().isoformat(),
-                           auto_slot=auto_slot, current_user_id=current_user.id)
+                           auto_slot=auto_slot, current_user_id=current_user.id,
+                           selected_subject_id=req_subject_id,
+                           selected_class_name=req_class_name)
 
 
 @attendance_bp.route("/<int:session_id>/take", methods=["GET", "POST"])
 @login_required
 @staff_required
 def take(session_id):
+    if current_user.role == ROLE_ADMIN:
+        flash("Administrators cannot conduct or take class attendance. You can view session history.", "warning")
+        return redirect(url_for("attendance.history", session_id=session_id))
+
     session = AttendanceSession.query.get_or_404(session_id)
+    if session.session_date != date.today():
+        flash("Attendance can only be taken for the current day. Other dates are read-only.", "warning")
+        return redirect(url_for("attendance.history", session_id=session.id))
+
+    now_hour = datetime.now().hour
+    if not (9 <= now_hour < 17):
+        flash("Attendance can only be taken during college working hours (09:00 AM – 05:00 PM).", "warning")
+        return redirect(url_for("attendance.history", session_id=session.id))
+
     from blueprints.dashboard import is_faculty_absent
     if session.faculty_id == current_user.id and is_faculty_absent(current_user.id, session.session_date):
         flash("You cannot take attendance for this session because you are on leave / marked absent on that date.", "danger")
@@ -239,10 +334,13 @@ def take(session_id):
                            engine_ready=engine.available)
 
 
-def _load_candidates():
-    """Return list of (student_id, feature_vector) for all stored samples."""
+def _load_candidates(class_name=None):
+    """Return list of (student_id, feature_vector) for stored samples of students in class_name."""
     candidates = []
-    students = Student.query.all()
+    query = Student.query
+    if class_name:
+        query = query.filter(or_(Student.class_name == class_name, Student.department == class_name))
+    students = query.all()
     for s in students:
         for sample in s.face_samples:
             candidates.append((s.id, feature_from_bytes(sample.feature)))
@@ -275,39 +373,47 @@ def _mark_present(session_id, student_id, method="face"):
 @staff_required
 def recognize(session_id):
     """AJAX: recognize all faces in a webcam frame and mark them present."""
-    AttendanceSession.query.get_or_404(session_id)
-    if not engine.available:
-        return jsonify(success=False, message="Face models not installed.", marked=[])
+    try:
+        session = AttendanceSession.query.get_or_404(session_id)
+        if session.session_date != date.today():
+            return jsonify(success=False, message="Attendance can only be taken on the current day.", marked=[])
 
-    image = decode_data_url(request.json.get("image") if request.is_json else None)
-    if image is None:
-        return jsonify(success=False, message="Could not read frame.", marked=[])
+        if not engine.available:
+            return jsonify(success=False, message="Face models not installed.", marked=[])
 
-    candidates = _load_candidates()
-    if not candidates:
-        return jsonify(success=False,
-                       message="No registered faces yet.", marked=[])
+        image = decode_data_url(request.json.get("image") if request.is_json else None)
+        if image is None:
+            return jsonify(success=False, message="Could not read frame.", marked=[])
 
-    detections = engine.extract_features(image)
-    marked, seen = [], set()
-    faces_found = len(detections)
-    for bbox, feat in detections:
-        student_id, score = engine.match(feat, candidates)
-        if student_id is None or student_id in seen:
-            continue
-        seen.add(student_id)
-        newly = _mark_present(session_id, student_id, method="face")
-        student = Student.query.get(student_id)
-        marked.append({
-            "student_id": student_id,
-            "roll_number": student.roll_number,
-            "name": student.name,
-            "score": round(float(score), 3),
-            "newly_marked": newly,
-            "bbox": bbox,
-        })
-    return jsonify(success=True, faces_found=faces_found,
-                   recognized=len(marked), marked=marked)
+        candidates = _load_candidates(class_name=session.class_name)
+        if not candidates:
+            return jsonify(success=False,
+                           message=f"No registered faces for {session.class_name or 'this class'} yet.", marked=[])
+
+        detections = engine.extract_features(image)
+        marked, seen = [], set()
+        faces_found = len(detections)
+        for bbox, feat in detections:
+            student_id, score = engine.match(feat, candidates)
+            if student_id is None or student_id in seen:
+                continue
+            seen.add(student_id)
+            newly = _mark_present(session_id, student_id, method="face")
+            student = Student.query.get(student_id)
+            if student:
+                marked.append({
+                    "student_id": student_id,
+                    "roll_number": student.roll_number,
+                    "name": student.name,
+                    "score": round(float(score), 3),
+                    "newly_marked": newly,
+                    "bbox": bbox,
+                })
+        return jsonify(success=True, faces_found=faces_found,
+                       recognized=len(marked), marked=marked)
+    except Exception as e:
+        return jsonify(success=False, message=f"Recognition error: {str(e)}", marked=[])
+
 
 
 @attendance_bp.route("/<int:session_id>/toggle", methods=["POST"])
@@ -315,7 +421,16 @@ def recognize(session_id):
 @staff_required
 def toggle(session_id):
     """Manual attendance correction (mark/unmark a student)."""
-    AttendanceSession.query.get_or_404(session_id)
+    session = AttendanceSession.query.get_or_404(session_id)
+    if session.session_date != date.today():
+        flash("Attendance can only be modified on the current day.", "warning")
+        return redirect(url_for("attendance.history", session_id=session.id))
+
+    now_hour = datetime.now().hour
+    if not (9 <= now_hour < 17):
+        flash("Attendance can only be modified during college working hours (09:00 AM – 05:00 PM).", "warning")
+        return redirect(url_for("attendance.history", session_id=session.id))
+
     student_id = request.form.get("student_id", type=int)
     present = request.form.get("present") == "1"
     student = Student.query.get_or_404(student_id)
@@ -332,6 +447,55 @@ def toggle(session_id):
     return redirect(url_for("attendance.take", session_id=session_id))
 
 
+@attendance_bp.route("/<int:session_id>/finalize", methods=["POST"])
+@login_required
+@staff_required
+def finalize_session(session_id):
+    """Finalize attendance for a session and notify parents of absent students."""
+    session = AttendanceSession.query.get_or_404(session_id)
+    if session.session_date != date.today():
+        flash("Can only finalize attendance for the current day.", "warning")
+        return redirect(url_for("attendance.take", session_id=session_id))
+
+    present_ids = {a.student_id for a in session.records if a.status == "present"}
+    query = Student.query
+    if session.class_name:
+        query = query.filter(or_(Student.class_name == session.class_name, Student.department == session.class_name))
+    elif current_user.role == "hod" and current_user.department:
+        query = query.filter_by(department=current_user.department)
+    students = query.all()
+
+    from utils.email import send_email, generate_absence_html
+    
+    notified_count = 0
+    for s in students:
+        if s.id not in present_ids:
+            # Student is absent
+            existing = Attendance.query.filter_by(session_id=session_id, student_id=s.id).first()
+            if not existing:
+                rec = Attendance(session_id=session_id, student_id=s.id, status="absent", method="manual")
+                db.session.add(rec)
+            
+            p_email = s.parent_email
+            if p_email:
+                subject = f"Absence Alert: {s.name} ({s.roll_number}) was absent today"
+                body = f"Dear Parent,\n\nYour child {s.name} ({s.roll_number}) has been marked ABSENT for {session.subject.name} on {session.session_date}.\n\nRegards,\nSmart Attendance System"
+                html_body = generate_absence_html(
+                    student_name=s.name,
+                    roll_number=s.roll_number,
+                    department=s.department,
+                    subject_name=session.subject.name,
+                    session_date=session.session_date
+                )
+                send_email(subject, [p_email], body, html_body)
+                notified_count += 1
+                
+    db.session.commit()
+    flash(f"Attendance finalized. {notified_count} parent(s) notified via email.", "success")
+    return redirect(url_for("attendance.history", session_id=session_id))
+
+
+
 @attendance_bp.route("/<int:session_id>/history")
 @login_required
 @staff_required
@@ -345,4 +509,5 @@ def history(session_id):
         query = query.filter_by(department=current_user.department)
     students = query.order_by(Student.roll_number).all()
     return render_template("attendance/history.html", session=session,
-                           students=students, present_ids=present_ids)
+                           students=students, present_ids=present_ids,
+                           today_date=date.today())

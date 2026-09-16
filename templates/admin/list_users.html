@@ -12,10 +12,16 @@
 <div class="card card-table">
   <div class="card-table-header">
     <h2>All Users</h2>
-    <a href="{{ url_for('admin.new_user') }}" class="btn">
-      <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
-      Create New User
-    </a>
+    <div style="display:flex; gap: 10px;">
+      <form action="{{ url_for('admin.import_users') }}" method="post" enctype="multipart/form-data" style="margin: 0; display:flex; gap:10px; align-items:center;">
+        <input type="file" name="csv_file" accept=".csv" required style="font-size: 0.8rem; padding: 0.3rem;" title="Upload CSV">
+        <button type="submit" class="btn btn-secondary">Bulk Import</button>
+      </form>
+      <a href="{{ url_for('admin.new_user') }}" class="btn">
+        <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
+        Create New User
+      </a>
+    </div>
   </div>
   <div class="table-responsive">
     <table>

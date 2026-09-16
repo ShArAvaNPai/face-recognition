@@ -4,3 +4,5 @@ Flask
 Flask-SQLAlchemy
 Flask-Login
 gunicorn
+requests
+Flask-Mail

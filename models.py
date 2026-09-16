@@ -96,8 +96,28 @@ class Student(db.Model):
     def has_face(self):
         return len(self.face_samples) > 0
 
+    @property
+    def parent_user(self):
+        return User.query.filter_by(role=ROLE_PARENT, student_id=self.id).first()
+
+    @property
+    def parent_email(self):
+        pu = self.parent_user
+        return pu.email if pu else None
+
+    @property
+    def attendance_stats(self):
+        total = len(self.attendance_records)
+        if total == 0:
+            return {"total": 0, "present": 0, "absent": 0, "percent": 0.0}
+        present = sum(1 for a in self.attendance_records if a.status in ("present", "excused"))
+        absent = total - present
+        pct = round((present / total) * 100, 1)
+        return {"total": total, "present": present, "absent": absent, "percent": pct}
+
     def __repr__(self):
         return f"<Student {self.roll_number} {self.name}>"
+
 
 
 class FaceSample(db.Model):
@@ -122,6 +142,8 @@ class Subject(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     code = db.Column(db.String(40), unique=True, nullable=False)
     name = db.Column(db.String(120), nullable=False)
+    department = db.Column(db.String(80), default="MCA")
+    year = db.Column(db.Integer, default=1, nullable=False) # 1 for 1st Year, 2 for 2nd Year
     faculty_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
     faculty = db.relationship("User", foreign_keys=[faculty_id])
 
@@ -130,7 +152,8 @@ class Subject(db.Model):
     )
 
     def __repr__(self):
-        return f"<Subject {self.code} {self.name}>"
+        return f"<Subject {self.code} {self.name} ({self.department} Yr{self.year})>"
+
 
 
 class AttendanceSession(db.Model):
@@ -242,13 +265,14 @@ class TimetableSlot(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     department = db.Column(db.String(80), nullable=True)    # e.g. "MCA", "MBA"
+    year = db.Column(db.Integer, default=1, nullable=False) # 1 for 1st Year, 2 for 2nd Year
     day_of_week = db.Column(db.String(20), nullable=False)  # e.g. "Monday", "Tuesday", etc.
     slot_time = db.Column(db.String(50), nullable=False)    # e.g. "09:00 - 10:00"
     subject_id = db.Column(db.Integer, db.ForeignKey("subjects.id"), nullable=True)
     subject = db.relationship("Subject", backref=db.backref("slots", lazy=True))
 
     def __repr__(self):
-        return f"<TimetableSlot {self.day_of_week} {self.slot_time} subj={self.subject_id}>"
+        return f"<TimetableSlot Yr{self.year} {self.department} {self.day_of_week} {self.slot_time} subj={self.subject_id}>"
 
 
 class TimetableClaim(db.Model):
@@ -304,11 +328,14 @@ class Fee(db.Model):
     amount_due = db.Column(db.Float, nullable=False)
     due_date = db.Column(db.Date, nullable=False)
     status = db.Column(db.String(20), default="Pending") # Pending, Paid, Verification
+    payment_method = db.Column(db.String(50), default="Cash") # Cash, UPI / QR, Bank Transfer (NEFT/RTGS), Demand Draft (DD), Cheque, Card
+    payment_reference = db.Column(db.String(100), nullable=True) # Transaction ID, UTR, Cheque/DD number
+    paid_date = db.Column(db.Date, nullable=True)
     receipt_path = db.Column(db.String(255), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     def __repr__(self):
-        return f"<Fee {self.student_id} {self.fee_type} {self.status}>"
+        return f"<Fee {self.student_id} {self.fee_type} {self.status} {self.payment_method}>"
 
 
 class Notification(db.Model):

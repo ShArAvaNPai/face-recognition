@@ -11,10 +11,12 @@
 <div class="card card-table">
   <div class="card-table-header">
     <h2>Sessions Roster</h2>
+    {% if current_user.role in ['faculty', 'hod', 'director'] %}
     <a class="btn" href="{{ url_for('attendance.new_session') }}">
       <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg>
       Start New Session
     </a>
+    {% endif %}
   </div>
   <div class="table-responsive">
     {% if sessions %}
@@ -32,7 +34,9 @@
           <td><span class="badge badge-yes">{{ s.records | selectattr('status', 'equalto', 'present') | list | length }}</span></td>
           <td>
             <div style="display:flex; gap:0.5rem;">
+              {% if current_user.role in ['faculty', 'hod', 'director'] and s.session_date >= today_date %}
               <a class="btn btn-sm" href="{{ url_for('attendance.take', session_id=s.id) }}">Take</a>
+              {% endif %}
               <a class="btn btn-sm btn-secondary" href="{{ url_for('attendance.history', session_id=s.id) }}">View</a>
             </div>
           </td>

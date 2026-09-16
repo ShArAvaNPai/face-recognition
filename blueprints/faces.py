@@ -4,12 +4,14 @@ from flask import (Blueprint, render_template, redirect, url_for, request,
 from flask_login import login_required
 
 from extensions import db
-from models import Student, FaceSample, User, ROLE_FACULTY
+from models import Student, FaceSample, User, ROLE_FACULTY, ROLE_DIRECTOR, ROLE_HOD
 from face_engine import engine, feature_to_bytes
 from blueprints.decorators import admin_required
 from blueprints.imaging import decode_data_url, decode_file_storage
 
 faces_bp = Blueprint("faces", __name__, url_prefix="/faces")
+
+STAFF_ROLES = [ROLE_FACULTY, ROLE_DIRECTOR, ROLE_HOD, 'faculty', 'director', 'hod']
 
 
 @faces_bp.route("/")
@@ -17,9 +19,10 @@ faces_bp = Blueprint("faces", __name__, url_prefix="/faces")
 @admin_required
 def index():
     students = Student.query.order_by(Student.roll_number).all()
-    faculties = User.query.filter_by(role=ROLE_FACULTY).order_by(User.username).all()
+    faculties = User.query.filter(User.role.in_([ROLE_FACULTY, 'faculty'])).order_by(User.username).all()
+    directors = User.query.filter(User.role.in_([ROLE_DIRECTOR, ROLE_HOD, 'director', 'hod'])).order_by(User.username).all()
     return render_template("faces/index.html", students=students, faculties=faculties,
-                           engine_ready=engine.available)
+                           directors=directors, engine_ready=engine.available)
 
 
 @faces_bp.route("/student/<int:student_id>")
@@ -40,9 +43,9 @@ def register(student_id):
 @login_required
 @admin_required
 def register_faculty(user_id):
-    user = User.query.filter_by(id=user_id, role=ROLE_FACULTY).first_or_404()
+    user = User.query.filter(User.id == user_id, User.role.in_(STAFF_ROLES)).first_or_404()
     return render_template("faces/register.html",
-                           target_name=user.username,
+                           target_name=f"{user.username.title()} ({user.role.upper()})",
                            target_identifier=user.username,
                            face_samples=user.face_samples,
                            capture_url=url_for('faces.capture_faculty', user_id=user.id),
@@ -86,7 +89,7 @@ def capture(student_id):
 @admin_required
 def capture_faculty(user_id):
     """AJAX endpoint: receives a base64 webcam frame, stores one sample."""
-    user = User.query.filter_by(id=user_id, role=ROLE_FACULTY).first_or_404()
+    user = User.query.filter(User.id == user_id, User.role.in_(STAFF_ROLES)).first_or_404()
     image = decode_data_url(request.json.get("image") if request.is_json else None)
     ok, msg = _store_sample(user, image, is_faculty=True)
     return jsonify(success=ok, message=msg, sample_count=len(user.face_samples))
@@ -119,7 +122,7 @@ def upload(student_id):
 @admin_required
 def upload_faculty(user_id):
     """Form upload of one or more image files as face samples."""
-    user = User.query.filter_by(id=user_id, role=ROLE_FACULTY).first_or_404()
+    user = User.query.filter(User.id == user_id, User.role.in_(STAFF_ROLES)).first_or_404()
     files = request.files.getlist("images")
     saved, failed = 0, 0
     for f in files:

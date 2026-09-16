@@ -8,10 +8,10 @@
       <span class="subtitle" style="margin:0;">{{ session.subject.name }} · </span>
       <form method="post" action="{{ url_for('attendance.take', session_id=session.id) }}" style="display:inline-flex; align-items:center; gap:0.3rem;">
         <input type="hidden" name="update_class" value="1">
-        <select name="class_name" onchange="this.form.submit()" style="padding:0.25rem 0.6rem; font-size:0.85rem; border-radius:6px; background:var(--surface); color:var(--text); border:1px solid var(--border);">
-          <option value="" {% if not session.class_name %}selected{% endif %}>All Classes</option>
+        <select name="class_name" onchange="this.form.submit()" style="padding:0.25rem 0.65rem; font-size:0.85rem; border-radius:6px; background:var(--bg-card); color:var(--text-main); border:1px solid var(--card-border); cursor:pointer;">
+          <option value="" style="background:#121215; color:#ffffff;" {% if not session.class_name %}selected{% endif %}>All Classes</option>
           {% for c in available_classes %}
-          <option value="{{ c }}" {% if session.class_name == c %}selected{% endif %}>{{ c }}</option>
+          <option value="{{ c }}" style="background:#121215; color:#ffffff;" {% if session.class_name == c %}selected{% endif %}>{{ c }}</option>
           {% endfor %}
         </select>
       </form>
@@ -83,7 +83,10 @@
         </tbody>
       </table>
     </div>
-    <div class="card-table-footer">
+    <div class="card-table-footer" style="display:flex; justify-content:space-between; align-items:center;">
+      <form method="post" action="{{ url_for('attendance.finalize_session', session_id=session.id) }}" style="margin:0;">
+        <button type="submit" class="btn" style="background:#ef4444;" onclick="return confirm('Finalize attendance? This will mark all other students as ABSENT and email their parents.')">Finalize & Notify Parents</button>
+      </form>
       <a class="btn btn-secondary" href="{{ url_for('attendance.history', session_id=session.id) }}">View Summary</a>
     </div>
   </div>
@@ -129,14 +132,25 @@ startBtn.onclick = async () => {
 async function scan(){
   const ctx = canvas.getContext('2d');
   ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+
   const data = canvas.toDataURL('image/jpeg', 0.85);
   try {
     const res = await fetch(recognizeUrl, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ image: data })
     });
+    if (res.redirected || res.url.includes('/login')) {
+      log('⚠ Session expired. Please refresh or re-login.');
+      return;
+    }
+    const contentType = res.headers.get('content-type') || '';
+    if (!contentType.includes('application/json')) {
+      log('⚠ Server returned non-JSON response. Please refresh the page.');
+      return;
+    }
     const j = await res.json();
-    if (!j.success){ log('⚠ ' + j.message); return; }
+    if (!j.success){ log('⚠ ' + (j.message || 'Face recognition failed.')); return; }
     if (j.recognized === 0){ log(`Scanned: ${j.faces_found} face(s), none recognized.`); return; }
     j.marked.forEach(m => {
       markRowPresent(m);

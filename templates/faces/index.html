@@ -50,17 +50,52 @@
 
 <div class="card card-table" style="margin-top:2rem;">
   <div class="card-table-header">
-    <h2>Lecturers</h2>
+    <h2>Directors & Leadership</h2>
   </div>
   <div class="table-responsive">
     <table>
       <thead>
-        <tr><th>Username</th><th>Email</th><th>Samples</th><th>Action</th></tr>
+        <tr><th>Username</th><th>Role</th><th>Email</th><th>Samples</th><th>Action</th></tr>
+      </thead>
+      <tbody>
+        {% for d in directors %}
+        <tr>
+          <td style="font-weight:600; color:#fff;">{{ d.username }}</td>
+          <td><span class="badge badge-accent">{{ d.role.upper() }}</span></td>
+          <td>{{ d.email }}</td>
+          <td>
+            {% if d.has_face %}<span class="badge badge-yes">{{ d.face_samples|length }} samples</span>
+            {% else %}<span class="badge badge-no">0 samples</span>{% endif %}
+          </td>
+          <td>
+            {% if current_user.role == 'admin' %}
+            <a class="btn btn-sm" href="{{ url_for('faces.register_faculty', user_id=d.id) }}">Register faces</a>
+            {% endif %}
+          </td>
+        </tr>
+        {% endfor %}
+        {% if not directors %}
+        <tr><td colspan="5" style="text-align:center;padding:3rem 2rem;" class="muted">No director/leadership accounts found.</td></tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div class="card card-table" style="margin-top:2rem;">
+  <div class="card-table-header">
+    <h2>Lecturers & Faculty</h2>
+  </div>
+  <div class="table-responsive">
+    <table>
+      <thead>
+        <tr><th>Username</th><th>Department</th><th>Email</th><th>Samples</th><th>Action</th></tr>
       </thead>
       <tbody>
         {% for f in faculties %}
         <tr>
           <td style="font-weight:600; color:#fff;">{{ f.username }}</td>
+          <td><span class="badge badge-muted">{{ f.department or 'General' }}</span></td>
           <td>{{ f.email }}</td>
           <td>
             {% if f.has_face %}<span class="badge badge-yes">{{ f.face_samples|length }} samples</span>
@@ -74,7 +109,7 @@
         </tr>
         {% endfor %}
         {% if not faculties %}
-        <tr><td colspan="4" style="text-align:center;padding:3rem 2rem;" class="muted">No lecturers yet.</td></tr>
+        <tr><td colspan="5" style="text-align:center;padding:3rem 2rem;" class="muted">No lecturers yet.</td></tr>
         {% endif %}
       </tbody>
     </table>

@@ -12,10 +12,24 @@
   <h2>Add Subject</h2>
   <form method="post" style="display:flex; gap:1rem; align-items:flex-end; flex-wrap:wrap">
     <input type="hidden" name="action" value="add">
-    <div style="flex:1; min-width:140px"><label>Code</label><input name="code" required placeholder="e.g. CS101"></div>
-    <div style="flex:2; min-width:200px"><label>Name</label><input name="name" required placeholder="e.g. Data Structures"></div>
+    <div style="flex:1; min-width:130px"><label>Code</label><input name="code" required placeholder="e.g. CS101"></div>
+    <div style="flex:2; min-width:180px"><label>Name</label><input name="name" required placeholder="e.g. Data Structures"></div>
+    <div style="flex:1; min-width:120px">
+      <label>Department</label>
+      <select name="department">
+        <option value="MCA" {% if current_user.department == 'MCA' %}selected{% endif %}>MCA</option>
+        <option value="MBA" {% if current_user.department == 'MBA' %}selected{% endif %}>MBA</option>
+      </select>
+    </div>
+    <div style="flex:1; min-width:130px">
+      <label>Academic Year</label>
+      <select name="year">
+        <option value="1">1st Year</option>
+        <option value="2">2nd Year</option>
+      </select>
+    </div>
     {% if current_user.role in ['admin', 'director', 'hod'] %}
-    <div style="flex:2; min-width:200px">
+    <div style="flex:2; min-width:180px">
       <label>Assign Lecturer (Optional)</label>
       <select name="faculty_id">
         <option value="">-- No Lecturer Assigned --</option>
@@ -30,8 +44,41 @@
 </div>
 
 <div class="card card-table">
-  <div class="card-table-header">
-    <h2>All Subjects</h2>
+  <div class="card-table-header" style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem;">
+    <div>
+      <h2 style="margin:0;">All Subjects ({{ subjects|length }})</h2>
+    </div>
+
+    {# Filter Buttons: Course & Year #}
+    <div style="display:flex; align-items:center; flex-wrap:wrap; gap:0.65rem;">
+      <div style="display:flex; align-items:center; gap:0.35rem; background:rgba(255,255,255,0.04); padding:3px 5px; border-radius:8px; border:1px solid var(--border);">
+        <span style="font-size:0.75rem; font-weight:600; color:var(--text-muted); padding:0 0.35rem;">Year:</span>
+        <a href="{{ url_for('attendance.subjects', dept=dept_filter) }}" 
+           class="btn btn-sm {% if not year_filter %}btn-primary{% else %}btn-secondary{% endif %}" 
+           style="padding:0.25rem 0.65rem; font-size:0.75rem;">All Years</a>
+        <a href="{{ url_for('attendance.subjects', dept=dept_filter, year=1) }}" 
+           class="btn btn-sm {% if year_filter == 1 %}btn-primary{% else %}btn-secondary{% endif %}" 
+           style="padding:0.25rem 0.65rem; font-size:0.75rem;">1st Year</a>
+        <a href="{{ url_for('attendance.subjects', dept=dept_filter, year=2) }}" 
+           class="btn btn-sm {% if year_filter == 2 %}btn-primary{% else %}btn-secondary{% endif %}" 
+           style="padding:0.25rem 0.65rem; font-size:0.75rem;">2nd Year</a>
+      </div>
+
+      {% if current_user.role in ['admin', 'director'] %}
+      <div style="display:flex; align-items:center; gap:0.35rem; background:rgba(255,255,255,0.04); padding:3px 5px; border-radius:8px; border:1px solid var(--border);">
+        <span style="font-size:0.75rem; font-weight:600; color:var(--text-muted); padding:0 0.35rem;">Dept:</span>
+        <a href="{{ url_for('attendance.subjects', year=year_filter) }}" 
+           class="btn btn-sm {% if not dept_filter %}btn-primary{% else %}btn-secondary{% endif %}" 
+           style="padding:0.25rem 0.65rem; font-size:0.75rem;">All</a>
+        <a href="{{ url_for('attendance.subjects', dept='MCA', year=year_filter) }}" 
+           class="btn btn-sm {% if dept_filter == 'MCA' %}btn-primary{% else %}btn-secondary{% endif %}" 
+           style="padding:0.25rem 0.65rem; font-size:0.75rem;">MCA</a>
+        <a href="{{ url_for('attendance.subjects', dept='MBA', year=year_filter) }}" 
+           class="btn btn-sm {% if dept_filter == 'MBA' %}btn-primary{% else %}btn-secondary{% endif %}" 
+           style="padding:0.25rem 0.65rem; font-size:0.75rem;">MBA</a>
+      </div>
+      {% endif %}
+    </div>
   </div>
   <div class="table-responsive">
     {% if subjects %}
@@ -40,6 +87,8 @@
         <tr>
           <th>Code</th>
           <th>Name</th>
+          <th>Department</th>
+          <th>Year</th>
           <th>Assigned Lecturer</th>
           <th>Sessions Count</th>
           {% if current_user.role in ['admin', 'director', 'hod'] %}
@@ -52,6 +101,17 @@
         <tr>
           <td><span class="badge badge-muted">{{ s.code }}</span></td>
           <td style="font-weight:600; color:#fff;">{{ s.name }}</td>
+          <td>
+            <span class="badge" style="background:rgba(255,255,255,0.08); color:#e2e8f0; border-color:rgba(255,255,255,0.15);">
+              {{ s.department or 'MCA' }}
+            </span>
+          </td>
+          <td>
+            <span class="badge" style="background:{% if s.year == 1 %}rgba(59,130,246,0.15){% else %}rgba(168,85,247,0.15){% endif %}; color:{% if s.year == 1 %}#93c5fd{% else %}#d8b4fe{% endif %}; border:1px solid {% if s.year == 1 %}rgba(59,130,246,0.3){% else %}rgba(168,85,247,0.3){% endif %};">
+              {{ s.year or 1 }}{% if s.year == 1 %}st{% else %}nd{% endif %} Year
+            </span>
+          </td>
+
           <td>
             {% if s.faculty %}
               <div style="display:flex; align-items:center; gap:0.5rem;">

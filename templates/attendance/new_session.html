@@ -15,17 +15,28 @@
       {% endif %}
       
       <label>Subject</label>
-      <select name="subject_id" id="subject-select" required style="margin-bottom:0.5rem;">
-        {% for s in subjects %}
-        <option value="{{ s.id }}" {% if auto_slot and auto_slot.subject_id == s.id %}selected{% endif %}>{{ s.code }} — {{ s.name }}</option>
-        {% endfor %}
-      </select>
+      {% if (current_user.role in ['faculty', 'director']) and subjects|length == 1 %}
+        <div style="padding: 0.75rem 1rem; background: rgba(255,255,255,0.05); border: 1px solid var(--border-color, rgba(255,255,255,0.1)); border-radius: 8px; margin-bottom: 1rem; display: flex; align-items: center; justify-content: space-between;">
+          <div>
+            <div style="font-weight: 600; font-size: 1rem; color: #fff;">{{ subjects[0].name }}</div>
+            <div style="font-size: 0.8rem; color: var(--text-muted, #94a3b8); margin-top: 2px;">Subject Code: {{ subjects[0].code }}</div>
+          </div>
+          <span class="badge badge-primary" style="font-size: 0.75rem;">Assigned Subject</span>
+        </div>
+        <input type="hidden" name="subject_id" id="subject-select" value="{{ subjects[0].id }}">
+      {% else %}
+        <select name="subject_id" id="subject-select" required style="margin-bottom:0.5rem;">
+          {% for s in subjects %}
+          <option value="{{ s.id }}" {% if (selected_subject_id and selected_subject_id == s.id) or (auto_slot and auto_slot.subject_id == s.id) or (loop.first and subjects|length == 1) %}selected{% endif %}>{{ s.code }} — {{ s.name }}</option>
+          {% endfor %}
+        </select>
+      {% endif %}
       
       <label>Class / Batch</label>
       <select name="class_name" style="margin-bottom:0.5rem;">
         <option value="">All Classes</option>
         {% for c in classes %}
-        <option value="{{ c }}" {% if auto_slot and auto_slot.department == c %}selected{% endif %}>{{ c }}</option>
+        <option value="{{ c }}" {% if (selected_class_name and selected_class_name == c) or (auto_slot and auto_slot.department == c) %}selected{% endif %}>{{ c }}</option>
         {% endfor %}
         {% if auto_slot and auto_slot.department and auto_slot.department not in classes %}
         <option value="{{ auto_slot.department }}" selected>{{ auto_slot.department }}</option>
@@ -60,7 +71,8 @@
   const defaultSubjectId = "{{ auto_slot.subject_id if auto_slot else '' }}";
   
   function submitSession() {
-    const selectedSubject = document.getElementById('subject-select').value;
+    const subjectElem = document.getElementById('subject-select');
+    const selectedSubject = subjectElem ? subjectElem.value : '';
     // If it's a takeover AND the user kept the default auto-assigned subject, show popup
     if (isTakeover && selectedSubject == defaultSubjectId) {
       document.getElementById('takeover-modal').style.display = 'flex';

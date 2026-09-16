@@ -45,8 +45,16 @@
       <input type="text" name="roll_number" value="{{ user.student.roll_number }}" style="margin-bottom:0.8rem;">
 
       <label>Class / Batch</label>
-      <input type="text" name="class_name" value="{{ user.student.class_name }}" style="margin-bottom:0.8rem;">
+      <select name="class_name" style="margin-bottom:0.8rem;">
+        <option value="MCA-1A" {% if user.student.class_name == 'MCA-1A' %}selected{% endif %}>MCA-1A</option>
+        <option value="MCA-1B" {% if user.student.class_name == 'MCA-1B' %}selected{% endif %}>MCA-1B</option>
+        <option value="MCA-2A" {% if user.student.class_name == 'MCA-2A' %}selected{% endif %}>MCA-2A</option>
+        <option value="MBA-1A" {% if user.student.class_name == 'MBA-1A' %}selected{% endif %}>MBA-1A</option>
+        <option value="MBA-1B" {% if user.student.class_name == 'MBA-1B' %}selected{% endif %}>MBA-1B</option>
+        <option value="MBA-2A" {% if user.student.class_name == 'MBA-2A' %}selected{% endif %}>MBA-2A</option>
+      </select>
       {% endif %}
+
 
       <div id="faculty-subjects-section" style="{% if user.role != 'faculty' %}display:none;{% endif %} margin-top:1.5rem;">
         <hr style="border-color:var(--border); margin:1.5rem 0;">

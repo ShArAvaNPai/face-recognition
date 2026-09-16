@@ -42,8 +42,8 @@
               background:var(--surface-2,#1e293b); border:1px solid var(--border,#334155);
               color:var(--text,#f1f5f9); min-width:130px;">
         <option value="">All Years</option>
-        {% for c in all_classes %}
-        <option value="{{ c }}" {% if class_filter == c %}selected{% endif %}>{{ c }}</option>
+        {% for y in all_years %}
+        <option value="{{ y }}" {% if class_filter == y %}selected{% endif %}>{{ y }}</option>
         {% endfor %}
       </select>
 
@@ -96,8 +96,12 @@
             {% else %}—{% endif %}
           </td>
           <td>
-            {% if s.class_name %}
-            <span class="badge" style="background:rgba(16,185,129,0.15); color:#6ee7b7;">{{ s.class_name }}</span>
+            {% if '1' in (s.class_name or '') %}
+            <span class="badge" style="background:rgba(59,130,246,0.15); color:#93c5fd;">1st Year</span>
+            {% elif '2' in (s.class_name or '') %}
+            <span class="badge" style="background:rgba(16,185,129,0.15); color:#6ee7b7;">2nd Year</span>
+            {% elif s.class_name %}
+            <span class="badge badge-muted">{{ s.class_name }}</span>
             {% else %}—{% endif %}
           </td>
           <td>

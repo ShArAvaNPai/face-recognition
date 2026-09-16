@@ -1,0 +1,197 @@
+{% extends "base.html" %}
+{% block title %}Assign Marks{% endblock %}
+{% block content %}
+
+<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 2rem; flex-wrap:wrap; gap:1rem;">
+  <div>
+    <h1>Assign Student Marks</h1>
+    <p class="subtitle" style="margin-bottom:0;">Enter exam marks for students in batch</p>
+  </div>
+  <a class="btn btn-secondary" href="{{ url_for('marks.index', subject_id=selected_subject.id if selected_subject else '') }}">
+    ← Back to Marks List
+  </a>
+</div>
+
+<form method="post" id="assign-marks-form">
+  <input type="hidden" name="submit_marks" value="1">
+
+  <div class="card" style="margin-bottom: 1.5rem;">
+    <div class="card-body" style="display:grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1.25rem;">
+      <div>
+        <label style="font-weight:600; display:block; margin-bottom:0.4rem;">Subject *</label>
+        <select name="subject_id" onchange="window.location.href='{{ url_for('marks.assign') }}?subject_id=' + this.value + '&class_name={{ class_filter }}'" required style="width:100%;">
+          {% for s in subjects %}
+          <option value="{{ s.id }}" {% if selected_subject and selected_subject.id == s.id %}selected{% endif %}>{{ s.code }} — {{ s.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div>
+        <label style="font-weight:600; display:block; margin-bottom:0.4rem;">Filter Class / Branch</label>
+        <select name="class_name" onchange="window.location.href='{{ url_for('marks.assign', subject_id=selected_subject.id if selected_subject else '') }}&class_name=' + this.value" style="width:100%;">
+          <option value="">All Students</option>
+          {% for c in classes %}
+          <option value="{{ c }}" {% if class_filter == c %}selected{% endif %}>{{ c }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div>
+        <label style="font-weight:600; display:block; margin-bottom:0.4rem;">Exam Name *</label>
+        <select name="exam_name" id="assign_exam_name" onchange="toggleCustomAssignExam(this.value)" required style="width:100%; margin-bottom:0.4rem;">
+          <option value="" disabled selected>-- Select Exam --</option>
+          {% for ex in exam_choices %}
+          <option value="{{ ex }}">{{ ex }}</option>
+          {% endfor %}
+          <option value="__custom__">+ Add Custom Exam Name...</option>
+        </select>
+        <input type="text" id="custom_assign_exam_name" name="custom_exam_name" placeholder="Type custom exam title..." style="display:none; width:100%;">
+      </div>
+
+      <div>
+        <label style="font-weight:600; display:block; margin-bottom:0.4rem;">Total / Max Marks *</label>
+        <input type="number" step="0.5" min="0.5" id="total_marks_input" name="total_marks" value="100" required style="width:100%;" oninput="updateAllMaxLimits()">
+      </div>
+    </div>
+  </div>
+
+  <div class="card card-table">
+    <div class="card-table-header">
+      <h2>Students List ({{ students|length }})</h2>
+      <span class="text-muted" style="font-size:0.875rem;">Enter marks obtained and optional remarks below</span>
+    </div>
+
+    <div class="table-responsive">
+      {% if students %}
+      <table>
+        <thead>
+          <tr>
+            <th style="width:120px;">Roll Number</th>
+            <th>Student Name</th>
+            <th>Class / Dept</th>
+            <th style="width:150px;">Marks Obtained</th>
+            <th style="width:250px;">Remarks (Optional)</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for s in students %}
+          <tr>
+            <td><span class="badge badge-muted">{{ s.roll_number }}</span></td>
+            <td style="font-weight:600; color:#fff;">{{ s.name }}</td>
+            <td>
+              {% if s.class_name or s.department %}
+                <span class="badge" style="background:rgba(99,102,241,0.15); color:#a5b4fc;">
+                  {{ s.class_name or s.department }}
+                </span>
+              {% else %}—{% endif %}
+            </td>
+            <td>
+              <input type="number" step="0.5" min="0" class="student-mark-input" data-student-name="{{ s.name }}" data-roll="{{ s.roll_number }}" name="marks_{{ s.id }}" placeholder="e.g. 85" style="width:100%; padding:0.4rem 0.6rem; border-radius:6px; background:var(--surface-2, #1e293b); border:1px solid var(--border, #334155); color:#fff;" oninput="validateSingleMarkInput(this)">
+              <div class="mark-error-msg" style="display:none; color:#ef4444; font-size:0.72rem; font-weight:600; margin-top:2px;">Cannot exceed max marks</div>
+            </td>
+            <td>
+              <input type="text" name="remarks_{{ s.id }}" placeholder="e.g. Excellent / Good work" style="width:100%; padding:0.4rem 0.6rem; border-radius:6px; background:var(--surface-2, #1e293b); border:1px solid var(--border, #334155); color:#fff;">
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <p class="muted" style="padding:3rem 2rem; text-align:center;">No students found matching current filters.</p>
+      {% endif %}
+    </div>
+
+    {% if students %}
+    <div style="padding: 1.25rem 1.5rem; background: var(--surface, #0f172a); border-top: 1px solid var(--border, #334155); display:flex; justify-content:flex-end; gap:1rem;">
+      <a class="btn btn-secondary" href="{{ url_for('marks.index') }}">Cancel</a>
+      <button class="btn" type="submit" style="background:#ffffff; color:#000000; font-weight:700;">Save &amp; Publish Marks</button>
+    </div>
+    {% endif %}
+  </div>
+</form>
+
+<script>
+function toggleCustomAssignExam(val) {
+  const customInput = document.getElementById('custom_assign_exam_name');
+  if (val === '__custom__') {
+    customInput.style.display = 'block';
+    customInput.required = true;
+    customInput.focus();
+  } else {
+    customInput.style.display = 'none';
+    customInput.required = false;
+  }
+}
+
+function updateAllMaxLimits() {
+  const tot = parseFloat(document.getElementById('total_marks_input').value);
+  const inputs = document.querySelectorAll('.student-mark-input');
+  inputs.forEach(input => {
+    if (!isNaN(tot) && tot > 0) {
+      input.max = tot;
+    }
+    validateSingleMarkInput(input);
+  });
+}
+
+function validateSingleMarkInput(input) {
+  const val = parseFloat(input.value);
+  const tot = parseFloat(document.getElementById('total_marks_input').value);
+  const errorDiv = input.parentElement.querySelector('.mark-error-msg');
+  
+  if (!isNaN(val) && !isNaN(tot) && val > tot) {
+    input.style.borderColor = '#ef4444';
+    if (errorDiv) {
+      errorDiv.innerText = `Max allowed: ${tot}`;
+      errorDiv.style.display = 'block';
+    }
+  } else {
+    input.style.borderColor = '';
+    if (errorDiv) {
+      errorDiv.style.display = 'none';
+    }
+  }
+}
+
+document.getElementById('assign-marks-form').addEventListener('submit', function(e) {
+  const tot = parseFloat(document.getElementById('total_marks_input').value);
+  if (isNaN(tot) || tot <= 0) {
+    alert("Total / Maximum marks must be greater than 0.");
+    e.preventDefault();
+    return false;
+  }
+
+  const examSelect = document.getElementById('assign_exam_name');
+  const customExam = document.getElementById('custom_assign_exam_name');
+  if (examSelect.value === '__custom__' && !customExam.value.trim()) {
+    alert("Please enter a custom exam name.");
+    customExam.focus();
+    e.preventDefault();
+    return false;
+  }
+
+  const inputs = document.querySelectorAll('.student-mark-input');
+  for (let input of inputs) {
+    const val = parseFloat(input.value);
+    if (!isNaN(val)) {
+      if (val < 0) {
+        alert(`Marks cannot be negative for ${input.dataset.studentName} (${input.dataset.roll}).`);
+        input.focus();
+        e.preventDefault();
+        return false;
+      }
+      if (val > tot) {
+        alert(`Marks obtained (${val}) cannot exceed maximum marks (${tot}) for ${input.dataset.studentName} (${input.dataset.roll})!`);
+        input.focus();
+        e.preventDefault();
+        return false;
+      }
+    }
+  }
+});
+
+// Run once on load
+document.addEventListener('DOMContentLoaded', updateAllMaxLimits);
+</script>
+
+{% endblock %}

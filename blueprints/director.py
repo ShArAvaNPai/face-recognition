@@ -257,7 +257,7 @@ def lecturers_index():
 def students_index():
     q          = request.args.get("q", "").strip()
     dept_filter  = request.args.get("dept", "").strip()
-    class_filter = request.args.get("class_name", "").strip()
+    year_filter  = request.args.get("year", "").strip() or request.args.get("class_name", "").strip()
 
     if current_user.role == 'hod' and current_user.department:
         dept_filter = current_user.department
@@ -271,8 +271,13 @@ def students_index():
                                 or ql in r["student"].roll_number.lower()]
     if dept_filter:
         rows = [r for r in rows if r["student"].department == dept_filter]
-    if class_filter:
-        rows = [r for r in rows if r["student"].class_name == class_filter]
+    if year_filter:
+        if year_filter in ["1st Year", "1"]:
+            rows = [r for r in rows if "1st Year" in (r["student"].class_name or "")]
+        elif year_filter in ["2nd Year", "2"]:
+            rows = [r for r in rows if "2nd Year" in (r["student"].class_name or "")]
+        else:
+            rows = [r for r in rows if r["student"].class_name == year_filter]
 
     # Distinct values for dropdowns
     from models import Student
@@ -280,11 +285,11 @@ def students_index():
         all_depts = [current_user.department]
     else:
         all_depts = sorted(set(s.department for s in Student.query.all() if s.department))
-    all_classes = sorted(set(s.class_name for s in Student.query.all() if s.class_name))
+    all_years = ["1st Year", "2nd Year"]
 
     return render_template(
         "director/students.html",
         rows=rows, total_sessions=total_sessions,
-        q=q, dept_filter=dept_filter, class_filter=class_filter,
-        all_depts=all_depts, all_classes=all_classes
+        q=q, dept_filter=dept_filter, class_filter=year_filter,
+        all_depts=all_depts, all_years=all_years
     )

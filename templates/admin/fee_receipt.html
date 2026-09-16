@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Fee Receipt #{{ '%05d' % fee.id }} - {{ student.name }}</title>
+  <style>
+    :root {
+      --primary: #ea580c;
+      --primary-dark: #c2410c;
+      --text: #1e293b;
+      --text-muted: #64748b;
+      --border: #e2e8f0;
+      --bg: #f8fafc;
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    }
+    body {
+      background: #f1f5f9;
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      padding: 2rem 1rem;
+      min-height: 100vh;
+    }
+    .action-bar {
+      max-width: 800px;
+      width: 100%;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1.5rem;
+    }
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 0.6rem 1.25rem;
+      border-radius: 8px;
+      font-size: 0.9rem;
+      font-weight: 600;
+      text-decoration: none;
+      cursor: pointer;
+      border: none;
+      transition: all 0.2s;
+    }
+    .btn-primary {
+      background: #ea580c;
+      color: #fff;
+    }
+    .btn-primary:hover {
+      background: #c2410c;
+    }
+    .btn-secondary {
+      background: #fff;
+      color: #475569;
+      border: 1px solid #cbd5e1;
+    }
+    .btn-secondary:hover {
+      background: #f8fafc;
+    }
+    .receipt-container {
+      max-width: 800px;
+      width: 100%;
+      background: #ffffff;
+      border-radius: 12px;
+      box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+      border: 1px solid var(--border);
+      padding: 2.5rem 3rem;
+      position: relative;
+    }
+    .receipt-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      border-bottom: 2px solid #fdba74;
+      padding-bottom: 1.75rem;
+      margin-bottom: 2rem;
+      gap: 1.5rem;
+    }
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 1.25rem;
+    }
+    .college-logo {
+      width: 88px;
+      height: 88px;
+      object-fit: contain;
+      border-radius: 50%;
+      box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    }
+    .college-info h1 {
+      font-size: 1.45rem;
+      font-weight: 800;
+      color: #7c2d12;
+      letter-spacing: -0.01em;
+      text-transform: uppercase;
+    }
+    .college-info .slogan {
+      font-size: 0.82rem;
+      font-weight: 600;
+      color: #ea580c;
+      margin-top: 2px;
+    }
+    .college-info p {
+      color: var(--text-muted);
+      font-size: 0.85rem;
+      margin-top: 4px;
+      line-height: 1.35;
+    }
+    .receipt-badge-col {
+      text-align: right;
+      min-width: 180px;
+    }
+    .receipt-title {
+      font-size: 1.25rem;
+      font-weight: 800;
+      color: #ea580c;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .receipt-meta {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-top: 5px;
+    }
+    .meta-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 2rem;
+      margin-bottom: 2.5rem;
+    }
+    .meta-box {
+      background: #fffaf5;
+      border: 1px solid #fed7aa;
+      border-radius: 8px;
+      padding: 1.25rem;
+    }
+    .meta-box h3 {
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: #c2410c;
+      margin-bottom: 0.75rem;
+      border-bottom: 1px solid #fed7aa;
+      padding-bottom: 0.35rem;
+      font-weight: 700;
+    }
+    .meta-row {
+      display: flex;
+      justify-content: space-between;
+      padding: 0.3rem 0;
+      font-size: 0.9rem;
+    }
+    .meta-label {
+      color: var(--text-muted);
+    }
+    .meta-val {
+      font-weight: 600;
+      color: #0f172a;
+    }
+    .fee-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-bottom: 2.5rem;
+    }
+    .fee-table th {
+      background: #f8fafc;
+      text-align: left;
+      padding: 0.85rem 1rem;
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      color: #475569;
+      border-bottom: 2px solid #e2e8f0;
+    }
+    .fee-table td {
+      padding: 1rem;
+      border-bottom: 1px solid #e2e8f0;
+      font-size: 0.95rem;
+    }
+    .amount-col {
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+    }
+    .fee-total-row td {
+      background: #fff7ed;
+      font-weight: 800;
+      font-size: 1.1rem;
+      color: #9a3412;
+      border-bottom: 2px solid #fdba74;
+    }
+    .status-stamp {
+      display: inline-block;
+      padding: 0.35rem 0.85rem;
+      border-radius: 9999px;
+      font-size: 0.85rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+    .status-paid {
+      background: #ecfdf5;
+      color: #059669;
+      border: 1px solid #a7f3d0;
+    }
+    .status-pending {
+      background: #fef2f2;
+      color: #dc2626;
+      border: 1px solid #fecaca;
+    }
+    .status-verification {
+      background: #fffbeb;
+      color: #d97706;
+      border: 1px solid #fde68a;
+    }
+    .receipt-footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-end;
+      margin-top: 3rem;
+      padding-top: 2rem;
+      border-top: 1px dashed #cbd5e1;
+    }
+    .terms {
+      font-size: 0.78rem;
+      color: #94a3b8;
+      max-width: 420px;
+      line-height: 1.5;
+    }
+    .signature-box {
+      text-align: center;
+      width: 200px;
+    }
+    .signature-line {
+      border-bottom: 1px solid #0f172a;
+      margin-bottom: 6px;
+      height: 40px;
+    }
+    .signature-label {
+      font-size: 0.8rem;
+      color: #475569;
+      font-weight: 600;
+    }
+    @media print {
+      body {
+        background: #fff;
+        padding: 0;
+      }
+      .action-bar {
+        display: none;
+      }
+      .receipt-container {
+        box-shadow: none;
+        border: none;
+        padding: 0;
+        width: 100%;
+        max-width: 100%;
+      }
+    }
+  </style>
+</head>
+<body>
+
+  <div class="action-bar" style="justify-content: flex-end;">
+    <button onclick="window.print()" class="btn btn-primary">
+      🖨️ Print / Save as PDF
+    </button>
+  </div>
+
+  <div class="receipt-container">
+    <div class="receipt-header">
+      <div class="header-left">
+        <img src="{{ url_for('static', filename='college_logo.png') }}" alt="Poornaprajna Institute of Management Logo" class="college-logo">
+        <div class="college-info">
+          <h1>Poornaprajna Institute of Management</h1>
+          <div class="slogan">॥ अमृतं तु विद्या ॥ पूर्णप्रज्ञ</div>
+          <p>Udupi, Karnataka, India<br>Accounts & Finance Section · Official Student Fee Receipt</p>
+        </div>
+      </div>
+      <div class="receipt-badge-col">
+        <div class="receipt-title">FEE RECEIPT</div>
+        <div class="receipt-meta">Receipt No: <strong>#REC-{{ '%05d' % fee.id }}</strong></div>
+        <div class="receipt-meta">Date: <strong>{{ fee.created_at.strftime('%d %b %Y') if fee.created_at else fee.due_date.strftime('%d %b %Y') }}</strong></div>
+      </div>
+    </div>
+
+    <div class="meta-grid">
+      <div class="meta-box">
+        <h3>Student Information</h3>
+        <div class="meta-row">
+          <span class="meta-label">Full Name:</span>
+          <span class="meta-val">{{ student.name }}</span>
+        </div>
+        <div class="meta-row">
+          <span class="meta-label">Roll Number:</span>
+          <span class="meta-val">{{ student.roll_number }}</span>
+        </div>
+        <div class="meta-row">
+          <span class="meta-label">Department:</span>
+          <span class="meta-val">{{ student.department or 'General' }}</span>
+        </div>
+        <div class="meta-row">
+          <span class="meta-label">Class / Year:</span>
+          <span class="meta-val">{{ student.class_name or '—' }}</span>
+        </div>
+      </div>
+
+      <div class="meta-box">
+        <h3>Payment Details</h3>
+        <div class="meta-row">
+          <span class="meta-label">Payment Mode:</span>
+          <span class="meta-val"><strong>{{ fee.payment_method or 'Cash' }}</strong></span>
+        </div>
+        {% if fee.payment_reference %}
+        <div class="meta-row">
+          <span class="meta-label">Ref / Transaction ID:</span>
+          <span class="meta-val" style="font-family:monospace; font-weight:700;">{{ fee.payment_reference }}</span>
+        </div>
+        {% endif %}
+        {% if fee.paid_date %}
+        <div class="meta-row">
+          <span class="meta-label">Payment Date:</span>
+          <span class="meta-val">{{ fee.paid_date.strftime('%d %b %Y') }}</span>
+        </div>
+        {% else %}
+        <div class="meta-row">
+          <span class="meta-label">Due Date:</span>
+          <span class="meta-val">{{ fee.due_date.strftime('%d %b %Y') }}</span>
+        </div>
+        {% endif %}
+        <div class="meta-row">
+          <span class="meta-label">Status:</span>
+          <span class="meta-val">
+            <span class="status-stamp {% if fee.status == 'Paid' %}status-paid{% elif fee.status == 'Pending' %}status-pending{% else %}status-verification{% endif %}">
+              {{ fee.status }}
+            </span>
+          </span>
+        </div>
+      </div>
+    </div>
+
+    <table class="fee-table">
+      <thead>
+        <tr>
+          <th>Sl No.</th>
+          <th>Fee Particulars / Description</th>
+          <th class="amount-col">Amount (INR)</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td style="color:#64748b; width:60px;">01</td>
+          <td>
+            <strong style="color:#0f172a; font-size:1rem;">{{ fee.fee_type }}</strong>
+            <div style="font-size:0.8rem; color:#64748b; margin-top:3px;">
+              Tuition & Academic Semester Fees — Poornaprajna Institute of Management
+            </div>
+          </td>
+          <td class="amount-col" style="font-weight:700; font-size:1.05rem;">
+            ₹{{ "{:,.2f}".format(fee.amount_due) }}
+          </td>
+        </tr>
+        <tr class="fee-total-row">
+          <td colspan="2" style="text-align:right;">TOTAL AMOUNT:</td>
+          <td class="amount-col">
+            ₹{{ "{:,.2f}".format(fee.amount_due) }}
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <div class="receipt-footer">
+      <div class="terms">
+        <p><strong>Note:</strong> This is an electronically verified fee receipt generated by the Poornaprajna Institute of Management ERP & Attendance System. Retain this receipt for future reference and exam hall-ticket clearances.</p>
+      </div>
+      <div class="signature-box">
+        <div class="signature-line"></div>
+        <div class="signature-label">Finance Officer / Cashier</div>
+      </div>
+    </div>
+  </div>
+
+</body>
+</html>

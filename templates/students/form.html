@@ -18,18 +18,24 @@
       <div style="display:flex; gap:1rem; flex-wrap:wrap;">
         <div style="flex:1; min-width:200px;">
           <label>Department</label>
-          <input name="department" list="dept-options" value="{{ student.department if student else '' }}" placeholder="Computer Science">
-          <datalist id="dept-options">
-            <option value="MBA">
-            <option value="Computer Science">
-            <option value="Engineering">
-          </datalist>
+          <select name="department" required>
+            <option value="MCA" {% if student and student.department == 'MCA' %}selected{% endif %}>MCA</option>
+            <option value="MBA" {% if student and student.department == 'MBA' %}selected{% endif %}>MBA</option>
+          </select>
         </div>
         <div style="flex:1; min-width:200px;">
           <label>Class</label>
-          <input name="class_name" value="{{ student.class_name if student else '' }}" placeholder="MCA-1A">
+          <select name="class_name" required>
+            <option value="MCA-1A" {% if student and student.class_name == 'MCA-1A' %}selected{% endif %}>MCA-1A</option>
+            <option value="MCA-1B" {% if student and student.class_name == 'MCA-1B' %}selected{% endif %}>MCA-1B</option>
+            <option value="MCA-2A" {% if student and student.class_name == 'MCA-2A' %}selected{% endif %}>MCA-2A</option>
+            <option value="MBA-1A" {% if student and student.class_name == 'MBA-1A' %}selected{% endif %}>MBA-1A</option>
+            <option value="MBA-1B" {% if student and student.class_name == 'MBA-1B' %}selected{% endif %}>MBA-1B</option>
+            <option value="MBA-2A" {% if student and student.class_name == 'MBA-2A' %}selected{% endif %}>MBA-2A</option>
+          </select>
         </div>
       </div>
+
       
       <div class="btn-row" style="margin-top:2rem;">
         <button class="btn" type="submit" style="flex:1;">Save Student</button>

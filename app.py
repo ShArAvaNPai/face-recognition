@@ -13,11 +13,11 @@ Run:
     python download_models.py     # once, to fetch the face models
     python app.py
 """
-from flask import Flask, render_template
+from flask import Flask, render_template, send_from_directory
 from flask_login import current_user
 
 from config import Config
-from extensions import db, login_manager
+from extensions import db, login_manager, mail
 from models import User, ROLE_ADMIN
 
 
@@ -27,6 +27,7 @@ def create_app(config_class=Config):
 
     db.init_app(app)
     login_manager.init_app(app)
+    mail.init_app(app)
 
     @login_manager.user_loader
     def load_user(user_id):
@@ -44,6 +45,7 @@ def create_app(config_class=Config):
     from blueprints.faculty import faculty_bp
     from blueprints.parents import parents_bp
     from blueprints.academic_calendar import calendar_bp
+    from blueprints.marks import marks_bp
 
     app.register_blueprint(auth_bp)
     app.register_blueprint(dashboard_bp)
@@ -56,6 +58,15 @@ def create_app(config_class=Config):
     app.register_blueprint(faculty_bp)
     app.register_blueprint(parents_bp)
     app.register_blueprint(calendar_bp)
+    app.register_blueprint(marks_bp)
+
+    @app.route('/sw.js')
+    def service_worker():
+        return send_from_directory('static', 'sw.js', mimetype='application/javascript')
+
+    @app.route('/manifest.json')
+    def manifest():
+        return send_from_directory('static', 'manifest.json', mimetype='application/manifest+json')
 
     @app.context_processor
     def inject_global_data():
@@ -95,6 +106,24 @@ def create_app(config_class=Config):
                     db.session.execute(text("ALTER TABLE timetable_slots ADD COLUMN department VARCHAR(80) DEFAULT ''"))
                     db.session.commit()
                     
+            # Migrate subjects table
+            if inspector.has_table('subjects'):
+                subj_cols = [c['name'] for c in inspector.get_columns('subjects')]
+                if 'department' not in subj_cols:
+                    db.session.execute(text("ALTER TABLE subjects ADD COLUMN department VARCHAR(80) DEFAULT 'MCA'"))
+                    db.session.commit()
+
+            # Ensure subjects department values are populated based on code/faculty
+            from models import Subject, User
+            all_subjs = Subject.query.all()
+            for s in all_subjs:
+                if not s.department or s.department == 'MCA':
+                    if s.code.upper().startswith('MBA') or (s.faculty and s.faculty.department == 'MBA'):
+                        s.department = 'MBA'
+                    elif s.code.upper().startswith('MCA') or (s.faculty and s.faculty.department == 'MCA'):
+                        s.department = 'MCA'
+            db.session.commit()
+
             # Migrate medical_certificates table
             if inspector.has_table('medical_certificates'):
                 med_cols = [c['name'] for c in inspector.get_columns('medical_certificates')]
@@ -102,6 +131,7 @@ def create_app(config_class=Config):
                     db.session.execute(text("ALTER TABLE medical_certificates ADD COLUMN start_date DATE"))
                     db.session.commit()
                 if 'end_date' not in med_cols:
+
                     db.session.execute(text("ALTER TABLE medical_certificates ADD COLUMN end_date DATE"))
                     db.session.commit()
 
@@ -144,4 +174,5 @@ app = create_app()
 
 if __name__ == "__main__":
     # threaded=True so face recognition requests don't block the UI.
-    app.run(host="127.0.0.1", port=5000, debug=True, threaded=True)
+    # host="0.0.0.0" allows devices on the same Wi-Fi network (phones/tablets) to connect.
+    app.run(host="0.0.0.0", port=5000, debug=True, threaded=True)

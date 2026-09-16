@@ -2,14 +2,88 @@
 {% block title %}Student Attendance{% endblock %}
 
 {% block content %}
-<div class="page-header">
-  <h2 class="page-title">Attendance - {{ student.name }}</h2>
+<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 2rem; flex-wrap:wrap; gap:1rem;">
+  <div>
+    <h1>Attendance: {{ student.name }}</h1>
+    <p class="subtitle" style="margin-bottom:0;">Roll Number: {{ student.roll_number }} · {{ student.department }} {{ student.class_name }}</p>
+  </div>
 </div>
 
-<div class="card">
-  <div class="card-body">
+{# 1. Subject-Wise Attendance Breakdown (Subjects as Rows) #}
+<div class="card card-table" style="margin-bottom: 2rem;">
+  <div class="card-table-header">
+    <h2>Subject-Wise Attendance Summary</h2>
+    <span class="text-muted" style="font-size:0.875rem;">Subject Breakdown</span>
+  </div>
+
+  <div class="table-responsive">
+    {% if subject_attendance %}
+    <table>
+      <thead>
+        <tr>
+          <th style="min-width:140px;">Subject Code</th>
+          <th style="min-width:200px;">Subject Name</th>
+          <th style="text-align:center;">Total Classes</th>
+          <th style="text-align:center;">Attended</th>
+          <th style="text-align:center;">Excused</th>
+          <th style="text-align:center;">Absent</th>
+          <th style="text-align:center;">Attendance %</th>
+          <th style="min-width:130px;">Status</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for s in subject_attendance %}
+        <tr>
+          <td><span class="badge badge-muted">{{ s.subject.code }}</span></td>
+          <td style="font-weight:600; color:#fff;">{{ s.subject.name }}</td>
+          <td style="text-align:center;">{{ s.total }}</td>
+          <td style="text-align:center;"><span class="badge badge-yes">{{ s.present }}</span></td>
+          <td style="text-align:center;">
+            {% if s.excused > 0 %}
+              <span class="badge" style="background:rgba(99,102,241,0.15); color:#a5b4fc;">{{ s.excused }}</span>
+            {% else %}
+              <span class="muted">—</span>
+            {% endif %}
+          </td>
+          <td style="text-align:center;">
+            {% if s.absent > 0 %}
+              <span class="badge badge-no">{{ s.absent }}</span>
+            {% else %}
+              <span class="muted">0</span>
+            {% endif %}
+          </td>
+          <td style="text-align:center; font-weight:600;">
+            <span class="badge {{ 'badge-yes' if s.percentage >= 75 else ('badge-no' if s.percentage < 50 else 'badge-muted') }}">
+              {{ s.percentage }}%
+            </span>
+          </td>
+          <td>
+            <div style="display:flex; align-items:center; gap:0.5rem;">
+              <div style="flex-grow:1; background:var(--bg-lighter,#1e293b); height:6px; border-radius:3px; overflow:hidden;">
+                <div style="width:{{ s.percentage }}%; height:100%; background:{% if s.percentage >= 75 %}#10b981{% elif s.percentage >= 50 %}#f59e0b{% else %}#ef4444{% endif %}; border-radius:3px;"></div>
+              </div>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <p class="muted" style="padding:2.5rem 1.5rem; text-align:center;">No subject attendance records found.</p>
+    {% endif %}
+  </div>
+</div>
+
+{# 2. Date-by-Date Attendance Log #}
+<div class="card card-table">
+  <div class="card-table-header">
+    <h2>Daily Attendance Log</h2>
+    <span class="text-muted" style="font-size:0.875rem;">{{ records|length }} session record(s)</span>
+  </div>
+
+  <div class="table-responsive">
     {% if records %}
-    <table class="data-table">
+    <table>
       <thead>
         <tr>
           <th>Date</th>
@@ -21,22 +95,24 @@
       <tbody>
         {% for r in records %}
         <tr>
-          <td>{{ r.session.session_date.strftime('%Y-%m-%d') }}</td>
-          <td>{{ r.session.subject.name }}</td>
+          <td><span class="badge badge-muted">{{ r.session.session_date.strftime('%Y-%m-%d') }}</span></td>
+          <td style="font-weight:600; color:#fff;">{{ r.session.subject.name }}</td>
           <td>
             {% if r.status == 'present' %}
-            <span style="color: green; font-weight: bold;">Present</span>
+              <span class="badge badge-yes">Present</span>
+            {% elif r.status == 'excused' %}
+              <span class="badge" style="background:rgba(99,102,241,0.15); color:#a5b4fc;">Excused (Medical)</span>
             {% else %}
-            <span style="color: red; font-weight: bold;">Absent</span>
+              <span class="badge badge-no">Absent</span>
             {% endif %}
           </td>
-          <td>{{ r.method|title }}</td>
+          <td><span class="badge badge-muted">{{ r.method|title }}</span></td>
         </tr>
         {% endfor %}
       </tbody>
     </table>
     {% else %}
-    <p>No attendance records found.</p>
+    <p class="muted" style="padding:2.5rem 1.5rem; text-align:center;">No attendance records found.</p>
     {% endif %}
   </div>
 </div>
