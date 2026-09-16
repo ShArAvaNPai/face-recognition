@@ -163,3 +163,45 @@ def fees():
         
     fees_list = Fee.query.filter_by(student_id=student.id).all()
     return render_template("parents/fees.html", student=student, fees=fees_list)
+
+
+@parents_bp.route("/notifications")
+@login_required
+@parent_required
+def notifications():
+    """Show all notifications for this parent — read and unread."""
+    from models import Notification
+    all_notifs = (
+        Notification.query
+        .filter_by(user_id=current_user.id)
+        .order_by(Notification.created_at.desc())
+        .all()
+    )
+    return render_template("parents/notifications.html", notifications=all_notifs)
+
+
+@parents_bp.route("/notifications/<int:notif_id>/read", methods=["POST"])
+@login_required
+@parent_required
+def mark_notification_read(notif_id):
+    """Mark a single notification as read."""
+    from models import Notification
+    notif = Notification.query.get_or_404(notif_id)
+    if notif.user_id != current_user.id:
+        flash("Access denied.", "danger")
+        return redirect(url_for("parents.notifications"))
+    notif.is_read = True
+    db.session.commit()
+    return redirect(url_for("parents.notifications"))
+
+
+@parents_bp.route("/notifications/mark-all-read", methods=["POST"])
+@login_required
+@parent_required
+def mark_all_read():
+    """Mark all notifications as read for this parent."""
+    from models import Notification
+    Notification.query.filter_by(user_id=current_user.id, is_read=False).update({"is_read": True})
+    db.session.commit()
+    flash("All notifications marked as read.", "success")
+    return redirect(url_for("parents.notifications"))

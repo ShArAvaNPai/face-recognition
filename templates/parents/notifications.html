@@ -1,0 +1,116 @@
+﻿{% extends "base.html" %}
+{% block title %}Notifications – Parent Portal{% endblock %}
+
+{% block content %}
+<div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:2rem; flex-wrap:wrap; gap:1rem;">
+  <div>
+    <h1 style="display:flex; align-items:center; gap:0.75rem; margin:0;">
+      <span style="font-size:2rem;">🔔</span> Notifications
+    </h1>
+    <p style="color:var(--text-muted); margin:0.35rem 0 0 0; font-size:0.9rem;">
+      All alerts and messages sent to your parent portal.
+    </p>
+  </div>
+  {% set unread = notifications | selectattr('is_read','eq',false) | list %}
+  {% if unread %}
+  <form method="post" action="{{ url_for('parents.mark_all_read') }}" style="margin:0;">
+    <button class="btn" style="background:linear-gradient(135deg,#4338ca,#6366f1); color:#fff; display:flex; align-items:center; gap:0.5rem;">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"></polyline></svg>
+      Mark All as Read
+    </button>
+  </form>
+  {% endif %}
+</div>
+
+<!-- Stats row -->
+<div style="display:grid; grid-template-columns:repeat(auto-fit,minmax(160px,1fr)); gap:1rem; margin-bottom:2rem;">
+  <div class="card" style="padding:1.1rem; text-align:center; background:linear-gradient(135deg,rgba(99,102,241,0.12),rgba(15,23,42,0.7)); border:1px solid rgba(99,102,241,0.25);">
+    <div style="font-size:1.8rem; font-weight:700; color:#a5b4fc;">{{ notifications|length }}</div>
+    <div style="font-size:0.78rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:.04em;">Total</div>
+  </div>
+  <div class="card" style="padding:1.1rem; text-align:center; background:linear-gradient(135deg,rgba(239,68,68,0.12),rgba(15,23,42,0.7)); border:1px solid rgba(239,68,68,0.25);">
+    <div style="font-size:1.8rem; font-weight:700; color:#fca5a5;">{{ unread|length }}</div>
+    <div style="font-size:0.78rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:.04em;">Unread</div>
+  </div>
+  <div class="card" style="padding:1.1rem; text-align:center; background:linear-gradient(135deg,rgba(16,185,129,0.12),rgba(15,23,42,0.7)); border:1px solid rgba(16,185,129,0.25);">
+    <div style="font-size:1.8rem; font-weight:700; color:#6ee7b7;">{{ notifications|selectattr('is_read','eq',true)|list|length }}</div>
+    <div style="font-size:0.78rem; color:var(--text-muted); text-transform:uppercase; letter-spacing:.04em;">Read</div>
+  </div>
+</div>
+
+{% if notifications %}
+  <div style="display:flex; flex-direction:column; gap:0.85rem;">
+    {% for n in notifications %}
+    {% set cat = n.category or 'general' %}
+    {% if cat == 'absence' %}
+      {% set accent = '#ef4444' %}
+      {% set bg = 'rgba(239,68,68,0.07)' %}
+      {% set border = 'rgba(239,68,68,0.3)' %}
+      {% set icon = '🚨' %}
+    {% elif cat == 'attendance' %}
+      {% set accent = '#f97316' %}
+      {% set bg = 'rgba(249,115,22,0.07)' %}
+      {% set border = 'rgba(249,115,22,0.3)' %}
+      {% set icon = '⚠️' %}
+    {% elif cat == 'fees' %}
+      {% set accent = '#10b981' %}
+      {% set bg = 'rgba(16,185,129,0.07)' %}
+      {% set border = 'rgba(16,185,129,0.3)' %}
+      {% set icon = '💰' %}
+    {% elif cat == 'marks' %}
+      {% set accent = '#6366f1' %}
+      {% set bg = 'rgba(99,102,241,0.07)' %}
+      {% set border = 'rgba(99,102,241,0.3)' %}
+      {% set icon = '📊' %}
+    {% else %}
+      {% set accent = '#60a5fa' %}
+      {% set bg = 'rgba(59,130,246,0.07)' %}
+      {% set border = 'rgba(59,130,246,0.3)' %}
+      {% set icon = '🔔' %}
+    {% endif %}
+    <div style="background:{{ bg }}; border:1px solid {{ border }}; border-radius:12px; padding:1.1rem 1.25rem;
+                display:flex; align-items:flex-start; gap:1rem; opacity:{% if n.is_read %}0.65{% else %}1{% endif %};
+                transition:opacity .2s;">
+      <!-- Icon -->
+      <div style="font-size:1.6rem; flex-shrink:0; line-height:1;">{{ icon }}</div>
+
+      <!-- Body -->
+      <div style="flex:1; min-width:0;">
+        {% if n.title %}
+        <div style="font-weight:600; color:{{ accent }}; font-size:0.95rem; margin-bottom:0.3rem;">
+          {{ n.title }}
+          {% if not n.is_read %}
+          <span style="display:inline-block; width:8px; height:8px; background:{{ accent }};
+                       border-radius:50%; margin-left:6px; vertical-align:middle;"></span>
+          {% endif %}
+        </div>
+        {% endif %}
+        <div style="font-size:0.875rem; color:#e2e8f0; white-space:pre-line; line-height:1.55;">{{ n.message }}</div>
+        <div style="font-size:0.75rem; color:var(--text-muted); margin-top:0.5rem;">
+          🕐 {{ n.created_at.strftime('%d %b %Y, %I:%M %p') }}
+          {% if n.is_read %}
+          · <span style="color:#6ee7b7;">✓ Read</span>
+          {% else %}
+          · <span style="color:{{ accent }};">New</span>
+          {% endif %}
+        </div>
+      </div>
+
+      <!-- Action -->
+      {% if not n.is_read %}
+      <form method="post" action="{{ url_for('parents.mark_notification_read', notif_id=n.id) }}" style="margin:0; flex-shrink:0;">
+        <button class="btn btn-secondary" style="padding:0.3rem 0.75rem; font-size:0.78rem; white-space:nowrap;"
+                title="Mark as read">✓ Read</button>
+      </form>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+{% else %}
+  <div class="card" style="text-align:center; padding:3rem; background:rgba(15,23,42,0.4);">
+    <div style="font-size:3rem; margin-bottom:0.75rem;">🔕</div>
+    <h3 style="margin:0 0 0.5rem 0; color:#94a3b8;">No Notifications Yet</h3>
+    <p style="color:var(--text-muted); margin:0;">Absence alerts, attendance warnings and other messages from the administration will appear here.</p>
+  </div>
+{% endif %}
+{% endblock %}

@@ -22,7 +22,37 @@
       <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="#ffffff" stroke-width="2"><line x1="12" y1="1" x2="12" y2="23"></line><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path></svg>
     </div>
   </div>
+
+  <div class="stat" style="cursor:pointer;" onclick="window.location='{{ url_for('parents.notifications') }}'">
+    <div class="num" style="{% if unread_notifications_count > 0 %}color:#fca5a5;{% endif %}">
+      {{ unread_notifications_count }}
+    </div>
+    <div class="lbl">Unread Alerts</div>
+    <div style="position:absolute; top:1.2rem; right:1.2rem; opacity:0.15;">
+      <svg viewBox="0 0 24 24" width="32" height="32" fill="none" stroke="#ffffff" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+    </div>
+  </div>
 </div>
+
+{% if unread_notifications_count > 0 %}
+<div class="card mt-4" style="border:1px solid rgba(239,68,68,0.3); background:rgba(239,68,68,0.05);">
+  <div class="card-header" style="display:flex; justify-content:space-between; align-items:center;">
+    <h3 class="card-title" style="color:#fca5a5;">🔔 New Alerts ({{ unread_notifications_count }})</h3>
+    <a href="{{ url_for('parents.notifications') }}" class="btn btn-secondary" style="font-size:0.82rem; padding:0.3rem 0.8rem;">View All</a>
+  </div>
+  <div class="card-body" style="padding-top:0.5rem;">
+    <ul style="list-style:none; padding:0; margin:0; display:flex; flex-direction:column; gap:0.6rem;">
+      {% for n in user_notifications[:3] %}
+      <li style="border-bottom:1px solid rgba(255,255,255,0.07); padding-bottom:0.6rem;">
+        {% if n.title %}<div style="font-size:0.82rem; font-weight:600; color:#f87171;">{{ n.title }}</div>{% endif %}
+        <div style="font-size:0.85rem; color:#f1f5f9;">{{ n.message[:100] }}{% if n.message|length > 100 %}…{% endif %}</div>
+        <div style="font-size:0.72rem; color:var(--text-muted); margin-top:3px;">{{ n.created_at.strftime('%d %b %Y') }}</div>
+      </li>
+      {% endfor %}
+    </ul>
+  </div>
+</div>
+{% endif %}
 
 <div class="card mt-4">
   <div class="card-header">

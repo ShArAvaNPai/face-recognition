@@ -465,8 +465,8 @@ def finalize_session(session_id):
         query = query.filter_by(department=current_user.department)
     students = query.all()
 
-    from utils.email import send_email, generate_absence_html
-    
+    from utils.notifications import notify_parent_absence
+
     notified_count = 0
     for s in students:
         if s.id not in present_ids:
@@ -475,23 +475,17 @@ def finalize_session(session_id):
             if not existing:
                 rec = Attendance(session_id=session_id, student_id=s.id, status="absent", method="manual")
                 db.session.add(rec)
-            
-            p_email = s.parent_email
-            if p_email:
-                subject = f"Absence Alert: {s.name} ({s.roll_number}) was absent today"
-                body = f"Dear Parent,\n\nYour child {s.name} ({s.roll_number}) has been marked ABSENT for {session.subject.name} on {session.session_date}.\n\nRegards,\nSmart Attendance System"
-                html_body = generate_absence_html(
-                    student_name=s.name,
-                    roll_number=s.roll_number,
-                    department=s.department,
+
+            if s.parent_user:
+                notify_parent_absence(
+                    student=s,
                     subject_name=session.subject.name,
-                    session_date=session.session_date
+                    session_date=session.session_date,
                 )
-                send_email(subject, [p_email], body, html_body)
                 notified_count += 1
-                
+
     db.session.commit()
-    flash(f"Attendance finalized. {notified_count} parent(s) notified via email.", "success")
+    flash(f"Attendance finalized. {notified_count} parent(s) notified via notification panel.", "success")
     return redirect(url_for("attendance.history", session_id=session_id))
 
 

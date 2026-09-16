@@ -6,3 +6,4 @@ Flask-Login
 gunicorn
 requests
 Flask-Mail
+python-dotenv

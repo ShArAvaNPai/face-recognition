@@ -27,10 +27,10 @@ class Config:
     DEFAULT_ADMIN_USERNAME = os.environ.get("ADMIN_USERNAME", "admin")
     DEFAULT_ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD", "admin123")
 
-    # Email Configuration
-    MAIL_SERVER = os.environ.get("MAIL_SERVER", "localhost")
-    MAIL_PORT = int(os.environ.get("MAIL_PORT", 1025))
-    MAIL_USE_TLS = os.environ.get("MAIL_USE_TLS", "False").lower() in ["true", "1", "yes"]
-    MAIL_USERNAME = os.environ.get("MAIL_USERNAME")
+    # Email Configuration (Gmail SMTP)
+    MAIL_SERVER = os.environ.get("MAIL_SERVER", "smtp.gmail.com")
+    MAIL_PORT = int(os.environ.get("MAIL_PORT", 587))
+    MAIL_USE_TLS = os.environ.get("MAIL_USE_TLS", "True").lower() in ["true", "1", "yes"]
+    MAIL_USERNAME = os.environ.get("MAIL_USERNAME", "shravan.mca.2024@pim.ac.in")
     MAIL_PASSWORD = os.environ.get("MAIL_PASSWORD")
-    MAIL_DEFAULT_SENDER = os.environ.get("MAIL_DEFAULT_SENDER", "noreply@smartattend.edu")
+    MAIL_DEFAULT_SENDER = os.environ.get("MAIL_DEFAULT_SENDER", "shravan.mca.2024@pim.ac.in")

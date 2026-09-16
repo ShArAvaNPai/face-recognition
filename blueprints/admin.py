@@ -292,7 +292,7 @@ def edit_user(user_id):
 
 @admin_bp.route("/parents", methods=["GET"])
 @login_required
-@admin_required
+@director_required
 def manage_parents():
     """Parent account & mail management for low attendance and class absence alerts."""
     dept_filter = request.args.get("dept", "").strip()
@@ -360,7 +360,7 @@ def manage_parents():
 
 @admin_bp.route("/parents/update", methods=["POST"])
 @login_required
-@admin_required
+@director_required
 def update_parent_account():
     """Create or update a parent account and email address for a student."""
     student_id = request.form.get("student_id", type=int)
@@ -411,10 +411,10 @@ def update_parent_account():
 
 @admin_bp.route("/parents/send-mail", methods=["POST"])
 @login_required
-@admin_required
+@director_required
 def send_parent_mail():
-    """Send emails to parents of low attendance or absent students."""
-    from utils.email import send_email, generate_low_attendance_html, generate_absence_html, generate_custom_parent_html
+    """Send in-app notifications to parents of low-attendance or absent students."""
+    from utils.notifications import notify_parent_low_attendance, notify_parent_absence, notify_parent_custom
 
     mail_type = request.form.get("mail_type", "low_attendance")  # 'low_attendance', 'absence', 'custom'
     target_scope = request.form.get("target_scope", "selected")  # 'selected', 'all_low', 'all'
@@ -437,78 +437,52 @@ def send_parent_mail():
         target_students = Student.query.filter(Student.id.in_(student_ids)).all() if student_ids else []
 
     if not target_students:
-        flash("No students selected for sending email.", "warning")
+        flash("No students selected for sending notification.", "warning")
         return redirect(url_for("admin.manage_parents"))
 
     sent_count = 0
-    missing_email_count = 0
+    missing_parent_count = 0
 
     for s in target_students:
-        parent_email = s.parent_email
-        if not parent_email:
-            missing_email_count += 1
+        if not s.parent_user:
+            missing_parent_count += 1
             continue
 
         stats = s.attendance_stats
 
         if mail_type == "low_attendance":
-            subj = custom_subject or f"Low Attendance Notice: {s.name} ({s.roll_number}) - {stats['percent']}%"
-            text_body = (
-                f"Dear Parent,\n\n"
-                f"This is an official warning regarding the attendance of your child {s.name} ({s.roll_number}).\n"
-                f"Current Attendance: {stats['percent']}% ({stats['present']}/{stats['total']} classes attended).\n"
-                f"Minimum required attendance is {int(threshold)}%.\n\n"
-                f"{custom_note}\n\n"
-                f"Regards,\nSmart Attendance System Administration"
-            )
-            html_body = generate_low_attendance_html(
-                student_name=s.name,
-                roll_number=s.roll_number,
-                department=s.department,
+            notify_parent_low_attendance(
+                student=s,
                 attendance_pct=stats["percent"],
-                present_count=stats["present"],
-                total_count=stats["total"],
-                custom_note=custom_note
+                present=stats["present"],
+                total=stats["total"],
+                threshold=threshold,
+                custom_note=custom_note,
             )
-            send_email(subj, [parent_email], text_body, html_body)
             sent_count += 1
 
         elif mail_type == "absence":
-            subj = custom_subject or f"Absence Alert: {s.name} ({s.roll_number})"
             session_date = request.form.get("session_date") or date.today().isoformat()
             subject_name = request.form.get("subject_name", "Scheduled Lecture")
-            text_body = (
-                f"Dear Parent,\n\n"
-                f"Your child {s.name} ({s.roll_number}) was marked ABSENT for {subject_name} on {session_date}.\n\n"
-                f"{custom_note}\n\n"
-                f"Regards,\nSmart Attendance System Administration"
-            )
-            html_body = generate_absence_html(
-                student_name=s.name,
-                roll_number=s.roll_number,
-                department=s.department,
+            notify_parent_absence(
+                student=s,
                 subject_name=subject_name,
                 session_date=session_date,
-                custom_note=custom_note
+                custom_note=custom_note,
             )
-            send_email(subj, [parent_email], text_body, html_body)
             sent_count += 1
 
         elif mail_type == "custom":
             subj = custom_subject or "Important Notice from Smart Attendance Administration"
-            text_body = f"Dear Parent of {s.name} ({s.roll_number}),\n\n{custom_note}\n\nRegards,\nSmart Attendance Administration"
-            html_body = generate_custom_parent_html(
-                student_name=s.name,
-                roll_number=s.roll_number,
-                subject_heading=subj,
-                body_message=custom_note
-            )
-            send_email(subj, [parent_email], text_body, html_body)
+            body = custom_note or "Please contact the administration for more details."
+            notify_parent_custom(student=s, subject_heading=subj, body_message=body)
             sent_count += 1
 
-    msg = f"Sent {sent_count} parent notification email(s) successfully."
-    if missing_email_count > 0:
-        msg += f" Note: {missing_email_count} student(s) do not have a registered parent email."
+    db.session.commit()
+
+    msg = f"Sent {sent_count} in-app notification(s) to parent portal(s) successfully."
+    if missing_parent_count > 0:
+        msg += f" Note: {missing_parent_count} student(s) do not have a linked parent account."
 
     flash(msg, "success" if sent_count > 0 else "warning")
     return redirect(url_for("admin.manage_parents"))

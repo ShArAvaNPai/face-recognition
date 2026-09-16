@@ -15,6 +15,9 @@ Run:
 """
 from flask import Flask, render_template, send_from_directory
 from flask_login import current_user
+from dotenv import load_dotenv
+
+load_dotenv()  # Load .env file (MAIL_PASSWORD, etc.)
 
 from config import Config
 from extensions import db, login_manager, mail
@@ -146,6 +149,16 @@ def create_app(config_class=Config):
                     db.session.commit()
                 if 'created_at' not in claim_cols:
                     db.session.execute(text("ALTER TABLE timetable_claims ADD COLUMN created_at DATETIME"))
+                    db.session.commit()
+
+            # Migrate notifications table
+            if inspector.has_table('notifications'):
+                notif_cols = [c['name'] for c in inspector.get_columns('notifications')]
+                if 'title' not in notif_cols:
+                    db.session.execute(text("ALTER TABLE notifications ADD COLUMN title VARCHAR(120)"))
+                    db.session.commit()
+                if 'category' not in notif_cols:
+                    db.session.execute(text("ALTER TABLE notifications ADD COLUMN category VARCHAR(30)"))
                     db.session.commit()
 
         except Exception as ex:

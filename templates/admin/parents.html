@@ -1,22 +1,22 @@
 {% extends "base.html" %}
-{% block title %}Parents & Attendance Email Alerts{% endblock %}
+{% block title %}Parents & Notification Alerts{% endblock %}
 
 {% block content %}
 <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom: 2rem; flex-wrap:wrap; gap:1rem;">
   <div>
     <h1 style="display:flex; align-items:center; gap:0.75rem;">
-      <span style="font-size:2rem;">👨‍👩‍👧‍👦</span> Parents & Email Notifications
+      <span style="font-size:2rem;">👨‍👩‍👧‍👦</span> Parents &amp; Notifications
     </h1>
-    <p class="subtitle" style="margin-bottom:0;">Manage parent emails, link accounts, and dispatch automated warnings for low attendance or class absences.</p>
+    <p class="subtitle" style="margin-bottom:0;">Manage parent accounts, link students, and send in-app notifications for low attendance or class absences.</p>
   </div>
   <div style="display:flex; gap:0.75rem; flex-wrap:wrap;">
-    <button type="button" class="btn" onclick="openSendMailModal('all_low')" style="background:linear-gradient(135deg, #ef4444, #dc2626); color:white;">
+    <button type="button" class="btn btn-danger" onclick="openSendMailModal('all_low')">
       <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
-      Warn All Low Attendance (< {{ threshold }}%)
+      Notify All Low Attendance (&lt; {{ threshold }}%)
     </button>
     <button type="button" class="btn btn-secondary" onclick="openSendMailModal('selected')">
-      <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"></path><polyline points="22,6 12,13 2,6"></polyline></svg>
-      Compose Mail
+      <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+      Send Notification
     </button>
   </div>
 </div>
@@ -30,7 +30,7 @@
   </div>
 
   <div class="card" style="padding:1.25rem; background:linear-gradient(135deg, rgba(16,185,129,0.1), rgba(15,23,42,0.8)); border:1px solid rgba(16,185,129,0.2);">
-    <div style="font-size:0.85rem; color:#10b981; text-transform:uppercase; letter-spacing:0.05em;">Parents Email Configured</div>
+    <div style="font-size:0.85rem; color:#10b981; text-transform:uppercase; letter-spacing:0.05em;">Parents Linked (In-App)</div>
     <div style="font-size:2rem; font-weight:700; color:#10b981; margin-top:0.25rem;">
       {{ total_parents_configured }} <span style="font-size:1rem; font-weight:normal; opacity:0.8;">/ {{ total_students }}</span>
     </div>
@@ -98,7 +98,7 @@
       </div>
       <div style="display:flex; gap:0.5rem; align-items:center;">
         <span id="selected-count-label" class="muted" style="font-size:0.85rem;">0 selected</span>
-        <button type="button" class="btn btn-sm btn-secondary" onclick="openSendMailModal('selected')">Send Mail to Selected</button>
+        <button type="button" class="btn btn-sm btn-secondary" onclick="openSendMailModal('selected')">Notify Selected</button>
       </div>
     </div>
 
@@ -111,7 +111,7 @@
             </th>
             <th>Student</th>
             <th>Department</th>
-            <th>Parent Email Contact</th>
+            <th>Parent Account</th>
             <th>Attendance Standing</th>
             <th style="text-align:right;">Actions</th>
           </tr>
@@ -144,13 +144,13 @@
               {% if item.parent_email %}
                 <div style="display:flex; flex-direction:column;">
                   <span style="font-weight:600; color:#38bdf8; font-size:0.9rem; display:flex; align-items:center; gap:0.3rem;">
-                    ✉️ {{ item.parent_email }}
+                    👤 {{ item.parent.username if item.parent else '—' }}
                   </span>
-                  <span style="font-size:0.75rem; color:var(--text-muted);">Account: {{ item.parent.username }}</span>
+                  <span style="font-size:0.75rem; color:var(--text-muted);">{{ item.parent_email }}</span>
                 </div>
               {% else %}
                 <span class="badge badge-muted" style="color:#f59e0b; border-color:rgba(245,158,11,0.3); background:rgba(245,158,11,0.08);">
-                  ⚠️ Email Not Added
+                  ⚠️ No Parent Account
                 </span>
               {% endif %}
             </td>
@@ -174,13 +174,9 @@
             </td>
             <td style="text-align:right;">
               <div style="display:flex; gap:0.4rem; justify-content:flex-end;">
-                <button type="button" class="btn btn-sm btn-secondary" onclick="openEditParentModal('{{ s.id }}', '{{ s.name|e }}', '{{ s.roll_number|e }}', '{{ (item.parent_email or '')|e }}')" title="Set or update Parent Email">
-
-                  ✏️ Parent Mail
-                </button>
                 {% if item.parent_email %}
-                  <button type="button" class="btn btn-sm" style="background:rgba(99,102,241,0.2); color:#a5b4fc; border:1px solid rgba(99,102,241,0.4);" onclick="sendSingleStudentMail('{{ s.id }}')" title="Compose Email for this Parent">
-                    📧 Notify
+                  <button type="button" class="btn btn-sm" style="background:rgba(99,102,241,0.2) !important; color:#a5b4fc !important; border:1px solid rgba(99,102,241,0.4) !important;" onclick="sendSingleStudentMail('{{ s.id }}')" title="Send notification to this parent">
+                    🔔 Notify
                   </button>
                 {% endif %}
               </div>
@@ -198,48 +194,48 @@
     </div>
   </div>
 
-  <!-- Modal: Compose & Send Email -->
+  <!-- Modal: Send Notification -->
   <div id="send-mail-modal" class="modal-backdrop" style="display:none; position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.7); z-index:999; align-items:center; justify-content:center;">
     <div class="card" style="max-width:650px; width:90%; max-height:90vh; overflow-y:auto; padding:2rem; position:relative; box-shadow:0 20px 25px -5px rgba(0,0,0,0.5);">
       <button type="button" onclick="closeSendMailModal()" style="position:absolute; top:1.25rem; right:1.25rem; background:none; border:none; color:var(--text-muted); font-size:1.5rem; cursor:pointer;">&times;</button>
       
       <div style="margin-bottom:1.5rem;">
         <h2 style="margin:0 0 0.25rem 0; display:flex; align-items:center; gap:0.5rem;">
-          <span>📧</span> Dispatch Parent Email Alerts
+          <span>🔔</span> Send Parent Notification
         </h2>
-        <p class="subtitle" style="margin:0;">Select notification mode and customize message content.</p>
+        <p class="subtitle" style="margin:0;">Select notification type and customize the message. It will appear in the parent's notification panel.</p>
       </div>
 
       <!-- Scope Selector -->
       <div style="background:var(--bg-lighter, rgba(255,255,255,0.03)); border:1px solid var(--border); border-radius:8px; padding:1rem; margin-bottom:1.25rem;">
-        <label style="font-weight:600; color:#fff; display:block; margin-bottom:0.5rem;">Recipient Scope:</label>
-        <div style="display:flex; flex-direction:column; gap:0.5rem;">
-          <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
-            <input type="radio" name="target_scope" value="selected" id="scope-selected" checked style="accent-color:var(--primary);">
-            <span>Selected Students (<strong id="modal-selected-count">0</strong> selected in table)</span>
+        <label style="font-weight:600; color:#fff; display:block; margin-bottom:0.75rem;">RECIPIENT SCOPE:</label>
+        <div style="display:flex; flex-direction:column; gap:0.75rem;">
+          <label style="display:flex; align-items:center; gap:0.75rem; cursor:pointer; flex-wrap:nowrap; margin:0; text-align:left;">
+            <input type="radio" name="target_scope" value="selected" id="scope-selected" checked style="accent-color:var(--primary); width:18px; height:18px; flex-shrink:0; margin:0;">
+            <span style="font-size:0.9rem; font-weight:500; color:#fff;">Selected Students (<strong id="modal-selected-count">0</strong> selected in table)</span>
           </label>
-          <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
-            <input type="radio" name="target_scope" value="all_low" id="scope-low" style="accent-color:var(--primary);">
-            <span>All Low Attendance Students (< {{ threshold }}%) [<strong>{{ low_attendance_count }}</strong> students]</span>
+          <label style="display:flex; align-items:center; gap:0.75rem; cursor:pointer; flex-wrap:nowrap; margin:0; text-align:left;">
+            <input type="radio" name="target_scope" value="all_low" id="scope-low" style="accent-color:var(--primary); width:18px; height:18px; flex-shrink:0; margin:0;">
+            <span style="font-size:0.9rem; font-weight:500; color:#fff;">All Low Attendance Students (&lt; {{ threshold }}%) [<strong>{{ low_attendance_count }}</strong> students]</span>
           </label>
-          <label style="display:flex; align-items:center; gap:0.5rem; cursor:pointer;">
-            <input type="radio" name="target_scope" value="all" id="scope-all" style="accent-color:var(--primary);">
-            <span>All Enrolled Students [<strong>{{ total_students }}</strong> students]</span>
+          <label style="display:flex; align-items:center; gap:0.75rem; cursor:pointer; flex-wrap:nowrap; margin:0; text-align:left;">
+            <input type="radio" name="target_scope" value="all" id="scope-all" style="accent-color:var(--primary); width:18px; height:18px; flex-shrink:0; margin:0;">
+            <span style="font-size:0.9rem; font-weight:500; color:#fff;">All Enrolled Students [<strong>{{ total_students }}</strong> students]</span>
           </label>
         </div>
       </div>
 
-      <!-- Mail Type Selector -->
-      <label style="font-weight:600; color:#fff; display:block; margin-bottom:0.5rem;">Email Category:</label>
+      <!-- Notification Type Selector -->
+      <label style="font-weight:600; color:#fff; display:block; margin-bottom:0.5rem;">Notification Type:</label>
       <div style="display:grid; grid-template-columns:1fr 1fr 1fr; gap:0.5rem; margin-bottom:1.25rem;">
-        <button type="button" class="btn mail-type-btn active" id="btn-type-low" onclick="selectMailType('low_attendance')" style="background:rgba(239,68,68,0.2); border:1px solid #ef4444; color:#ef4444; font-size:0.85rem;">
+        <button type="button" class="btn mail-type-btn active" id="btn-type-low" onclick="selectMailType('low_attendance')" style="background:rgba(239,68,68,0.2) !important; border:1px solid #ef4444 !important; color:#ef4444 !important; font-size:0.85rem;">
           ⚠️ Low Attendance Warning
         </button>
-        <button type="button" class="btn mail-type-btn" id="btn-type-absent" onclick="selectMailType('absence')" style="background:rgba(255,255,255,0.05); border:1px solid var(--border); color:var(--text-muted); font-size:0.85rem;">
+        <button type="button" class="btn mail-type-btn" id="btn-type-absent" onclick="selectMailType('absence')" style="background:rgba(255,255,255,0.05) !important; border:1px solid var(--border) !important; color:var(--text-muted) !important; font-size:0.85rem;">
           🚨 Class Absence Notice
         </button>
-        <button type="button" class="btn mail-type-btn" id="btn-type-custom" onclick="selectMailType('custom')" style="background:rgba(255,255,255,0.05); border:1px solid var(--border); color:var(--text-muted); font-size:0.85rem;">
-          📩 Custom Direct Mail
+        <button type="button" class="btn mail-type-btn" id="btn-type-custom" onclick="selectMailType('custom')" style="background:rgba(255,255,255,0.05) !important; border:1px solid var(--border) !important; color:var(--text-muted) !important; font-size:0.85rem;">
+          📩 Custom Message
         </button>
       </div>
       <input type="hidden" name="mail_type" id="input-mail-type" value="low_attendance">
@@ -254,7 +250,7 @@
       </div>
 
       <!-- Subject & Body Form -->
-      <label>Email Subject Line <span class="muted" style="font-weight:normal; font-size:0.8rem;">(Leave blank for default)</span></label>
+      <label>Notification Title <span class="muted" style="font-weight:normal; font-size:0.8rem;">(Leave blank for default)</span></label>
       <input type="text" name="subject" id="mail-subject-input" placeholder="e.g. Low Attendance Warning Notice" style="margin-bottom:1rem;">
 
       <label>Message Content / Admin Note</label>
@@ -263,7 +259,7 @@
       <div style="display:flex; justify-content:flex-end; gap:0.75rem;">
         <button type="button" class="btn btn-secondary" onclick="closeSendMailModal()">Cancel</button>
         <button type="submit" class="btn" style="background:linear-gradient(135deg, var(--primary), var(--secondary));">
-          🚀 Dispatch Emails Now
+          🔔 Send Notification
         </button>
       </div>
     </div>
@@ -350,27 +346,27 @@
     const subjInput = document.getElementById('mail-subject-input');
 
     [btnLow, btnAbsent, btnCustom].forEach(btn => {
-      btn.style.background = 'rgba(255,255,255,0.05)';
-      btn.style.borderColor = 'var(--border)';
-      btn.style.color = 'var(--text-muted)';
+      btn.style.setProperty('background', 'rgba(255,255,255,0.05)', 'important');
+      btn.style.setProperty('border-color', 'var(--border)', 'important');
+      btn.style.setProperty('color', 'var(--text-muted)', 'important');
     });
 
     if (type === 'low_attendance') {
-      btnLow.style.background = 'rgba(239,68,68,0.2)';
-      btnLow.style.borderColor = '#ef4444';
-      btnLow.style.color = '#ef4444';
+      btnLow.style.setProperty('background', 'rgba(239,68,68,0.2)', 'important');
+      btnLow.style.setProperty('border-color', '#ef4444', 'important');
+      btnLow.style.setProperty('color', '#ef4444', 'important');
       absenceFields.style.display = 'none';
       subjInput.placeholder = 'e.g. Low Attendance Warning Notice';
     } else if (type === 'absence') {
-      btnAbsent.style.background = 'rgba(249,115,22,0.2)';
-      btnAbsent.style.borderColor = '#f97316';
-      btnAbsent.style.color = '#f97316';
+      btnAbsent.style.setProperty('background', 'rgba(249,115,22,0.2)', 'important');
+      btnAbsent.style.setProperty('border-color', '#f97316', 'important');
+      btnAbsent.style.setProperty('color', '#f97316', 'important');
       absenceFields.style.display = 'block';
       subjInput.placeholder = 'e.g. Absence Alert Notice';
     } else if (type === 'custom') {
-      btnCustom.style.background = 'rgba(99,102,241,0.2)';
-      btnCustom.style.borderColor = '#6366f1';
-      btnCustom.style.color = '#a5b4fc';
+      btnCustom.style.setProperty('background', 'rgba(99,102,241,0.2)', 'important');
+      btnCustom.style.setProperty('border-color', '#6366f1', 'important');
+      btnCustom.style.setProperty('color', '#a5b4fc', 'important');
       absenceFields.style.display = 'none';
       subjInput.placeholder = 'e.g. Important Notice from Administration';
     }
