@@ -2,16 +2,18 @@
 {% block title %}Academic Timetable{% endblock %}
 
 {% block content %}
-<div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom: 1.5rem; flex-wrap:wrap; gap:1rem;">
+<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 1.75rem; flex-wrap:wrap; gap:1rem;">
   <div>
-    <h1>Academic Timetable</h1>
-    <p class="subtitle" style="margin-bottom:0;">Weekly class schedules and room assignments</p>
+    <h1 style="display:flex; align-items:center; gap:0.75rem; font-size:1.75rem; font-weight:800; margin:0 0 0.35rem 0;">
+      <span>🗓️</span> Academic Timetable
+    </h1>
+    <p class="subtitle" style="margin:0; font-size:0.9rem; color:var(--text-muted);">Weekly class schedules, room assignments, and substitute management</p>
   </div>
   <div style="display:flex; gap:0.5rem; align-items:center;">
     {% if current_user.role in ['admin', 'hod', 'director'] %}
-    <a href="{{ url_for('admin.manage_timetable', dept=selected_dept, year=selected_year) }}" class="btn btn-secondary btn-sm" style="display:inline-flex; align-items:center; gap:0.4rem;">
-      <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
-      Manage Timetable
+    <a href="{{ url_for('admin.manage_timetable', dept=selected_dept, year=selected_year) }}" class="btn btn-secondary btn-sm" style="display:inline-flex; align-items:center; gap:0.4rem; padding:0.5rem 1rem; border-radius:8px; font-weight:600; background:rgba(255,255,255,0.06) !important; border:1px solid var(--border) !important; color:#fff !important;">
+      <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"></path><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"></path></svg>
+      Manage Master Schedule
     </a>
     {% endif %}
   </div>
@@ -19,45 +21,47 @@
 
 {% if is_student %}
 {# ────────── STUDENT TIMETABLE VIEW ────────── #}
-<div class="card">
+<div class="card" style="padding:1.5rem; background:linear-gradient(145deg, rgba(30,41,59,0.5), rgba(15,23,42,0.8)); border:1px solid rgba(255,255,255,0.08); border-radius:12px;">
   <div style="display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; margin-bottom:1.25rem; gap:1rem;">
     <div>
       <div style="display:flex; align-items:center; gap:0.75rem;">
-        <h2 style="margin:0; font-size:1.2rem; color:#ffffff;">📅 Weekly Class Timetable</h2>
-        <span class="badge" style="font-size:0.85rem; font-weight:700; background:rgba(99,102,241,0.15); color:#a5b4fc; border:1px solid rgba(99,102,241,0.3);">
+        <h2 style="margin:0; font-size:1.25rem; color:#ffffff; font-weight:700;">📅 Weekly Class Timetable</h2>
+        <span class="badge" style="font-size:0.8rem; font-weight:700; background:rgba(99,102,241,0.15); color:#a5b4fc; border:1px solid rgba(99,102,241,0.3); padding:0.2rem 0.6rem; border-radius:6px;">
           {{ selected_year }}{% if selected_year == 1 %}st{% else %}nd{% endif %} Year
         </span>
       </div>
-      <p class="subtitle" style="margin:0.25rem 0 0; font-size:0.85rem;">Department: <strong style="color:var(--primary);">{{ student.department or 'MCA' }}</strong>{% if student.class_name %} · Batch: {{ student.class_name }}{% endif %}</p>
+      <p class="subtitle" style="margin:0.35rem 0 0; font-size:0.85rem; color:var(--text-muted);">Department: <strong style="color:var(--primary-light, #a5b4fc);">{{ student.department or 'MCA' }}</strong>{% if student.class_name %} · Batch: {{ student.class_name }}{% endif %}</p>
     </div>
   </div>
   <div class="table-responsive">
-    <table style="width:100%; border-collapse:collapse; min-width:700px;">
+    <table style="width:100%; border-collapse:separate; border-spacing:0; min-width:700px;">
       <thead>
-        <tr style="border-bottom:2px solid var(--border-color,#333);">
-          <th style="padding:0.65rem 0.75rem; text-align:left; font-size:0.8rem; color:var(--text-muted);">TIME SLOT</th>
+        <tr style="background:rgba(255,255,255,0.03);">
+          <th style="padding:0.85rem 1rem; text-align:left; font-size:0.75rem; font-weight:700; color:var(--text-muted); letter-spacing:0.06em; border-bottom:1px solid var(--border);">TIME SLOT</th>
           {% for day in timetable_days %}
-          <th style="padding:0.65rem 0.75rem; text-align:center; font-size:0.8rem; color:var(--text-muted);">{{ day | upper }}</th>
+          <th style="padding:0.85rem 1rem; text-align:center; font-size:0.75rem; font-weight:700; color:var(--text-muted); letter-spacing:0.06em; border-bottom:1px solid var(--border);">{{ day | upper }}</th>
           {% endfor %}
         </tr>
       </thead>
       <tbody>
         {% for row in timetable_grid %}
-        <tr style="border-bottom:1px solid rgba(255,255,255,0.06);">
-          <td style="padding:0.75rem; font-size:0.85rem; font-weight:600; white-space:nowrap; color:var(--text-muted);">{{ row.time }}</td>
+        <tr>
+          <td style="padding:1rem; font-size:0.85rem; font-weight:600; white-space:nowrap; color:#94a3b8; border-bottom:1px solid rgba(255,255,255,0.05);">{{ row.time }}</td>
           {% for day in timetable_days %}
             {% set slot = row.days[day] %}
-            <td style="padding:0.65rem; text-align:center; vertical-align:middle;">
+            <td style="padding:0.65rem; text-align:center; vertical-align:middle; border-bottom:1px solid rgba(255,255,255,0.05);">
               {% if slot and slot.subject %}
-                <div style="border-radius:8px; padding:0.6rem 0.75rem; background:rgba(99,102,241,0.1); border:1px solid rgba(99,102,241,0.25);">
-                  <div style="font-weight:600; font-size:0.88rem; color:#c7d2fe;">{{ slot.subject.name }}</div>
-                  <div style="font-size:0.75rem; color:var(--text-muted); margin-top:2px;">{{ slot.subject.code }}</div>
+                <div style="border-radius:10px; padding:0.75rem 0.85rem; background:linear-gradient(135deg, rgba(99,102,241,0.12), rgba(79,70,229,0.05)); border:1px solid rgba(99,102,241,0.25); text-align:center;">
+                  <div style="font-weight:700; font-size:0.88rem; color:#e0e7ff;">{{ slot.subject.name }}</div>
+                  <div style="font-size:0.75rem; color:#93c5fd; margin-top:3px; font-weight:600;">{{ slot.subject.code }}</div>
                   {% if slot.subject.faculty %}
-                  <div style="font-size:0.75rem; color:var(--text-muted); margin-top:3px;">{{ slot.subject.faculty.username }}</div>
+                  <div style="font-size:0.73rem; color:var(--text-muted); margin-top:4px; display:flex; align-items:center; justify-content:center; gap:0.25rem;">
+                    <span>👨‍🏫</span> {{ slot.subject.faculty.username }}
+                  </div>
                   {% endif %}
                 </div>
               {% else %}
-                <span style="font-size:0.85rem; color:rgba(255,255,255,0.2);">—</span>
+                <span style="font-size:0.85rem; color:rgba(255,255,255,0.15); font-weight:500;">—</span>
               {% endif %}
             </td>
           {% endfor %}
@@ -72,16 +76,18 @@
 {# ────────── STAFF / FACULTY / HOD / ADMIN / DIRECTOR TIMETABLE VIEW ────────── #}
 
 <!-- Today's Schedule -->
-<div class="card" style="margin-bottom:2rem; border-left: 4px solid var(--primary-color);">
-  <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem; margin-bottom:1rem;">
+<div class="card" style="margin-bottom:2rem; padding:1.5rem; background:linear-gradient(145deg, rgba(30,41,59,0.6), rgba(15,23,42,0.8)); border:1px solid rgba(255,255,255,0.08); border-left: 4px solid var(--primary, #6366f1); border-radius:12px;">
+  <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:1rem; margin-bottom:1.25rem;">
     <div>
-      <h2 style="margin-bottom:0.25rem;">Today's Schedule ({{ today_day_name }}, {{ today_date.strftime('%b %d, %Y') }})</h2>
-      <p class="subtitle" style="margin-bottom:0;">Classes scheduled for you today</p>
+      <h2 style="margin:0 0 0.25rem 0; font-size:1.25rem; font-weight:700; color:#fff; display:flex; align-items:center; gap:0.5rem;">
+        <span>📌</span> Today's Schedule <span style="font-size:0.85rem; font-weight:500; color:var(--text-muted);">({{ today_day_name }}, {{ today_date.strftime('%b %d, %Y') }})</span>
+      </h2>
+      <p class="subtitle" style="margin:0; font-size:0.85rem; color:var(--text-muted);">Classes assigned to you for conduct today</p>
     </div>
     <div>
       {% if not is_on_leave_today %}
-      <a class="btn btn-sm" href="{{ url_for('attendance.new_session') }}">
-        <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
+      <a class="btn btn-primary btn-sm" href="{{ url_for('attendance.new_session') }}" style="padding:0.5rem 1rem; border-radius:8px; font-weight:600; background:linear-gradient(135deg, #4f46e5, #6366f1) !important; color:#fff !important; border:none !important; box-shadow:0 4px 12px rgba(79,70,229,0.35);">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><polyline points="12 6 12 12 16 14"></polyline></svg>
         Start Class Attendance
       </a>
       {% endif %}
@@ -89,83 +95,85 @@
   </div>
 
   {% if is_on_leave_today %}
-    <div style="padding: 1rem 1.25rem; border-radius: 8px; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); display: flex; align-items: center; gap: 0.75rem; color: #ef4444; margin-bottom: 0.5rem;">
-      <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
+    <div style="padding: 1rem 1.25rem; border-radius: 10px; background: rgba(239, 68, 68, 0.1); border: 1px solid rgba(239, 68, 68, 0.3); display: flex; align-items: center; gap: 0.75rem; color: #ef4444; margin-bottom: 0.5rem;">
+      <svg viewBox="0 0 24 24" width="22" height="22" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg>
       <div>
-        <strong>You have an active leave application / are marked absent today.</strong>
-        <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 2px;">You cannot conduct classes today. Your classes are released and open for substitute claims.</div>
+        <strong style="font-size:0.95rem;">You have an active leave application / are marked absent today.</strong>
+        <div style="font-size: 0.85rem; color: var(--text-muted); margin-top: 2px;">Your classes are released and open for substitute faculty to claim.</div>
       </div>
     </div>
   {% else %}
     {% set my_today_slots = today_schedule | selectattr('is_mine', 'equalto', True) | list %}
     {% if my_today_slots %}
-      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 1rem;">
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(230px, 1fr)); gap: 1rem;">
         {% for slot in my_today_slots %}
-          <div style="padding: 1rem; border-radius: 8px; background: rgba(59, 130, 246, 0.08); border: 1px solid rgba(59, 130, 246, 0.25);">
-            <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:0.5rem;">
-              <span class="badge badge-muted" style="font-weight:600; font-size:0.75rem;">{{ slot.time }}</span>
-              {% if slot.is_claimed %}
-                <span class="badge" style="background:#10b981; color:#fff; font-size:0.7rem;">Substitute Claim</span>
-              {% endif %}
+          <div style="padding: 1.1rem; border-radius: 10px; background: linear-gradient(135deg, rgba(59, 130, 246, 0.12), rgba(37, 99, 235, 0.05)); border: 1px solid rgba(59, 130, 246, 0.3); display:flex; flex-direction:column; justify-content:space-between;">
+            <div>
+              <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:0.6rem;">
+                <span style="font-weight:700; font-size:0.78rem; color:#60a5fa; background:rgba(59,130,246,0.15); padding:0.2rem 0.52rem; border-radius:6px; border:1px solid rgba(59,130,246,0.3);">🕒 {{ slot.time }}</span>
+                {% if slot.is_claimed %}
+                  <span class="badge" style="background:#10b981; color:#fff; font-size:0.7rem; padding:0.15rem 0.5rem; border-radius:6px;">Substitute Claim</span>
+                {% endif %}
+              </div>
+              <div style="font-weight: 700; font-size: 1.05rem; color: #ffffff;">{{ slot.subject }}</div>
+              {% if slot.code %}<div style="font-size:0.8rem; color:#93c5fd; margin-top:2px; font-weight:600;">{{ slot.code }}</div>{% endif %}
             </div>
-            <div style="font-weight: 700; font-size: 1.05rem; color: #3b82f6;">{{ slot.subject }}</div>
-            {% if slot.code %}<div style="font-size:0.8rem; color:var(--text-muted); margin-top:2px;">{{ slot.code }}</div>{% endif %}
-            <div style="margin-top: 0.75rem;">
-              <a href="{{ url_for('attendance.new_session', subject_id=slot.subject_id, class_name=slot.department) if slot.subject_id else url_for('attendance.new_session') }}" class="btn btn-sm" style="font-size:0.75rem; padding:0.25rem 0.6rem; width:100%;">Take Attendance</a>
+            <div style="margin-top: 1rem;">
+              <a href="{{ url_for('attendance.new_session', subject_id=slot.subject_id, class_name=slot.department) if slot.subject_id else url_for('attendance.new_session') }}" class="btn btn-sm" style="font-size:0.8rem; font-weight:600; padding:0.45rem 0.8rem; width:100%; border-radius:6px; background:linear-gradient(135deg, #3b82f6, #2563eb) !important; color:#fff !important; border:none !important;">Take Attendance</a>
             </div>
           </div>
         {% endfor %}
       </div>
     {% else %}
-      <div style="padding: 1.25rem; background: rgba(255,255,255,0.02); border-radius: 6px; text-align:center;">
-        <p class="muted" style="margin:0;">You have no classes directly assigned to you for today.</p>
+      <div style="padding: 1.5rem; background: rgba(255,255,255,0.02); border-radius: 8px; text-align:center; border:1px dashed var(--border);">
+        <p class="muted" style="margin:0; font-size:0.9rem; color:var(--text-muted);">☕ You have no classes directly assigned to you for today.</p>
       </div>
     {% endif %}
   {% endif %}
 </div>
 
 <!-- Master Timetable Grid -->
-<div class="card" id="weekly-timetable">
-  <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; margin-bottom:1.25rem; gap: 1rem;">
+<div class="card" id="weekly-timetable" style="padding:1.5rem; background:linear-gradient(145deg, rgba(30,41,59,0.5), rgba(15,23,42,0.8)); border:1px solid rgba(255,255,255,0.08); border-radius:12px;">
+  <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; margin-bottom:1.5rem; gap: 1rem;">
     <div>
       <div style="display:flex; align-items:center; gap:0.75rem;">
-        <h2 style="margin: 0; font-size:1.2rem; color:#ffffff;">📅 Academic Master Timetable</h2>
-        <span class="badge" style="font-size:0.85rem; font-weight:700; background:rgba(59,130,246,0.15); color:#60a5fa; border:1px solid rgba(59,130,246,0.3);">
+        <h2 style="margin: 0; font-size:1.25rem; font-weight:700; color:#ffffff;">📅 Academic Master Timetable</h2>
+        <span class="badge" style="font-size:0.8rem; font-weight:700; background:rgba(59,130,246,0.15); color:#60a5fa; border:1px solid rgba(59,130,246,0.3); padding:0.25rem 0.65rem; border-radius:6px;">
           {{ selected_dept }} ({{ selected_year }}{% if selected_year == 1 %}st{% else %}nd{% endif %} Year)
         </span>
       </div>
-      <p class="subtitle" style="margin:0.25rem 0 0; font-size:0.85rem;">Standard weekly class schedule (Monday to Friday)</p>
+      <p class="subtitle" style="margin:0.35rem 0 0; font-size:0.85rem; color:var(--text-muted);">Standard weekly class schedule (Monday to Friday)</p>
     </div>
 
-    <div style="display:flex; align-items:center; flex-wrap:wrap; gap:0.65rem;">
+    <div style="display:flex; align-items:center; flex-wrap:wrap; gap:0.75rem;">
       <!-- Department Selector (MCA / MBA) -->
       {% if current_user.role in ['admin', 'director'] %}
-      <div style="display:flex; align-items:center; gap:0.35rem; background:var(--bg-card); padding:4px; border-radius:8px; border:1px solid var(--border);">
-        <span style="font-size:0.78rem; font-weight:600; color:var(--text-muted); padding:0 0.35rem;">Course:</span>
+      <div style="display:flex; align-items:center; gap:0.35rem; background:rgba(15,23,42,0.9); padding:4px 6px; border-radius:8px; border:1px solid var(--border);">
+        <span style="font-size:0.75rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; padding:0 0.35rem;">Course:</span>
         <a href="{{ url_for('dashboard.timetable_view', dept='MCA', year=selected_year, date=current_date_str) }}" 
            class="btn btn-sm {% if selected_dept == 'MCA' %}btn-primary{% else %}btn-secondary{% endif %}"
-           style="padding:0.35rem 0.8rem; font-weight:600; border-radius:6px;">
+           style="padding:0.35rem 0.85rem; font-weight:700; font-size:0.8rem; border-radius:6px; {% if selected_dept == 'MCA' %}background:#4f46e5 !important; color:#fff !important; border-color:#4f46e5 !important;{% else %}background:transparent !important; color:var(--text-muted) !important; border-color:transparent !important;{% endif %}">
           MCA
         </a>
         <a href="{{ url_for('dashboard.timetable_view', dept='MBA', year=selected_year, date=current_date_str) }}" 
            class="btn btn-sm {% if selected_dept == 'MBA' %}btn-primary{% else %}btn-secondary{% endif %}"
-           style="padding:0.35rem 0.8rem; font-weight:600; border-radius:6px;">
+           style="padding:0.35rem 0.85rem; font-weight:700; font-size:0.8rem; border-radius:6px; {% if selected_dept == 'MBA' %}background:#4f46e5 !important; color:#fff !important; border-color:#4f46e5 !important;{% else %}background:transparent !important; color:var(--text-muted) !important; border-color:transparent !important;{% endif %}">
           MBA
         </a>
       </div>
       {% endif %}
 
       <!-- Year Selector (1st Year / 2nd Year) -->
-      <div style="display:flex; align-items:center; gap:0.35rem; background:var(--bg-card); padding:4px; border-radius:8px; border:1px solid var(--border);">
-        <span style="font-size:0.78rem; font-weight:600; color:var(--text-muted); padding:0 0.35rem;">Year:</span>
+      <div style="display:flex; align-items:center; gap:0.35rem; background:rgba(15,23,42,0.9); padding:4px 6px; border-radius:8px; border:1px solid var(--border);">
+        <span style="font-size:0.75rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; padding:0 0.35rem;">Year:</span>
         <a href="{{ url_for('dashboard.timetable_view', dept=selected_dept, year=1, date=current_date_str) }}" 
            class="btn btn-sm {% if selected_year == 1 %}btn-primary{% else %}btn-secondary{% endif %}"
-           style="padding:0.35rem 0.85rem; font-weight:600; border-radius:6px;">
+           style="padding:0.35rem 0.85rem; font-weight:700; font-size:0.8rem; border-radius:6px; {% if selected_year == 1 %}background:#4f46e5 !important; color:#fff !important; border-color:#4f46e5 !important;{% else %}background:transparent !important; color:var(--text-muted) !important; border-color:transparent !important;{% endif %}">
           1st Year
         </a>
         <a href="{{ url_for('dashboard.timetable_view', dept=selected_dept, year=2, date=current_date_str) }}" 
            class="btn btn-sm {% if selected_year == 2 %}btn-primary{% else %}btn-secondary{% endif %}"
-           style="padding:0.35rem 0.85rem; font-weight:600; border-radius:6px;">
+           style="padding:0.35rem 0.85rem; font-weight:700; font-size:0.8rem; border-radius:6px; {% if selected_year == 2 %}background:#4f46e5 !important; color:#fff !important; border-color:#4f46e5 !important;{% else %}background:transparent !important; color:var(--text-muted) !important; border-color:transparent !important;{% endif %}">
           2nd Year
         </a>
       </div>
@@ -173,12 +181,12 @@
   </div>
 
   <div class="table-responsive">
-    <table style="width:100%; border-collapse:collapse; min-width:800px;">
+    <table style="width:100%; border-collapse:separate; border-spacing:0; min-width:850px;">
       <thead>
-        <tr style="border-bottom: 2px solid var(--border-color, #eee);">
-          <th style="width:12%; padding:0.75rem; text-align:left;">TIME SLOT</th>
+        <tr style="background:rgba(255,255,255,0.02);">
+          <th style="width:12%; padding:0.85rem 1rem; text-align:left; font-size:0.75rem; font-weight:700; color:var(--text-muted); letter-spacing:0.06em; border-bottom:1px solid var(--border);">TIME SLOT</th>
           {% for day in timetable_days %}
-          <th style="width:17.6%; padding:0.75rem; text-align:center;">
+          <th style="width:17.6%; padding:0.85rem 1rem; text-align:center; font-size:0.75rem; font-weight:700; color:var(--text-muted); letter-spacing:0.06em; border-bottom:1px solid var(--border);">
             {{ day | upper }}
           </th>
           {% endfor %}
@@ -186,53 +194,52 @@
       </thead>
       <tbody>
         {% for row in timetable_grid %}
-        <tr style="border-bottom: 1px solid var(--border-color, #eee);">
-          <td style="padding:1rem 0.75rem; font-weight:600; font-size:0.875rem; vertical-align:middle;">
-            {{ row.time }}
+        <tr>
+          <td style="padding:1rem; font-weight:700; font-size:0.85rem; vertical-align:middle; color:#94a3b8; border-bottom:1px solid rgba(255,255,255,0.05);">
+            🕒 {{ row.time }}
           </td>
           {% for day in timetable_days %}
             {% set cell = row.days[day] %}
             {% set is_my_subject = (cell.faculty and cell.faculty.id == current_user.id and not cell.is_absent) %}
             {% set is_today = (cell.cell_date == current_date_str) %}
-            <td style="padding:0.75rem; text-align:center; vertical-align:top;
-                       {% if is_my_subject %}background-color: rgba(59, 130, 246, 0.1); border: 2px solid rgba(59, 130, 246, 0.4); border-radius: 8px;{% endif %}
-                       {% if is_today and not is_my_subject %}background-color: rgba(245, 158, 11, 0.05); border: 2px solid rgba(245, 158, 11, 0.3); border-radius: 8px;{% endif %}">
+            <td style="padding:0.65rem; text-align:center; vertical-align:top; border-bottom:1px solid rgba(255,255,255,0.05);
+                       {% if is_my_subject %}background: rgba(59, 130, 246, 0.08); border-radius: 8px;{% endif %}">
               {% if cell.slot %}
                 {% if cell.is_claimed %}
-                  <div style="padding:0.4rem; border-radius:6px; background-color:rgba(16, 185, 129, 0.08); border:1px solid rgba(16, 185, 129, 0.3);">
-                    <div style="font-weight:600; font-size:0.85rem; color:#10b981;">
+                  <div style="padding:0.6rem; border-radius:8px; background:rgba(16, 185, 129, 0.1); border:1px solid rgba(16, 185, 129, 0.3);">
+                    <div style="font-weight:700; font-size:0.85rem; color:#10b981;">
                       {{ cell.subject.name if cell.subject else 'Class' }}
                     </div>
-                    <div style="font-size:0.75rem; color:var(--text-muted); margin-top:2px;">
-                      Substitute: <strong>{{ cell.faculty.username if cell.faculty else 'Self' }}</strong>
+                    <div style="font-size:0.73rem; color:var(--text-muted); margin-top:3px;">
+                      Substitute: <strong style="color:#6ee7b7;">{{ cell.faculty.username if cell.faculty else 'Self' }}</strong>
                     </div>
                     {% if cell.can_release %}
-                      <form method="POST" action="{{ url_for('dashboard.release_slot', claim_id=cell.claim_id) }}" style="margin-top:0.4rem;">
-                        <button type="submit" class="btn btn-sm btn-secondary" style="font-size:0.7rem; padding:0.2rem 0.5rem; width:100%;" title="Release re-assignment">Release / Revert</button>
+                      <form method="POST" action="{{ url_for('dashboard.release_slot', claim_id=cell.claim_id) }}" style="margin-top:0.5rem;">
+                        <button type="submit" class="btn btn-sm btn-secondary" style="font-size:0.7rem; padding:0.25rem 0.5rem; width:100%; border-radius:5px; background:rgba(255,255,255,0.08) !important; color:#e2e8f0 !important; border:1px solid var(--border) !important;" title="Release re-assignment">Release / Revert</button>
                       </form>
                     {% endif %}
                   </div>
                 {% elif cell.is_absent %}
-                  <div style="padding:0.5rem; border-radius:6px; background-color:rgba(239, 68, 68, 0.08); border:1px solid rgba(239, 68, 68, 0.35);">
-                    <div class="badge" style="background:rgba(239,68,68,0.2); color:#ef4444; border:1px solid rgba(239,68,68,0.4); font-size:0.72rem; font-weight:700; padding:2px 6px;">On Leave / Absent</div>
+                  <div style="padding:0.6rem; border-radius:8px; background:rgba(239, 68, 68, 0.08); border:1px solid rgba(239, 68, 68, 0.3);">
+                    <span class="badge" style="background:rgba(239,68,68,0.2); color:#ef4444; border:1px solid rgba(239,68,68,0.4); font-size:0.7rem; font-weight:700; padding:2px 6px; border-radius:4px;">On Leave / Absent</span>
                     {% if cell.default_subject %}
-                      <div style="font-weight:700; font-size:0.875rem; color:#ffffff; margin-top:0.35rem;">{{ cell.default_subject.name }}</div>
-                      <div style="font-size:0.75rem; color:var(--text-muted); margin-bottom:0.35rem;">
+                      <div style="font-weight:700; font-size:0.85rem; color:#ffffff; margin-top:0.4rem;">{{ cell.default_subject.name }}</div>
+                      <div style="font-size:0.73rem; color:var(--text-muted); margin-bottom:0.4rem;">
                         {{ cell.default_faculty.username if cell.default_faculty else 'Faculty' }} ({{ cell.default_subject.code }})
                       </div>
                     {% else %}
-                      <div style="font-weight:600; color:rgba(239, 68, 68, 0.8); font-size:0.825rem; margin:0.35rem 0;">Lecturer Absent</div>
+                      <div style="font-weight:600; color:rgba(239, 68, 68, 0.85); font-size:0.82rem; margin:0.4rem 0;">Lecturer Absent</div>
                     {% endif %}
 
                     {% if current_user.role in ['hod', 'director', 'admin'] %}
-                      <form method="POST" action="{{ url_for('dashboard.claim_slot') }}" style="margin:0.3rem 0 0 0;">
+                      <form method="POST" action="{{ url_for('dashboard.claim_slot') }}" style="margin:0.4rem 0 0 0;">
                         <input type="hidden" name="slot_id" value="{{ cell.slot.id }}">
                         <input type="hidden" name="claim_date" value="{{ cell.cell_date }}">
                         {% if cell.default_subject %}
                           <input type="hidden" name="subject_id" value="{{ cell.default_subject.id }}">
                         {% endif %}
                         
-                        <select name="assignee_id" class="form-control" style="font-size:0.75rem; padding:0.2rem; margin-bottom:0.25rem; width:100%; border-radius:4px;" required>
+                        <select name="assignee_id" class="form-control" style="font-size:0.75rem; padding:0.35rem 0.4rem; margin-bottom:0.4rem; width:100%; border-radius:6px; background:#09090b; border:1px solid var(--border); color:#fff;" required>
                           <option value="{{ current_user.id }}">Assign to Me ({{ current_user.username }})</option>
                           {% for fac in department_faculty %}
                             {% if fac.id != current_user.id and fac.id != cell.default_faculty.id %}
@@ -240,16 +247,16 @@
                             {% endif %}
                           {% endfor %}
                         </select>
-                        <button type="submit" class="btn btn-sm" style="font-size:0.725rem; padding:0.2rem 0.4rem; width:100%; background:#ef4444; border-color:#ef4444;">Assign Substitute</button>
+                        <button type="submit" class="btn btn-sm btn-danger" style="font-size:0.73rem; font-weight:600; padding:0.35rem 0.5rem; width:100%; border-radius:6px;">Assign Substitute</button>
                       </form>
                     {% elif cell.claimable %}
-                      <form method="POST" action="{{ url_for('dashboard.claim_slot') }}" style="margin:0.3rem 0 0 0;">
+                      <form method="POST" action="{{ url_for('dashboard.claim_slot') }}" style="margin:0.4rem 0 0 0;">
                         <input type="hidden" name="slot_id" value="{{ cell.slot.id }}">
                         <input type="hidden" name="claim_date" value="{{ cell.cell_date }}">
                         {% if cell.default_subject %}
                           <input type="hidden" name="subject_id" value="{{ cell.default_subject.id }}">
                         {% elif my_subjects | length > 1 %}
-                          <select name="subject_id" class="form-control" style="font-size:0.75rem; padding:0.2rem; margin-bottom:0.25rem; width:100%;" required>
+                          <select name="subject_id" class="form-control" style="font-size:0.75rem; padding:0.35rem 0.4rem; margin-bottom:0.4rem; width:100%; border-radius:6px; background:#09090b; border:1px solid var(--border); color:#fff;" required>
                             {% for sub in my_subjects %}
                               <option value="{{ sub.id }}">{{ sub.name }}</option>
                             {% endfor %}
@@ -257,7 +264,7 @@
                         {% elif my_subjects | length == 1 %}
                           <input type="hidden" name="subject_id" value="{{ my_subjects[0].id }}">
                         {% endif %}
-                        <button type="submit" class="btn btn-sm" style="font-size:0.75rem; padding:0.25rem 0.5rem; width:100%; background:#10b981; border-color:#10b981;">Claim Class</button>
+                        <button type="submit" class="btn btn-sm btn-success" style="font-size:0.75rem; font-weight:600; padding:0.35rem 0.5rem; width:100%; border-radius:6px;">Claim Class</button>
                       </form>
                     {% elif cell.default_faculty and current_user.id == cell.default_faculty.id %}
                       <div style="font-size:0.72rem; color:#ef4444; font-weight:600; margin-top:2px;">(Your leave · Up for claim)</div>
@@ -266,12 +273,12 @@
                     {% endif %}
                   </div>
                 {% elif current_user.role in ['hod', 'director', 'admin'] %}
-                  <div style="padding:0.4rem; border-radius:6px; background-color:rgba(59, 130, 246, 0.05); border:1px solid rgba(59, 130, 246, 0.2);">
+                  <div style="padding:0.6rem; border-radius:8px; background:rgba(30,41,59,0.5); border:1px solid rgba(255,255,255,0.08);">
                     {% if cell.subject %}
-                      <div style="font-weight:600; font-size:0.85rem; color:#e2e8f0;">{{ cell.subject.name }}</div>
-                      <div style="font-size:0.75rem; color:var(--text-muted); margin-bottom:0.3rem;">Default: {{ cell.faculty.username if cell.faculty else 'None' }}</div>
+                      <div style="font-weight:700; font-size:0.85rem; color:#e2e8f0; margin-bottom:2px;">{{ cell.subject.name }}</div>
+                      <div style="font-size:0.73rem; color:var(--text-muted); margin-bottom:0.4rem;">Default: <span style="color:#cbd5e1; font-weight:500;">{{ cell.faculty.username if cell.faculty else 'None' }}</span></div>
                     {% else %}
-                      <div style="font-weight:600; color:rgba(239, 68, 68, 0.8); font-size:0.825rem; margin-bottom:0.3rem;">Empty Slot</div>
+                      <div style="font-weight:600; color:var(--text-muted); font-size:0.82rem; margin-bottom:0.4rem;">Empty Slot</div>
                     {% endif %}
 
                     <form method="POST" action="{{ url_for('dashboard.claim_slot') }}" style="margin:0;">
@@ -281,7 +288,7 @@
                         <input type="hidden" name="subject_id" value="{{ cell.subject.id }}">
                       {% endif %}
                       
-                      <select name="assignee_id" class="form-control" style="font-size:0.75rem; padding:0.2rem; margin-bottom:0.25rem; width:100%; border-radius:4px;" required>
+                      <select name="assignee_id" class="form-control" style="font-size:0.75rem; padding:0.35rem 0.4rem; margin-bottom:0.45rem; width:100%; border-radius:6px; background:#09090b; border:1px solid var(--border); color:#fff;" required>
                         <option value="{{ current_user.id }}">Assign to Me ({{ current_user.username }})</option>
                         {% for fac in department_faculty %}
                           {% if fac.id != current_user.id %}
@@ -289,18 +296,18 @@
                           {% endif %}
                         {% endfor %}
                       </select>
-                      <button type="submit" class="btn btn-sm" style="font-size:0.725rem; padding:0.2rem 0.4rem; width:100%;">Reassign Class</button>
+                      <button type="submit" class="btn btn-sm btn-secondary" style="font-size:0.73rem; font-weight:600; padding:0.35rem 0.5rem; width:100%; border-radius:6px; background:rgba(255,255,255,0.08) !important; color:#fff !important; border:1px solid var(--border) !important;">Reassign Class</button>
                     </form>
                   </div>
                 {% elif cell.is_empty %}
-                  <div style="padding:0.5rem; border-radius:6px; background-color:rgba(255, 255, 255, 0.02); border:1px dashed rgba(255, 255, 255, 0.15);">
-                    <div style="font-weight:600; color:var(--text-muted); font-size:0.825rem;">Empty Slot</div>
+                  <div style="padding:0.6rem; border-radius:8px; background:rgba(255, 255, 255, 0.015); border:1px dashed rgba(255, 255, 255, 0.12);">
+                    <div style="font-weight:600; color:var(--text-muted); font-size:0.82rem;">Empty Slot</div>
                     {% if cell.claimable %}
-                      <form method="POST" action="{{ url_for('dashboard.claim_slot') }}" style="margin: 0.5rem 0 0 0;">
+                      <form method="POST" action="{{ url_for('dashboard.claim_slot') }}" style="margin: 0.4rem 0 0 0;">
                         <input type="hidden" name="slot_id" value="{{ cell.slot.id }}">
                         <input type="hidden" name="claim_date" value="{{ cell.cell_date }}">
                         {% if my_subjects | length > 1 %}
-                          <select name="subject_id" class="form-control" style="font-size:0.75rem; padding:0.2rem; margin-bottom:0.25rem; width:100%;" required>
+                          <select name="subject_id" class="form-control" style="font-size:0.75rem; padding:0.35rem 0.4rem; margin-bottom:0.4rem; width:100%; border-radius:6px; background:#09090b; border:1px solid var(--border); color:#fff;" required>
                             {% for sub in my_subjects %}
                               <option value="{{ sub.id }}">{{ sub.name }}</option>
                             {% endfor %}
@@ -308,27 +315,27 @@
                         {% elif my_subjects | length == 1 %}
                           <input type="hidden" name="subject_id" value="{{ my_subjects[0].id }}">
                         {% endif %}
-                        <button type="submit" class="btn btn-sm" style="font-size:0.75rem; padding:0.25rem 0.5rem; width:100%;">Claim Slot</button>
+                        <button type="submit" class="btn btn-sm btn-primary" style="font-size:0.75rem; font-weight:600; padding:0.35rem 0.5rem; width:100%; border-radius:6px;">Claim Slot</button>
                       </form>
                     {% else %}
-                      <div class="subtitle" style="font-size:0.75rem; margin-top:2px;">Free Period</div>
+                      <div class="subtitle" style="font-size:0.73rem; margin-top:3px; color:var(--text-muted);">Free Period</div>
                     {% endif %}
                   </div>
                 {% else %}
-                  <div style="padding:0.25rem;">
-                    <div style="font-weight:600; font-size:0.9rem; {% if is_my_subject %}color: #2563eb;{% endif %}">
+                  <div style="padding:0.4rem;">
+                    <div style="font-weight:700; font-size:0.88rem; {% if is_my_subject %}color: #60a5fa;{% else %}color: #f1f5f9;{% endif %}">
                       {{ cell.subject.name }}
                     </div>
-                    <div style="font-size:0.75rem; color:var(--text-muted, #666); margin-top:2px;">
+                    <div style="font-size:0.75rem; color:#93c5fd; margin-top:2px; font-weight:600;">
                       {{ cell.subject.code }}
                     </div>
-                    <div style="font-size:0.75rem; margin-top:4px;">
-                      <span class="badge badge-muted" style="font-size:0.7rem; padding:2px 6px;">{{ cell.faculty.username if cell.faculty else 'No faculty' }}</span>
+                    <div style="font-size:0.73rem; margin-top:5px;">
+                      <span class="badge" style="font-size:0.7rem; padding:2px 7px; background:rgba(255,255,255,0.06); color:#cbd5e1; border:1px solid rgba(255,255,255,0.1); border-radius:4px;">{{ cell.faculty.username if cell.faculty else 'No faculty' }}</span>
                     </div>
                   </div>
                 {% endif %}
               {% else %}
-                <span class="muted" style="font-size:0.8rem;">—</span>
+                <span class="muted" style="font-size:0.85rem; color:rgba(255,255,255,0.15);">—</span>
               {% endif %}
             </td>
           {% endfor %}
