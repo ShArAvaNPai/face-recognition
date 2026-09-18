@@ -1,0 +1,194 @@
+{% extends "base.html" %}
+{% block title %}Edit Student Attendance Counts{% endblock %}
+
+{% block content %}
+<div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 2rem; flex-wrap:wrap; gap:1rem;">
+  <div>
+    <h1 style="display:flex; align-items:center; gap:0.75rem;">
+      <span>✏️</span> Edit Student Attendance Counts
+    </h1>
+    <p class="subtitle" style="margin-bottom:0;">Directly adjust the number of days/classes attended by students per subject. Changes take effect system-wide instantly.</p>
+  </div>
+  <div style="display:flex; gap:0.5rem; flex-wrap:wrap;">
+    <a href="{{ url_for('reports.index') }}" class="btn btn-secondary btn-sm" style="display:inline-flex; align-items:center; gap:0.4rem;">
+      📊 View Attendance Reports
+    </a>
+  </div>
+</div>
+
+{# Filter & Search Bar #}
+<div class="card" style="margin-bottom:1.75rem; padding:1.25rem; background:#09090b; border:1px solid #27272a; border-radius:12px;">
+  <form method="GET" action="{{ url_for('admin.edit_attendance_counts') }}" style="display:flex; gap:1rem; align-items:flex-end; flex-wrap:wrap;">
+    
+    {# Search Query #}
+    <div style="flex:1.5; min-width:200px;">
+      <label class="form-label" style="font-size:0.8rem; font-weight:700; color:var(--text-muted); margin-bottom:0.4rem; display:block;">SEARCH STUDENT</label>
+      <input type="text" name="q" value="{{ search_query }}" placeholder="Search by student name or roll..." class="form-control" style="font-size:0.85rem; padding:0.45rem 0.8rem; background:#121215; border:1px solid #27272a; color:#fff; border-radius:6px; width:100%;">
+    </div>
+
+    {# Department Filter #}
+    <div style="flex:1; min-width:160px;">
+      <label class="form-label" style="font-size:0.8rem; font-weight:700; color:var(--text-muted); margin-bottom:0.4rem; display:block;">DEPARTMENT</label>
+      <select name="dept" id="dept-filter-select" class="form-control" onchange="filterSubjectsByDept()" style="font-size:0.85rem; padding:0.45rem 0.8rem; background:#121215; border:1px solid #27272a; color:#fff; border-radius:6px; width:100%;">
+        <option value="">All Departments</option>
+        {% for d in departments %}
+        <option value="{{ d }}" {% if selected_dept == d %}selected{% endif %}>{{ d }}</option>
+        {% endfor %}
+      </select>
+    </div>
+
+    {# Subject Filter #}
+    <div style="flex:1.5; min-width:200px;">
+      <label class="form-label" style="font-size:0.8rem; font-weight:700; color:var(--text-muted); margin-bottom:0.4rem; display:block;">SUBJECT</label>
+      <select name="subject_id" id="subject-filter-select" class="form-control" style="font-size:0.85rem; padding:0.45rem 0.8rem; background:#121215; border:1px solid #27272a; color:#fff; border-radius:6px; width:100%;">
+        <option value="">All Subjects</option>
+        {% for sub in all_subjects %}
+        <option value="{{ sub.id }}" data-dept="{{ sub.department or '' }}" {% if selected_subject_id == sub.id %}selected{% endif %}>
+          {{ sub.code }} — {{ sub.name }} {% if sub.department %}({{ sub.department }}){% endif %}
+        </option>
+        {% endfor %}
+      </select>
+    </div>
+
+    <div>
+      <button type="submit" class="btn btn-primary" style="padding:0.45rem 1.25rem; font-size:0.85rem; font-weight:700; background:#ffffff !important; color:#000000 !important; border:none !important; border-radius:6px;">
+        Filter Records
+      </button>
+      {% if search_query or selected_dept or selected_subject_id %}
+      <a href="{{ url_for('admin.edit_attendance_counts') }}" class="btn btn-secondary btn-sm" style="margin-left:0.35rem; padding:0.45rem 0.85rem; font-size:0.85rem;">Clear</a>
+      {% endif %}
+    </div>
+  </form>
+</div>
+
+{# Attendance Edit Table #}
+<div class="card card-table" style="background:#09090b; border:1px solid #27272a; border-radius:12px; overflow:hidden;">
+  <div class="card-table-header" style="padding:1.25rem 1.5rem; border-bottom:1px solid #27272a; display:flex; justify-content:space-between; align-items:center;">
+    <h2 style="margin:0; font-size:1.1rem; font-weight:700; color:#ffffff;">Student Attendance Records</h2>
+    <span class="badge" style="background:rgba(255,255,255,0.08); color:#e2e8f0; font-weight:600; padding:0.25rem 0.65rem;">
+      {{ edit_rows | length }} record(s) found
+    </span>
+  </div>
+
+  <div class="table-responsive">
+    <table style="width:100%; border-collapse:collapse; min-width:900px;">
+      <thead>
+        <tr style="background:#121215; border-bottom:1px solid #27272a;">
+          <th style="padding:0.85rem 1rem; text-align:left; font-size:0.75rem; font-weight:700; color:var(--text-muted); text-transform:uppercase;">Student</th>
+          <th style="padding:0.85rem 1rem; text-align:left; font-size:0.75rem; font-weight:700; color:var(--text-muted); text-transform:uppercase;">Dept</th>
+          <th style="padding:0.85rem 1rem; text-align:left; font-size:0.75rem; font-weight:700; color:var(--text-muted); text-transform:uppercase;">Subject</th>
+          <th style="padding:0.85rem 1rem; text-align:center; font-size:0.75rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; width:130px;">Classes Attended</th>
+          <th style="padding:0.85rem 1rem; text-align:center; font-size:0.75rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; width:120px;">Total Sessions</th>
+          <th style="padding:0.85rem 1rem; text-align:center; font-size:0.75rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; width:110px;">Current %</th>
+          <th style="padding:0.85rem 1rem; text-align:right; font-size:0.75rem; font-weight:700; color:var(--text-muted); text-transform:uppercase; width:120px;">Action</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in edit_rows %}
+        {% set s = r.student %}
+        {% set sub = r.subject %}
+        <tr style="border-bottom:1px solid rgba(255,255,255,0.05); transition:background 0.15s ease;" onmouseover="this.style.background='#121215'" onmouseout="this.style.background='transparent'">
+          {# Student Info #}
+          <td style="padding:0.85rem 1rem;">
+            <div style="display:flex; align-items:center; gap:0.75rem;">
+              <div style="width:34px; height:34px; border-radius:50%; background:linear-gradient(135deg, #3f3f46, #18181b); display:flex; align-items:center; justify-content:center; font-weight:700; color:#fff; font-size:0.85rem; border:1px solid #27272a;">
+                {{ s.name[0]|upper }}
+              </div>
+              <div>
+                <a href="{{ url_for('reports.student_detail', student_id=s.id) }}" style="font-weight:700; color:#ffffff; font-size:0.9rem; text-decoration:none;" title="View student report">
+                  {{ s.name }}
+                </a>
+                <div style="font-size:0.78rem; color:var(--text-muted);">
+                  Roll: <strong>{{ s.roll_number }}</strong> {% if s.class_name %}• {{ s.class_name }}{% endif %}
+                </div>
+              </div>
+            </div>
+          </td>
+
+          {# Department #}
+          <td style="padding:0.85rem 1rem;">
+            <span class="badge" style="background:rgba(255,255,255,0.06); color:#e2e8f0; border:1px solid #27272a; font-size:0.75rem; padding:0.2rem 0.5rem;">
+              {{ s.department or sub.department or 'MCA' }}
+            </span>
+          </td>
+
+          {# Subject #}
+          <td style="padding:0.85rem 1rem;">
+            <div style="font-weight:700; font-size:0.88rem; color:#ffffff;">{{ sub.name }}</div>
+            <div style="font-size:0.78rem; color:#a1a1aa; font-weight:600;">{{ sub.code }}</div>
+          </td>
+
+          {# Form row for modifying counts #}
+          <form method="POST" action="{{ url_for('admin.edit_attendance_counts', dept=selected_dept, subject_id=selected_subject_id, q=search_query) }}">
+            <input type="hidden" name="student_id" value="{{ s.id }}">
+            <input type="hidden" name="subject_id" value="{{ sub.id }}">
+
+            {# Attended Classes Input #}
+            <td style="padding:0.85rem 1rem; text-align:center;">
+              <input type="number" name="attended_count" value="{{ r.attended }}" min="0" required 
+                     style="width:80px; padding:0.35rem 0.5rem; text-align:center; font-weight:700; font-size:0.9rem; background:#121215; border:1px solid #3f3f46; color:#ffffff; border-radius:6px;"
+                     title="Enter number of classes attended">
+            </td>
+
+            {# Total Sessions Input #}
+            <td style="padding:0.85rem 1rem; text-align:center;">
+              <input type="number" name="total_sessions" value="{{ r.total }}" min="1" required 
+                     style="width:80px; padding:0.35rem 0.5rem; text-align:center; font-weight:700; font-size:0.9rem; background:#121215; border:1px solid #3f3f46; color:#a1a1aa; border-radius:6px;"
+                     title="Total subject sessions count">
+            </td>
+
+            {# Percentage Badge #}
+            <td style="padding:0.85rem 1rem; text-align:center;">
+              <span class="badge" style="font-size:0.82rem; font-weight:800; padding:0.25rem 0.6rem; border-radius:6px; {% if r.percentage >= 75 %}background:rgba(16,185,129,0.12); color:#10b981; border:1px solid rgba(16,185,129,0.3);{% else %}background:rgba(239,68,68,0.12); color:#ef4444; border:1px solid rgba(239,68,68,0.3);{% endif %}">
+                {{ r.percentage }}%
+              </span>
+            </td>
+
+            {# Action Button #}
+            <td style="padding:0.85rem 1rem; text-align:right;">
+              <button type="submit" class="btn btn-sm" style="padding:0.35rem 0.8rem; font-size:0.78rem; font-weight:700; background:#ffffff !important; color:#000000 !important; border:none !important; border-radius:6px;">
+                💾 Save
+              </button>
+            </td>
+          </form>
+        </tr>
+        {% else %}
+        <tr>
+          <td colspan="7" style="padding:3rem 1.5rem; text-align:center; color:var(--text-muted);">
+            No student attendance records match your selected filters.
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+  </div>
+</div>
+
+<script>
+function filterSubjectsByDept() {
+  const deptSelect = document.getElementById('dept-filter-select');
+  const subjectSelect = document.getElementById('subject-filter-select');
+  if (!deptSelect || !subjectSelect) return;
+  
+  const selectedDept = deptSelect.value.toUpperCase();
+  const options = subjectSelect.querySelectorAll('option');
+  
+  options.forEach(opt => {
+    if (!opt.value) return; // Keep "All Subjects" option
+    const optDept = (opt.getAttribute('data-dept') || '').toUpperCase();
+    if (!selectedDept || !optDept || optDept === selectedDept) {
+      opt.style.display = '';
+      opt.disabled = false;
+    } else {
+      opt.style.display = 'none';
+      opt.disabled = true;
+      if (opt.selected) {
+        subjectSelect.value = '';
+      }
+    }
+  });
+}
+
+// Run on page load
+document.addEventListener('DOMContentLoaded', filterSubjectsByDept);
+</script>
+{% endblock %}

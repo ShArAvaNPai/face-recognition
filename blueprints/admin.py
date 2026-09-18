@@ -163,9 +163,14 @@ def manage_timetable():
     else:
         department = request.args.get("dept", "MCA")
         all_subjs = Subject.query.order_by(Subject.code).all()
-        dept_subjs = [s for s in all_subjs if (s.faculty and s.faculty.department == department) or s.code.upper().startswith(department.upper())]
-        other_subjs = [s for s in all_subjs if s not in dept_subjs]
-        subjects = dept_subjs + other_subjs
+        subjects = [
+            s for s in all_subjs
+            if (s.department and s.department.upper() == department.upper())
+            or (s.code and s.code.upper().startswith(department.upper()))
+            or (s.faculty and s.faculty.department and s.faculty.department.upper() == department.upper())
+        ]
+        if not subjects:
+            subjects = [s for s in all_subjs if not s.department or s.department.upper() == department.upper()]
 
     year = request.args.get("year", type=int) or 1
     if year not in [1, 2]:
@@ -338,6 +343,7 @@ def manage_parents():
             "student": s,
             "parent": parent,
             "parent_email": parent.email if parent else None,
+            "parent_phone": parent.phone if (parent and parent.phone) else s.parent_phone,
             "stats": stats,
             "is_low": is_low
         })
@@ -362,15 +368,13 @@ def manage_parents():
 @login_required
 @director_required
 def update_parent_account():
-    """Create or update a parent account and email address for a student."""
+    """Create or update a parent account, phone number and email for a student."""
     student_id = request.form.get("student_id", type=int)
     email = request.form.get("email", "").strip()
+    phone = request.form.get("phone", "").strip()
     password = request.form.get("password", "").strip()
 
     student = Student.query.get_or_404(student_id)
-    if not email:
-        flash("Email address is required.", "danger")
-        return redirect(url_for("admin.manage_parents"))
 
     parent_user = User.query.filter_by(role=ROLE_PARENT, student_id=student.id).first()
     if not parent_user:
@@ -379,31 +383,29 @@ def update_parent_account():
         if existing and existing.role != ROLE_PARENT:
             default_username = f"parent_s_{student.id}"
 
-        email_existing = User.query.filter(User.email == email).first()
-        if email_existing and email_existing.student_id != student.id:
-            flash(f"Email '{email}' is already registered to another user.", "danger")
-            return redirect(url_for("admin.manage_parents"))
-
+        target_email = email if email else f"parent_{student.roll_number}@example.com"
         parent_user = User(
             username=default_username,
-            email=email,
+            email=target_email,
+            phone=phone if phone else student.parent_phone,
             role=ROLE_PARENT,
             department=student.department,
             student_id=student.id
         )
         parent_user.set_password(password if password else f"parent_{student.roll_number}")
         db.session.add(parent_user)
-        flash(f"Created parent account for {student.name} with email '{email}'.", "success")
+        flash(f"Created parent account for {student.name}.", "success")
     else:
-        email_existing = User.query.filter(User.email == email, User.id != parent_user.id).first()
-        if email_existing:
-            flash(f"Email '{email}' is already registered to another user.", "danger")
-            return redirect(url_for("admin.manage_parents"))
-
-        parent_user.email = email
+        if email:
+            parent_user.email = email
+        if phone:
+            parent_user.phone = phone
         if password:
             parent_user.set_password(password)
-        flash(f"Updated parent email to '{email}' for {student.name}.", "success")
+        flash(f"Updated parent account details for {student.name}.", "success")
+
+    if phone:
+        student.phone = phone
 
     db.session.commit()
     return redirect(url_for("admin.manage_parents"))
@@ -656,6 +658,132 @@ def view_fee_receipt(fee_id):
         return redirect(url_for("dashboard.index"))
 
     return render_template("admin/fee_receipt.html", fee=fee, student=fee.student)
+
+
+@admin_bp.route("/attendance/edit-counts", methods=["GET", "POST"])
+@login_required
+@director_required
+def edit_attendance_counts():
+    """Dedicated page for Admin/Director to edit the number of days/classes a student attended per subject."""
+    from models import AttendanceSession, Attendance
+    if request.method == "POST":
+        student_id = request.form.get("student_id", type=int)
+        subject_id = request.form.get("subject_id", type=int)
+        attended_count = request.form.get("attended_count", type=int, default=0)
+        req_total = request.form.get("total_sessions", type=int)
+
+        student = Student.query.get_or_404(student_id)
+        subject = Subject.query.get_or_404(subject_id)
+
+        # Get existing sessions for this subject
+        sessions = AttendanceSession.query.filter_by(subject_id=subject.id).order_by(AttendanceSession.session_date.asc()).all()
+
+        target_total = req_total if (req_total and req_total > 0) else (len(sessions) if sessions else 10)
+        if target_total < attended_count:
+            target_total = attended_count
+
+        # Ensure enough sessions exist for this subject
+        if target_total > len(sessions):
+            needed = target_total - len(sessions)
+            for i in range(needed):
+                new_session = AttendanceSession(
+                    subject_id=subject.id,
+                    session_date=date.today(),
+                    class_name=student.class_name or student.department or subject.department
+                )
+                db.session.add(new_session)
+            db.session.flush()
+            sessions = AttendanceSession.query.filter_by(subject_id=subject.id).order_by(AttendanceSession.session_date.asc()).all()
+
+        # Update student attendance status across sessions to match attended_count
+        for idx, sess in enumerate(sessions):
+            rec = Attendance.query.filter_by(session_id=sess.id, student_id=student.id).first()
+            should_be_present = idx < attended_count
+            new_status = "present" if should_be_present else "absent"
+
+            if not rec:
+                rec = Attendance(
+                    session_id=sess.id,
+                    student_id=student.id,
+                    status=new_status,
+                    method="admin_override"
+                )
+                db.session.add(rec)
+            else:
+                rec.status = new_status
+                rec.method = "admin_override"
+
+        db.session.commit()
+        pct = round(100.0 * attended_count / len(sessions), 1) if sessions else 0.0
+        flash(f"Updated {student.name}'s attendance for '{subject.code}' ({subject.name}) to {attended_count}/{len(sessions)} classes ({pct}%). Reflects everywhere in system.", "success")
+
+        dept = request.args.get("dept", "")
+        subj_id = request.args.get("subject_id", "")
+        q = request.args.get("q", "")
+        return redirect(url_for("admin.edit_attendance_counts", dept=dept, subject_id=subj_id, q=q))
+
+    # GET Request
+    dept_filter = request.args.get("dept", "").strip()
+    subj_filter = request.args.get("subject_id", type=int)
+    search_query = request.args.get("q", "").strip()
+
+    all_subjects = Subject.query.order_by(Subject.code).all()
+
+    st_query = Student.query
+    if dept_filter:
+        st_query = st_query.filter(Student.department.ilike(dept_filter))
+    if search_query:
+        st_query = st_query.filter(
+            (Student.name.ilike(f"%{search_query}%")) |
+            (Student.roll_number.ilike(f"%{search_query}%"))
+        )
+    students = st_query.order_by(Student.roll_number).all()
+
+    edit_rows = []
+    for s in students:
+        if subj_filter:
+            subjs = [sub for sub in all_subjects if sub.id == subj_filter]
+        elif dept_filter:
+            subjs = [sub for sub in all_subjects if (not sub.department or sub.department.upper() == dept_filter.upper())]
+        else:
+            subjs = [sub for sub in all_subjects if not s.department or sub.department == s.department or not sub.department]
+            if not subjs:
+                subjs = all_subjects
+
+        for sub in subjs:
+            session_ids = [sess.id for sess in AttendanceSession.query.filter_by(subject_id=sub.id).all()]
+            total_sessions = len(session_ids)
+
+            if total_sessions > 0:
+                attended = Attendance.query.filter(
+                    Attendance.student_id == s.id,
+                    Attendance.session_id.in_(session_ids),
+                    Attendance.status.in_(["present", "excused"])
+                ).count()
+            else:
+                attended = 0
+
+            pct = round(100.0 * attended / total_sessions, 1) if total_sessions > 0 else 0.0
+
+            edit_rows.append({
+                "student": s,
+                "subject": sub,
+                "attended": attended,
+                "total": total_sessions,
+                "percentage": pct
+            })
+
+    departments = sorted(list(set([d[0] for d in db.session.query(Student.department).distinct().all() if d[0]])))
+
+    return render_template(
+        "admin/edit_attendance.html",
+        edit_rows=edit_rows,
+        all_subjects=all_subjects,
+        departments=departments,
+        selected_dept=dept_filter,
+        selected_subject_id=subj_filter,
+        search_query=search_query
+    )
 
 
 

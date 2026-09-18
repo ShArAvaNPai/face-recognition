@@ -26,11 +26,21 @@
 <div class="card card-table" style="margin-top:2rem">
   <div class="card-table-header">
     <h2>Roster Details</h2>
+    {% if current_user.role in ['admin', 'director', 'hod'] %}
+    <span class="badge" style="background:rgba(255,255,255,0.08); color:#e2e8f0; font-weight:600;">✏️ Admin Edit Enabled</span>
+    {% endif %}
   </div>
   <div class="table-responsive">
     <table>
       <thead>
-        <tr><th>Roll</th><th>Name</th><th>Status</th></tr>
+        <tr>
+          <th>Roll</th>
+          <th>Name</th>
+          <th>Status</th>
+          {% if current_user.role in ['admin', 'director', 'hod'] %}
+          <th style="text-align:right;">Edit Attendance</th>
+          {% endif %}
+        </tr>
       </thead>
       <tbody>
         {% for s in students %}
@@ -38,18 +48,46 @@
           <td><span class="badge badge-muted">{{ s.roll_number }}</span></td>
           <td style="font-weight:600; color:#fff;">{{ s.name }}</td>
           <td>
-            {% if s.id in present_ids %}<span class="badge badge-yes">Present</span>
-            {% else %}<span class="badge badge-no">Absent</span>{% endif %}
+            {% if s.id in present_ids %}
+              <span class="badge badge-yes">Present</span>
+            {% else %}
+              <span class="badge badge-no">Absent</span>
+            {% endif %}
           </td>
+          {% if current_user.role in ['admin', 'director', 'hod'] %}
+          <td style="text-align:right;">
+            <div style="display:inline-flex; gap:0.35rem;">
+              <form method="POST" action="{{ url_for('attendance.toggle', session_id=session.id) }}" style="display:inline;">
+                <input type="hidden" name="student_id" value="{{ s.id }}">
+                <input type="hidden" name="status" value="present">
+                <button type="submit" class="btn btn-sm {% if s.id in present_ids %}btn-success{% else %}btn-secondary{% endif %}" style="padding:0.25rem 0.6rem; font-size:0.75rem; font-weight:600; {% if s.id in present_ids %}background:#10b981 !important; color:#fff !important;{% else %}background:rgba(255,255,255,0.05) !important; color:var(--text-muted) !important;{% endif %}">
+                  Present
+                </button>
+              </form>
+              <form method="POST" action="{{ url_for('attendance.toggle', session_id=session.id) }}" style="display:inline;">
+                <input type="hidden" name="student_id" value="{{ s.id }}">
+                <input type="hidden" name="status" value="excused">
+                <button type="submit" class="btn btn-sm btn-secondary" style="padding:0.25rem 0.6rem; font-size:0.75rem; font-weight:600; background:rgba(99,102,241,0.15) !important; color:#a5b4fc !important; border:1px solid rgba(99,102,241,0.3) !important;">
+                  Excused
+                </button>
+              </form>
+              <form method="POST" action="{{ url_for('attendance.toggle', session_id=session.id) }}" style="display:inline;">
+                <input type="hidden" name="student_id" value="{{ s.id }}">
+                <input type="hidden" name="status" value="absent">
+                <button type="submit" class="btn btn-sm {% if s.id not in present_ids %}btn-danger{% else %}btn-secondary{% endif %}" style="padding:0.25rem 0.6rem; font-size:0.75rem; font-weight:600; {% if s.id not in present_ids %}background:#ef4444 !important; color:#fff !important;{% else %}background:rgba(255,255,255,0.05) !important; color:var(--text-muted) !important;{% endif %}">
+                  Absent
+                </button>
+              </form>
+            </div>
+          </td>
+          {% endif %}
         </tr>
         {% endfor %}
       </tbody>
     </table>
   </div>
   <div class="card-table-footer">
-    {% if session.session_date >= today_date %}
     <a class="btn" href="{{ url_for('attendance.take', session_id=session.id) }}">Continue Taking</a>
-    {% endif %}
     <a class="btn btn-secondary" href="{{ url_for('attendance.index') }}">All Sessions</a>
   </div>
 </div>

@@ -367,6 +367,163 @@ a:hover {
   border-left: 2.5px solid #3b82f6;
 }
 
+/* FullCalendar Dark Theme Overrides */
+.fc {
+  --fc-page-bg-color: transparent;
+  --fc-neutral-bg-color: rgba(255, 255, 255, 0.02);
+  --fc-list-event-hover-bg-color: rgba(255, 255, 255, 0.05);
+  --fc-theme-standard-border-color: #27272a;
+  --fc-border-color: #27272a;
+  font-family: inherit;
+  color: #f4f4f5;
+}
+
+.fc .fc-toolbar-title {
+  font-size: 1.1rem !important;
+  font-weight: 700;
+  color: #ffffff;
+}
+
+.fc .fc-button {
+  background: #18181b !important;
+  border: 1px solid #27272a !important;
+  color: #e4e4e7 !important;
+  font-size: 0.8rem !important;
+  font-weight: 600 !important;
+  border-radius: 6px !important;
+  box-shadow: none !important;
+  padding: 0.3rem 0.65rem !important;
+  transition: all 0.15s ease !important;
+}
+
+.fc .fc-button:hover {
+  background: #27272a !important;
+  color: #ffffff !important;
+  border-color: #3f3f46 !important;
+}
+
+.fc .fc-button-primary:not(:disabled).fc-button-active, 
+.fc .fc-button-primary:not(:disabled):active {
+  background: #3f3f46 !important;
+  color: #ffffff !important;
+  border-color: #52525b !important;
+}
+
+.fc .fc-col-header-cell {
+  background: #09090b;
+  padding: 0.5rem 0 !important;
+  border-color: #27272a !important;
+}
+
+.fc .fc-col-header-cell-cushion {
+  color: #a1a1aa !important;
+  font-size: 0.78rem !important;
+  font-weight: 700 !important;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  text-decoration: none !important;
+}
+
+.fc .fc-daygrid-day-number {
+  color: #e4e4e7 !important;
+  font-size: 0.82rem !important;
+  font-weight: 600;
+  padding: 4px 6px !important;
+  text-decoration: none !important;
+}
+
+.fc .fc-day-today {
+  background: rgba(99, 102, 241, 0.08) !important;
+}
+
+.fc .fc-day-today .fc-daygrid-day-number {
+  color: #818cf8 !important;
+  font-weight: 700;
+}
+
+.fc .fc-daygrid-event {
+  border-radius: 4px !important;
+  padding: 3px 6px !important;
+  font-size: 0.73rem !important;
+  font-weight: 600 !important;
+  margin-top: 2px !important;
+  cursor: pointer !important;
+  transition: transform 0.15s ease, box-shadow 0.15s ease !important;
+}
+
+.fc .fc-daygrid-event:hover {
+  transform: translateY(-1px) scale(1.02) !important;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.4) !important;
+}
+
+.fc .fc-daygrid-day-frame {
+  transition: background-color 0.15s ease;
+  cursor: pointer;
+}
+
+.fc .fc-daygrid-day-frame:hover {
+  background: rgba(255, 255, 255, 0.035);
+}
+
+.calendar-tab-btn {
+  background: transparent;
+  border: 1px solid transparent;
+  color: #a1a1aa;
+  font-weight: 600;
+  font-size: 0.82rem;
+  padding: 0.35rem 0.75rem;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.calendar-tab-btn:hover {
+  color: #ffffff;
+  background: rgba(255, 255, 255, 0.04);
+}
+
+.calendar-tab-btn.active {
+  background: #27272a;
+  color: #ffffff;
+  border-color: #3f3f46;
+}
+
+/* Global Dark Mode Calendar & Date Input Picker Styling */
+input[type="date"], input[type="datetime-local"] {
+  color-scheme: dark;
+  background-color: #18181b;
+  color: #f4f4f5;
+  border: 1px solid #27272a;
+  border-radius: 8px;
+  padding: 0.45rem 0.75rem;
+  font-family: inherit;
+  font-size: 0.85rem;
+  transition: all 0.15s ease;
+}
+
+input[type="date"]:focus, input[type="datetime-local"]:focus {
+  outline: none;
+  border-color: #6366f1;
+  box-shadow: 0 0 0 2px rgba(99, 102, 241, 0.25);
+  background-color: #27272a;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator,
+input[type="datetime-local"]::-webkit-calendar-picker-indicator {
+  filter: invert(0.8) sepia(1) saturate(5) hue-rotate(200deg);
+  cursor: pointer;
+  opacity: 0.8;
+  transition: opacity 0.15s ease;
+}
+
+input[type="date"]::-webkit-calendar-picker-indicator:hover,
+input[type="datetime-local"]::-webkit-calendar-picker-indicator:hover {
+  opacity: 1;
+}
+
 /* Modern Sleek Global Scrollbars */
 html, * {
   scrollbar-width: thin;

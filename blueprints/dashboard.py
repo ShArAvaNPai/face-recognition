@@ -461,13 +461,17 @@ def claim_slot():
     else:
         claimed_by_id = current_user.id
 
+    claimed_user = User.query.get(claimed_by_id)
+    if claimed_user and claimed_user.role == 'admin':
+        flash("Admin cannot be assigned classes. Please select a faculty member.", "warning")
+        return redirect(url_for("dashboard.timetable_view", date=claim_date_str))
+
     if is_faculty_absent(claimed_by_id, claim_date):
         flash("The selected faculty member is on leave / marked absent on this date and cannot be assigned.", "danger")
         return redirect(url_for("dashboard.index", date=claim_date_str))
 
     # Determine subject
     subject = None
-    claimed_user = User.query.get(claimed_by_id)
     if (claimed_user and claimed_user.role == 'director') or (current_user.role == 'director' and claimed_by_id == current_user.id):
         subject = Subject.query.filter(
             (Subject.code.ilike("%research%")) | (Subject.name.ilike("%research%")) | (Subject.faculty_id == claimed_by_id)

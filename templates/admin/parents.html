@@ -10,12 +10,12 @@
     <p class="subtitle" style="margin-bottom:0;">Manage parent accounts, link students, and send in-app notifications for low attendance or class absences.</p>
   </div>
   <div style="display:flex; gap:0.75rem; flex-wrap:wrap;">
-    <button type="button" class="btn btn-danger" onclick="openSendMailModal('all_low')">
-      <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+    <button type="button" class="btn btn-danger" onclick="openSendMailModal('all_low')" style="display:inline-flex; align-items:center; gap:0.5rem;">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
       Notify All Low Attendance (&lt; {{ threshold }}%)
     </button>
-    <button type="button" class="btn btn-secondary" onclick="openSendMailModal('selected')">
-      <svg width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
+    <button type="button" class="btn btn-secondary" onclick="openSendMailModal('selected')" style="display:inline-flex; align-items:center; gap:0.5rem;">
+      <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path><path d="M13.73 21a2 2 0 0 1-3.46 0"></path></svg>
       Send Notification
     </button>
   </div>
@@ -141,12 +141,14 @@
               </span>
             </td>
             <td>
-              {% if item.parent_email %}
+              {% if item.parent_phone or item.parent_email %}
                 <div style="display:flex; flex-direction:column;">
                   <span style="font-weight:600; color:#38bdf8; font-size:0.9rem; display:flex; align-items:center; gap:0.3rem;">
                     👤 {{ item.parent.username if item.parent else '—' }}
                   </span>
-                  <span style="font-size:0.75rem; color:var(--text-muted);">{{ item.parent_email }}</span>
+                  <span style="font-size:0.8rem; color:#e2e8f0; font-weight:500; display:flex; align-items:center; gap:0.25rem;">
+                    📞 {{ item.parent_phone }}
+                  </span>
                 </div>
               {% else %}
                 <span class="badge badge-muted" style="color:#f59e0b; border-color:rgba(245,158,11,0.3); background:rgba(245,158,11,0.08);">
@@ -275,7 +277,7 @@
       <h2 style="margin:0 0 0.25rem 0; display:flex; align-items:center; gap:0.5rem;">
         <span>✏️</span> Manage Parent Contact
       </h2>
-      <p class="subtitle" style="margin:0;">Add or update parent email for <strong id="modal-student-name" style="color:#fff;">Student</strong></p>
+      <p class="subtitle" style="margin:0;">Add or update parent contact info for <strong id="modal-student-name" style="color:#fff;">Student</strong></p>
     </div>
 
     <form action="{{ url_for('admin.update_parent_account') }}" method="post">
@@ -284,8 +286,11 @@
       <label>Student Roll Number</label>
       <input type="text" id="edit-modal-roll" readonly style="background:rgba(255,255,255,0.05); color:var(--text-muted); margin-bottom:1rem;">
 
-      <label>Parent Email Address <span style="color:#ef4444;">*</span></label>
-      <input type="email" name="email" id="edit-modal-email" required placeholder="parent@example.com" style="margin-bottom:1rem;">
+      <label>Parent Phone Number <span style="color:#ef4444;">*</span></label>
+      <input type="text" name="phone" id="edit-modal-phone" required placeholder="+91 98450 12345" style="margin-bottom:1rem;">
+
+      <label>Parent Email Address <span class="muted" style="font-weight:normal; font-size:0.8rem;">(Optional)</span></label>
+      <input type="email" name="email" id="edit-modal-email" placeholder="parent@example.com" style="margin-bottom:1rem;">
 
       <label>Parent Account Password <span class="muted" style="font-weight:normal; font-size:0.8rem;">(Optional - leave blank to keep default)</span></label>
       <input type="password" name="password" placeholder="Enter new password if changing" style="margin-bottom:1.5rem;">
@@ -372,11 +377,12 @@
     }
   }
 
-  function openEditParentModal(id, name, roll, email) {
+  function openEditParentModal(id, name, roll, phone, email) {
     document.getElementById('edit-modal-student-id').value = id;
     document.getElementById('modal-student-name').innerText = name;
     document.getElementById('edit-modal-roll').value = roll;
-    document.getElementById('edit-modal-email').value = email;
+    document.getElementById('edit-modal-phone').value = phone || '';
+    document.getElementById('edit-modal-email').value = email || '';
     document.getElementById('edit-parent-modal').style.display = 'flex';
   }
 

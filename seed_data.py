@@ -9,8 +9,7 @@ def seed():
     # 1. Add lecturers
     lecturers_info = [
         {"username": "prof_smith", "email": "smith@example.com", "password": "smithpassword", "subject_code": "cs101", "subject_name": "Computer Science 101"},
-        {"username": "prof_jones", "email": "jones@example.com", "password": "jonespassword", "subject_code": "math101", "subject_name": "Mathematics 101"},
-        {"username": "prof_davis", "email": "davis@example.com", "password": "davispassword", "subject_code": "phy101", "subject_name": "Physics 101"}
+        {"username": "prof_jones", "email": "jones@example.com", "password": "jonespassword", "subject_code": "math101", "subject_name": "Mathematics 101"}
     ]
     
     # Write lecturers to lecturers.txt
@@ -226,7 +225,6 @@ def seed():
     mca_subject_defs = [
         {"username": "prof_smith",  "code": "cs101",    "name": "Computer Science 101"},
         {"username": "prof_jones",  "code": "math101",  "name": "Mathematics 101"},
-        {"username": "prof_davis",  "code": "phy101",   "name": "Physics 101"},
     ]
     # MBA subjects (create dedicated faculty if needed)
     mba_faculty_defs = [

@@ -114,6 +114,10 @@
             <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path></svg>
             <span>Fac. Attendance</span>
           </a>
+          <a href="{{ url_for('admin.edit_attendance_counts') }}" class="nav-item{% if request.endpoint == 'admin.edit_attendance_counts' %} active{% endif %}">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
+            <span>Edit Attendance</span>
+          </a>
           <a href="{{ url_for('director.leaves_index') }}" class="nav-item">
             <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg>
             <span>{% if current_user.role == 'hod' %}Faculty Leaves{% else %}Leaves Approval{% endif %}</span>
@@ -527,122 +531,8 @@
           });
         }
 
-        // If the card already has a dedicated server-side filter form, skip injecting a duplicate toolbar
-        if (hasExistingFilterForm) return;
-
-        // Create Filter & Sort Toolbar
-        const toolbar = document.createElement('div');
-        toolbar.className = 'table-controls-bar';
-
-        // Left controls: Clean Search input + at most 1 Status filter
-        const leftBox = document.createElement('div');
-        leftBox.className = 'table-controls-left';
-
-        // Search box with SVG icon
-        const searchBox = document.createElement('div');
-        searchBox.className = 'table-search-box';
-        searchBox.innerHTML = `
-          <span class="table-search-icon">
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
-          </span>
-        `;
-
-        const filterInput = document.createElement('input');
-        filterInput.type = 'text';
-        filterInput.className = 'table-search-input';
-        filterInput.placeholder = 'Filter rows…';
-        filterInput.setAttribute('aria-label', 'Filter table rows');
-        searchBox.appendChild(filterInput);
-        leftBox.appendChild(searchBox);
-
-        // Optional single categorical filter dropdown (e.g. All Statuses)
-        let catSelect = null;
-        if (primaryCategoryFilter) {
-          catSelect = document.createElement('select');
-          catSelect.className = 'table-sort-select';
-          catSelect.innerHTML = `<option value="">All ${primaryCategoryFilter.title}es</option>`;
-          primaryCategoryFilter.options.forEach(opt => {
-            catSelect.innerHTML += `<option value="${opt.toLowerCase()}">${opt}</option>`;
-          });
-          catSelect.dataset.colIndex = primaryCategoryFilter.colIndex;
-          leftBox.appendChild(catSelect);
-        }
-
-        // Clear button
-        const clearBtn = document.createElement('button');
-        clearBtn.type = 'button';
-        clearBtn.className = 'table-clear-btn';
-        clearBtn.style.display = 'none';
-        clearBtn.innerHTML = `✕ Clear`;
-        clearBtn.title = 'Reset filter';
-        leftBox.appendChild(clearBtn);
-
-        const rowCountBadge = document.createElement('span');
-        rowCountBadge.className = 'table-row-count-badge';
-        rowCountBadge.textContent = `${rows.length} row(s)`;
-        leftBox.appendChild(rowCountBadge);
-
-        toolbar.appendChild(leftBox);
-
-        // Insert toolbar before the table or table responsive wrapper
-        const responsiveWrapper = table.closest('.table-responsive');
-        if (responsiveWrapper) {
-          responsiveWrapper.parentNode.insertBefore(toolbar, responsiveWrapper);
-        } else {
-          table.parentNode.insertBefore(toolbar, table);
-        }
-
-        // Clean & fast filter handler
-        function applyFilters() {
-          const searchTerm = filterInput.value.toLowerCase().trim();
-          const allRows = Array.from(tbody.querySelectorAll('tr')).filter(r => !r.querySelector('td[colspan]'));
-          let visibleCount = 0;
-          let hasActiveFilter = searchTerm.length > 0;
-
-          if (catSelect && catSelect.value) {
-            catSelect.classList.add('filter-active');
-            hasActiveFilter = true;
-          } else if (catSelect) {
-            catSelect.classList.remove('filter-active');
-          }
-
-          clearBtn.style.display = hasActiveFilter ? 'inline-flex' : 'none';
-
-          allRows.forEach(row => {
-            let matchesText = !searchTerm || row.textContent.toLowerCase().includes(searchTerm);
-            let matchesCategory = true;
-
-            if (catSelect && catSelect.value) {
-              const colIdx = parseInt(catSelect.dataset.colIndex);
-              const cell = row.children[colIdx];
-              const cellText = cell ? cell.innerText.toLowerCase() : '';
-              if (!cellText.includes(catSelect.value)) {
-                matchesCategory = false;
-              }
-            }
-
-            if (matchesText && matchesCategory) {
-              row.style.display = '';
-              visibleCount++;
-            } else {
-              row.style.display = 'none';
-            }
-          });
-
-          rowCountBadge.textContent = `${visibleCount} of ${allRows.length} row(s)`;
-        }
-
-        clearBtn.addEventListener('click', () => {
-          filterInput.value = '';
-          if (catSelect) {
-            catSelect.value = '';
-            catSelect.classList.remove('filter-active');
-          }
-          applyFilters();
-        });
-
-        filterInput.addEventListener('input', applyFilters);
-        if (catSelect) catSelect.addEventListener('change', applyFilters);
+        // Skip injecting client-side toolbar
+        return;
       });
     }
 

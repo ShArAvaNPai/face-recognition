@@ -110,6 +110,9 @@
           <th>Class</th>
           <th>Status</th>
           <th>Method</th>
+          {% if current_user.role in ['admin', 'director', 'hod'] %}
+          <th style="text-align:right;">Actions</th>
+          {% endif %}
         </tr>
       </thead>
       <tbody>
@@ -124,6 +127,24 @@
             {% else %}<span class="badge badge-no">{{ r.status|capitalize }}</span>{% endif %}
           </td>
           <td><span class="badge badge-muted">{{ r.method }}</span></td>
+          {% if current_user.role in ['admin', 'director', 'hod'] %}
+          <td style="text-align:right;">
+            <form method="POST" action="{{ url_for('attendance.update_record') }}" style="display:inline-flex; gap:0.25rem;">
+              <input type="hidden" name="student_id" value="{{ student.id }}">
+              <input type="hidden" name="session_id" value="{{ r.session.id }}">
+              <input type="hidden" name="next_url" value="{{ request.path }}">
+              <button type="submit" name="status" value="present" class="btn btn-sm" style="padding:0.2rem 0.5rem; font-size:0.72rem; font-weight:600; {% if r.status == 'present' %}background:#10b981 !important; color:#fff !important;{% else %}background:rgba(255,255,255,0.05) !important; color:var(--text-muted) !important;{% endif %}">
+                Present
+              </button>
+              <button type="submit" name="status" value="excused" class="btn btn-sm" style="padding:0.2rem 0.5rem; font-size:0.72rem; font-weight:600; {% if r.status == 'excused' %}background:#6366f1 !important; color:#fff !important;{% else %}background:rgba(255,255,255,0.05) !important; color:var(--text-muted) !important;{% endif %}">
+                Excused
+              </button>
+              <button type="submit" name="status" value="absent" class="btn btn-sm" style="padding:0.2rem 0.5rem; font-size:0.72rem; font-weight:600; {% if r.status == 'absent' %}background:#ef4444 !important; color:#fff !important;{% else %}background:rgba(255,255,255,0.05) !important; color:var(--text-muted) !important;{% endif %}">
+                Absent
+              </button>
+            </form>
+          </td>
+          {% endif %}
         </tr>
         {% endfor %}
       </tbody>

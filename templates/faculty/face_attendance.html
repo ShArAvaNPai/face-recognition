@@ -11,7 +11,7 @@
 
 {% if not engine_ready %}
 <div class="warn-banner">
-  <svg width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
+  <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"></path><line x1="12" y1="9" x2="12" y2="13"></line><line x1="12" y1="17" x2="12.01" y2="17"></line></svg>
   <span>Face models not installed or engine offline. Please contact administrator.</span>
 </div>
 {% endif %}
@@ -19,7 +19,7 @@
 <div class="card" style="max-width: 600px; margin: 0 auto; text-align: center;">
   {% if is_on_leave %}
     <div style="padding: 2rem 1rem;">
-      <svg width="56" height="56" fill="none" stroke="#f59e0b" stroke-width="2" style="margin-bottom: 0.75rem;"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line><path d="M8 14h.01"></path><path d="M12 14h.01"></path><path d="M16 14h.01"></path><path d="M8 18h.01"></path><path d="M12 18h.01"></path><path d="M16 18h.01"></path></svg>
+      <svg viewBox="0 0 24 24" width="56" height="56" fill="none" stroke="#f59e0b" stroke-width="2" style="margin-bottom: 0.75rem;"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"></rect><line x1="16" y1="2" x2="16" y2="6"></line><line x1="8" y1="2" x2="8" y2="6"></line><line x1="3" y1="10" x2="21" y2="10"></line><path d="M8 14h.01"></path><path d="M12 14h.01"></path><path d="M16 14h.01"></path><path d="M8 18h.01"></path><path d="M12 18h.01"></path><path d="M16 18h.01"></path></svg>
       <h2 style="margin-bottom:0.5rem;">On Leave</h2>
       <p class="muted" style="margin-bottom: 1.5rem;">You are marked as on approved leave for {{ today }} ({{ today_day_name }}). Check-in is disabled.</p>
       
@@ -29,7 +29,7 @@
     </div>
   {% elif is_present %}
     <div style="padding: 2rem 1rem;">
-      <svg width="56" height="56" fill="none" stroke="#22c55e" stroke-width="2" style="margin-bottom: 0.75rem;"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
+      <svg viewBox="0 0 24 24" width="56" height="56" fill="none" stroke="#22c55e" stroke-width="2" style="margin-bottom: 0.75rem;"><path d="M22 11.08V12a10 10 0 1 1-5.93-9.14"></path><polyline points="22 4 12 14.01 9 11.01"></polyline></svg>
       <h2 style="margin-bottom:0.5rem;">Checked In Successfully!</h2>
       <p class="muted" style="margin-bottom: 1.5rem;">You are marked present for {{ today }} ({{ today_day_name }}).</p>
 

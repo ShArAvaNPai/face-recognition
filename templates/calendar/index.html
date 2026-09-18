@@ -21,27 +21,11 @@
   </div>
 </div>
 
-<!-- Filters Bar -->
+<!-- Filters Bar & Month Navigation -->
 <div class="card" style="padding: 0.75rem 1.25rem; margin-bottom: 1.25rem; background: var(--bg-card); border-radius: var(--radius);">
   <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:0.85rem;">
-    <!-- Category Pills -->
-    <div style="display:flex; gap:0.5rem; flex-wrap:wrap; align-items:center;">
-      <a href="{{ url_for('calendar.index', year=current_year, month=current_month, category='all', department=dept_filter) }}"
-         class="btn btn-sm {% if cat_filter == 'all' %}btn-primary{% else %}btn-secondary{% endif %}" style="border-radius:20px; font-size:0.78rem; padding:0.3rem 0.85rem;">
-        🌟 All Events
-      </a>
-      <a href="{{ url_for('calendar.index', year=current_year, month=current_month, category='holiday', department=dept_filter) }}"
-         class="btn btn-sm {% if cat_filter == 'holiday' %}btn-primary{% else %}btn-secondary{% endif %}" style="border-radius:20px; font-size:0.78rem; padding:0.3rem 0.85rem; {% if cat_filter == 'holiday' %}background:#ef4444; border-color:#ef4444; color:#fff;{% endif %}">
-        🏖️ Public Holidays
-      </a>
-      <a href="{{ url_for('calendar.index', year=current_year, month=current_month, category='exam', department=dept_filter) }}"
-         class="btn btn-sm {% if cat_filter == 'exam' %}btn-primary{% else %}btn-secondary{% endif %}" style="border-radius:20px; font-size:0.78rem; padding:0.3rem 0.85rem; {% if cat_filter == 'exam' %}background:#f59e0b; border-color:#f59e0b; color:#000;{% endif %}">
-        📝 Exam Schedules
-      </a>
-      <a href="{{ url_for('calendar.index', year=current_year, month=current_month, category='academic', department=dept_filter) }}"
-         class="btn btn-sm {% if cat_filter == 'academic' %}btn-primary{% else %}btn-secondary{% endif %}" style="border-radius:20px; font-size:0.78rem; padding:0.3rem 0.85rem; {% if cat_filter == 'academic' %}background:#3b82f6; border-color:#3b82f6; color:#fff;{% endif %}">
-        🎓 Academic Milestones
-      </a>
+    <div>
+      <h3 style="margin:0; font-size:1.05rem; color:#ffffff; font-weight:700;">Academic Calendar Schedule</h3>
     </div>
 
     <!-- Department Selector & Month Navigation -->
@@ -49,9 +33,9 @@
       <div style="display:flex; align-items:center; gap:0.4rem;">
         <span style="font-size:0.78rem; font-weight:600; color:var(--text-muted);">Dept:</span>
         <select class="form-control" style="font-size:0.78rem; padding:0.25rem 0.6rem; width:auto; border-radius:6px; margin:0;" onchange="location = this.value;">
-          <option value="{{ url_for('calendar.index', year=current_year, month=current_month, category=cat_filter, department='all') }}" {% if dept_filter == 'all' %}selected{% endif %}>All Departments</option>
-          <option value="{{ url_for('calendar.index', year=current_year, month=current_month, category=cat_filter, department='MCA') }}" {% if dept_filter == 'MCA' %}selected{% endif %}>MCA</option>
-          <option value="{{ url_for('calendar.index', year=current_year, month=current_month, category=cat_filter, department='MBA') }}" {% if dept_filter == 'MBA' %}selected{% endif %}>MBA</option>
+          <option value="{{ url_for('calendar.index', year=current_year, month=current_month, category='all', department='all') }}" {% if dept_filter == 'all' %}selected{% endif %}>All Departments</option>
+          <option value="{{ url_for('calendar.index', year=current_year, month=current_month, category='all', department='MCA') }}" {% if dept_filter == 'MCA' %}selected{% endif %}>MCA</option>
+          <option value="{{ url_for('calendar.index', year=current_year, month=current_month, category='all', department='MBA') }}" {% if dept_filter == 'MBA' %}selected{% endif %}>MBA</option>
         </select>
       </div>
 
@@ -59,7 +43,7 @@
         <a href="{{ prev_month_url }}" class="btn btn-secondary btn-sm" style="padding:0.2rem 0.55rem; font-size:0.8rem;" title="Previous Month">&larr;</a>
         <span style="font-weight:700; font-size:0.88rem; min-width:125px; text-align:center; color:#ffffff;">{{ month_name }} {{ current_year }}</span>
         <a href="{{ next_month_url }}" class="btn btn-secondary btn-sm" style="padding:0.2rem 0.55rem; font-size:0.8rem;" title="Next Month">&rarr;</a>
-        <a href="{{ url_for('calendar.index', year=today.year, month=today.month, category=cat_filter, department=dept_filter) }}" class="btn btn-secondary btn-sm" style="font-size:0.72rem; padding:0.2rem 0.55rem;">Today</a>
+        <a href="{{ url_for('calendar.index', year=today.year, month=today.month, category='all', department=dept_filter) }}" class="btn btn-secondary btn-sm" style="font-size:0.72rem; padding:0.2rem 0.55rem;">Today</a>
       </div>
     </div>
   </div>
@@ -221,6 +205,35 @@
   </div>
 </div>
 
+<!-- Modal to View Event Details -->
+<div id="view-event-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.8); backdrop-filter:blur(4px); z-index:999; align-items:center; justify-content:center;">
+  <div class="card" style="width:100%; max-width:440px; padding:1.75rem; margin:1rem; border:1px solid #3f3f46; box-shadow:0 10px 30px rgba(0,0,0,0.8); animation: fadeIn 0.2s ease;">
+    <div style="display:flex; justify-content:space-between; align-items:flex-start; margin-bottom:1rem;">
+      <div>
+        <span id="modal-event-category" class="badge" style="margin-bottom:0.5rem; display:inline-block;">Category</span>
+        <h2 id="modal-event-title" style="margin:0; font-size:1.25rem; color:#ffffff; font-weight:700;">Event Title</h2>
+      </div>
+      <button onclick="document.getElementById('view-event-modal').style.display='none'" style="background:none; border:none; color:var(--text-muted); cursor:pointer; font-size:1.5rem; line-height:1;">&times;</button>
+    </div>
+
+    <div style="display:flex; flex-direction:column; gap:0.75rem; background:var(--bg-dark); padding:1rem; border-radius:var(--radius-sm); border:1px solid var(--card-border); margin-bottom:1.25rem;">
+      <div style="display:flex; align-items:center; gap:0.5rem; font-size:0.88rem; color:#e4e4e7;">
+        <span>📅</span> <span id="modal-event-dates" style="font-weight:600;">Date Range</span>
+      </div>
+      <div style="display:flex; align-items:center; gap:0.5rem; font-size:0.85rem; color:var(--text-muted);">
+        <span>🏫</span> Department: <span id="modal-event-dept" style="color:#ffffff; font-weight:600;">All</span>
+      </div>
+      <div id="modal-event-desc-wrap" style="font-size:0.85rem; color:#a1a1aa; line-height:1.4; border-top:1px dashed var(--card-border); padding-top:0.6rem;">
+        <span id="modal-event-desc">No description available.</span>
+      </div>
+    </div>
+
+    <div style="display:flex; justify-content:flex-end;">
+      <button type="button" class="btn btn-secondary" onclick="document.getElementById('view-event-modal').style.display='none'">Close</button>
+    </div>
+  </div>
+</div>
+
 {% if can_manage %}
 <!-- Modal to Add Event -->
 <div id="add-event-modal" style="display:none; position:fixed; inset:0; background:rgba(0,0,0,0.8); backdrop-filter:blur(4px); z-index:999; align-items:center; justify-content:center;">
@@ -309,19 +322,80 @@ document.addEventListener('DOMContentLoaded', function() {
   if (calendarEl) {
     const calendar = new FullCalendar.Calendar(calendarEl, {
       initialView: 'dayGridMonth',
+      initialDate: '{{ current_year }}-{{ "%02d"|format(current_month) }}-01',
+      headerToolbar: false,
       height: 'auto',
+      dayMaxEvents: 3,
       events: [
         {% for evt in events %}
         {
+          id: "{{ evt.id }}",
           title: "{{ evt.title }}",
           start: "{{ evt.start_date.isoformat() }}",
-          end: "{{ (evt.end_date).isoformat() }}T23:59:00",
+          end: "{{ evt.end_date.isoformat() }}",
+          allDay: true,
+          category: "{{ evt.category }}",
+          department: "{{ evt.department }}",
+          startDateStr: "{{ evt.start_date.strftime('%b %d, %Y') }}",
+          endDateStr: "{{ evt.end_date.strftime('%b %d, %Y') }}",
           backgroundColor: "{% if evt.category == 'holiday' %}#ef4444{% elif evt.category == 'exam' %}#f59e0b{% else %}#3b82f6{% endif %}",
+          textColor: "{% if evt.category == 'exam' %}#000000{% else %}#ffffff{% endif %}",
           borderColor: "transparent",
-          description: "{{ evt.description }}"
+          description: "{{ evt.description|default('', true)|replace('\n', ' ')|replace('\"', '\\\"') }}"
         },
         {% endfor %}
-      ]
+      ],
+      eventClick: function(info) {
+        const props = info.event.extendedProps;
+        const catBadge = document.getElementById('modal-event-category');
+        
+        if (props.category === 'holiday') {
+          catBadge.textContent = '🏖️ Public Holiday';
+          catBadge.style.background = 'rgba(239,68,68,0.15)';
+          catBadge.style.color = '#ef4444';
+          catBadge.style.border = '1px solid rgba(239,68,68,0.3)';
+        } else if (props.category === 'exam') {
+          catBadge.textContent = '📝 Examination Schedule';
+          catBadge.style.background = 'rgba(245,158,11,0.15)';
+          catBadge.style.color = '#f59e0b';
+          catBadge.style.border = '1px solid rgba(245,158,11,0.3)';
+        } else {
+          catBadge.textContent = '🎓 Academic Milestone';
+          catBadge.style.background = 'rgba(59,130,246,0.15)';
+          catBadge.style.color = '#60a5fa';
+          catBadge.style.border = '1px solid rgba(59,130,246,0.3)';
+        }
+
+        document.getElementById('modal-event-title').textContent = info.event.title;
+        
+        let dateStr = props.startDateStr;
+        if (props.startDateStr !== props.endDateStr) {
+          dateStr += ' to ' + props.endDateStr;
+        }
+        document.getElementById('modal-event-dates').textContent = dateStr;
+        document.getElementById('modal-event-dept').textContent = props.department || 'All';
+        
+        const descEl = document.getElementById('modal-event-desc');
+        if (props.description && props.description.trim() !== '' && props.description !== 'None') {
+          descEl.textContent = props.description;
+        } else {
+          descEl.textContent = 'No additional notes provided.';
+        }
+
+        document.getElementById('view-event-modal').style.display = 'flex';
+      },
+      dateClick: function(info) {
+        {% if can_manage %}
+        const addModal = document.getElementById('add-event-modal');
+        if (addModal) {
+          const startInput = addModal.querySelector('input[name="start_date"]');
+          const endInput = addModal.querySelector('input[name="end_date"]');
+          if (startInput) startInput.value = info.dateStr;
+          if (endInput) endInput.value = info.dateStr;
+          addModal.style.display = 'flex';
+        }
+        {% endif %}
+      }
     });
     calendar.render();
   }

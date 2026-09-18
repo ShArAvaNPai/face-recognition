@@ -422,29 +422,87 @@ def recognize(session_id):
 def toggle(session_id):
     """Manual attendance correction (mark/unmark a student)."""
     session = AttendanceSession.query.get_or_404(session_id)
-    if session.session_date != date.today():
-        flash("Attendance can only be modified on the current day.", "warning")
-        return redirect(url_for("attendance.history", session_id=session.id))
+    
+    # Restrict ordinary faculty to current day & working hours; admin/director/hod can edit anytime
+    if current_user.role not in ['admin', 'director', 'hod']:
+        if session.session_date != date.today():
+            flash("Attendance can only be modified on the current day.", "warning")
+            return redirect(url_for("attendance.history", session_id=session.id))
 
-    now_hour = datetime.now().hour
-    if not (9 <= now_hour < 17):
-        flash("Attendance can only be modified during college working hours (09:00 AM – 05:00 PM).", "warning")
-        return redirect(url_for("attendance.history", session_id=session.id))
+        now_hour = datetime.now().hour
+        if not (9 <= now_hour < 17):
+            flash("Attendance can only be modified during college working hours (09:00 AM – 05:00 PM).", "warning")
+            return redirect(url_for("attendance.history", session_id=session.id))
 
     student_id = request.form.get("student_id", type=int)
-    present = request.form.get("present") == "1"
-    student = Student.query.get_or_404(student_id)
-    if present:
-        _mark_present(session_id, student_id, method="manual")
-        flash(f"Marked {student.name} present.", "success")
+    target_status = request.form.get("status", "").lower()
+    present_flag = request.form.get("present")
+
+    if target_status in ["present", "absent", "excused"]:
+        status = target_status
+    elif present_flag == "1":
+        status = "present"
     else:
-        rec = Attendance.query.filter_by(
-            session_id=session_id, student_id=student_id).first()
+        status = "absent"
+
+    student = Student.query.get_or_404(student_id)
+    rec = Attendance.query.filter_by(session_id=session_id, student_id=student_id).first()
+
+    if status == "absent":
         if rec:
             db.session.delete(rec)
             db.session.commit()
-        flash(f"Unmarked {student.name}.", "info")
-    return redirect(url_for("attendance.take", session_id=session_id))
+        flash(f"Marked {student.name} as Absent.", "info")
+    else:
+        if not rec:
+            rec = Attendance(session_id=session_id, student_id=student_id, status=status, method="admin_edit")
+            db.session.add(rec)
+        else:
+            rec.status = status
+            rec.method = "admin_edit"
+        db.session.commit()
+        flash(f"Marked {student.name} as {status.capitalize()}.", "success")
+
+    next_url = request.form.get("next_url")
+    if next_url:
+        return redirect(next_url)
+    return redirect(url_for("attendance.history", session_id=session_id))
+
+
+@attendance_bp.route("/update-record", methods=["POST"])
+@login_required
+@staff_required
+def update_record():
+    """Admin/Staff endpoint to edit any student attendance record instantly across the system."""
+    student_id = request.form.get("student_id", type=int)
+    session_id = request.form.get("session_id", type=int)
+    status = request.form.get("status", "present").lower()
+    next_url = request.form.get("next_url")
+
+    if status not in ["present", "absent", "excused"]:
+        status = "present"
+
+    student = Student.query.get_or_404(student_id)
+    
+    rec = None
+    if session_id:
+        rec = Attendance.query.filter_by(session_id=session_id, student_id=student_id).first()
+
+    if not rec and session_id:
+        rec = Attendance(session_id=session_id, student_id=student_id, status=status, method="admin_edit")
+        db.session.add(rec)
+    elif rec:
+        rec.status = status
+        rec.method = "admin_edit"
+
+    db.session.commit()
+    flash(f"Attendance for {student.name} updated to '{status.capitalize()}'. Reflects in all reports.", "success")
+
+    if next_url:
+        return redirect(next_url)
+    if session_id:
+        return redirect(url_for("attendance.history", session_id=session_id))
+    return redirect(url_for("reports.student_detail", student_id=student_id))
 
 
 @attendance_bp.route("/<int:session_id>/finalize", methods=["POST"])
