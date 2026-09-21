@@ -208,14 +208,54 @@ def update_leave(leave_id):
             message=f"Leave Application {action.upper()}: Your leave application from {leave.start_date} to {leave.end_date} has been {action} by {current_user.username}."
         ))
 
-        # 2. If approved, notify students in their department
-        if action == "approved" and leave.user.department:
-            dept_students = User.query.filter_by(role=ROLE_STUDENT, department=leave.user.department).all()
-            for st in dept_students:
+        # 2. If approved, handle casual leaves, reassignment, and students notification
+        if action == "approved":
+            # Decrement casual leaves
+            leave_days = (leave.end_date - leave.start_date).days + 1
+            if leave.user.casual_leaves_balance is not None:
+                leave.user.casual_leaves_balance -= leave_days
+
+            # Handle reassignment
+            if leave.reassign_to_id:
+                # Notify substitute
                 db.session.add(Notification(
-                    user_id=st.id,
-                    message=f"Faculty Notice: {leave.user.username} is on approved leave from {leave.start_date} to {leave.end_date}. Classes will be taken by substitutes."
+                    user_id=leave.reassign_to_id,
+                    message=f"Class Reassignment Confirmed: You are now assigned to take {leave.user.username}'s classes from {leave.start_date} to {leave.end_date}."
                 ))
+                
+                # Create TimetableClaims
+                from models import TimetableSlot, TimetableClaim
+                from datetime import timedelta
+                
+                applicant_subjects = Subject.query.filter_by(faculty_id=leave.user_id).all()
+                subject_ids = [s.id for s in applicant_subjects]
+                if subject_ids:
+                    slots = TimetableSlot.query.filter(TimetableSlot.subject_id.in_(subject_ids)).all()
+                    curr_date = leave.start_date
+                    while curr_date <= leave.end_date:
+                        day_name = curr_date.strftime("%A")
+                        for slot in slots:
+                            if slot.day_of_week == day_name:
+                                # Avoid duplicate claims
+                                existing_claim = TimetableClaim.query.filter_by(slot_id=slot.id, claim_date=curr_date).first()
+                                if not existing_claim:
+                                    claim = TimetableClaim(
+                                        slot_id=slot.id,
+                                        claim_date=curr_date,
+                                        claimed_by_id=leave.reassign_to_id,
+                                        subject_id=slot.subject_id,
+                                        status="approved"
+                                    )
+                                    db.session.add(claim)
+                        curr_date += timedelta(days=1)
+
+            if leave.user.department:
+                dept_students = User.query.filter_by(role=ROLE_STUDENT, department=leave.user.department).all()
+                for st in dept_students:
+                    db.session.add(Notification(
+                        user_id=st.id,
+                        message=f"Faculty Notice: {leave.user.username} is on approved leave from {leave.start_date} to {leave.end_date}. Classes will be taken by substitutes."
+                    ))
 
         db.session.commit()
         applicant_type = "HOD" if leave.user.role == 'hod' else "Faculty"

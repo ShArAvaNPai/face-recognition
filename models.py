@@ -27,6 +27,8 @@ class User(UserMixin, db.Model):
     role = db.Column(db.String(20), nullable=False, default=ROLE_STUDENT)
     department = db.Column(db.String(80), default="")
     phone = db.Column(db.String(20), default="")
+    casual_leaves_balance = db.Column(db.Integer, default=15)
+    profile_image_path = db.Column(db.String(255), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     # Only set for student accounts.
@@ -85,6 +87,7 @@ class Student(db.Model):
     department = db.Column(db.String(80), default="")
     class_name = db.Column(db.String(80), default="")
     phone = db.Column(db.String(20), default="")
+    profile_image_path = db.Column(db.String(255), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
     face_samples = db.relationship(
@@ -143,6 +146,7 @@ class FaceSample(db.Model):
     student_id = db.Column(db.Integer, db.ForeignKey("students.id"), nullable=True)
     user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
     feature = db.Column(db.LargeBinary, nullable=False)
+    image_path = db.Column(db.String(255), nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
 
@@ -241,7 +245,9 @@ class LeaveApplication(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
-    user = db.relationship("User", backref=db.backref("leaves", lazy=True))
+    user = db.relationship("User", foreign_keys=[user_id], backref=db.backref("leaves", lazy=True))
+    reassign_to_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=True)
+    reassign_to = db.relationship("User", foreign_keys=[reassign_to_id])
     start_date = db.Column(db.Date, nullable=False)
     end_date = db.Column(db.Date, nullable=False)
     reason = db.Column(db.Text, nullable=False)

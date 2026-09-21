@@ -34,6 +34,7 @@ def register(student_id):
                            target_name=student.name,
                            target_identifier=student.roll_number,
                            face_samples=student.face_samples,
+                           profile_image=student.profile_image_path,
                            capture_url=url_for('faces.capture', student_id=student.id),
                            upload_url=url_for('faces.upload', student_id=student.id),
                            engine_ready=engine.available)
@@ -48,6 +49,7 @@ def register_faculty(user_id):
                            target_name=f"{user.username.title()} ({user.role.upper()})",
                            target_identifier=user.username,
                            face_samples=user.face_samples,
+                           profile_image=user.profile_image_path,
                            capture_url=url_for('faces.capture_faculty', user_id=user.id),
                            upload_url=url_for('faces.upload_faculty', user_id=user.id),
                            engine_ready=engine.available)
@@ -62,11 +64,36 @@ def _store_sample(target, image_bgr, is_faculty=False):
     feature = engine.best_single_feature(image_bgr)
     if feature is None:
         return False, "No face detected in the image. Try again with a clear, well-lit face."
+
+    # Save image for this sample
+    import os
+    import cv2
+    import uuid
+    from flask import current_app
+    faces_dir = os.path.join(current_app.instance_path, "faces")
+    os.makedirs(faces_dir, exist_ok=True)
+    filename = f"{'faculty' if is_faculty else 'student'}_{target.id}_{uuid.uuid4().hex[:8]}.jpg"
+    filepath = os.path.join(faces_dir, filename)
+    cv2.imwrite(filepath, image_bgr)
+
+    # Verify against first sample or save first image
+    if len(target.face_samples) > 0:
+        from face_engine import feature_from_bytes
+        first_feature = feature_from_bytes(target.face_samples[0].feature)
+        match_id, score = engine.match(feature, [(target.id, first_feature)])
+        if match_id is None:
+            # Delete the image we just saved since it failed validation
+            if os.path.exists(filepath):
+                os.remove(filepath)
+            return False, "Face does not match the originally registered face."
+    else:
+        target.profile_image_path = filename
+        db.session.add(target)
     
     if is_faculty:
-        sample = FaceSample(user_id=target.id, feature=feature_to_bytes(feature))
+        sample = FaceSample(user_id=target.id, feature=feature_to_bytes(feature), image_path=filename)
     else:
-        sample = FaceSample(student_id=target.id, feature=feature_to_bytes(feature))
+        sample = FaceSample(student_id=target.id, feature=feature_to_bytes(feature), image_path=filename)
         
     db.session.add(sample)
     db.session.commit()
@@ -152,3 +179,11 @@ def delete_sample(sample_id):
     if user_id:
         return redirect(url_for("faces.register_faculty", user_id=user_id))
     return redirect(url_for("faces.register", student_id=student_id))
+
+@faces_bp.route("/image/<filename>")
+@login_required
+def get_face_image(filename):
+    from flask import current_app, send_from_directory
+    import os
+    faces_dir = os.path.join(current_app.instance_path, "faces")
+    return send_from_directory(faces_dir, filename)

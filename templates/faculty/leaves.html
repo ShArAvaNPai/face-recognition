@@ -19,6 +19,7 @@
   <div style="flex:0 0 340px; min-width:280px;">
     <div class="card">
       <h2 style="margin-top:0;">{% if current_user.role == 'hod' %}Apply to Director{% else %}Apply for Leave{% endif %}</h2>
+      <p style="font-size: 0.9rem; margin-bottom: 1rem;">Available Casual Leaves: <strong>{{ current_user.casual_leaves_balance }}</strong></p>
       <form method="post" action="{{ url_for('faculty.leaves') }}">
         <label>Start Date</label>
         <input type="date" name="start_date" required min="{{ today }}">
@@ -28,6 +29,14 @@
         
         <label>Reason</label>
         <textarea name="reason" rows="3" required placeholder="Reason for leave application..."></textarea>
+
+        <label>Substitute Lecturer (Optional)</label>
+        <select name="reassign_to_id">
+          <option value="">-- None --</option>
+          {% for fac in faculty_list %}
+          <option value="{{ fac.id }}">{{ fac.username }} ({{ fac.department or 'General' }})</option>
+          {% endfor %}
+        </select>
         
         <div class="btn-row" style="margin-top:1.5rem;">
           <button type="submit" class="btn" style="width:100%;">
@@ -50,6 +59,7 @@
               <th>Start Date</th>
               <th>End Date</th>
               <th>Reason</th>
+              <th>Substitute</th>
               <th>Status</th>
               <th>Applied At</th>
             </tr>
@@ -60,6 +70,13 @@
               <td><span class="badge badge-muted">{{ leave.start_date }}</span></td>
               <td><span class="badge badge-muted">{{ leave.end_date }}</span></td>
               <td>{{ leave.reason }}</td>
+              <td>
+                {% if leave.reassign_to %}
+                  <span class="badge badge-muted">{{ leave.reassign_to.username }}</span>
+                {% else %}
+                  <span class="muted">-</span>
+                {% endif %}
+              </td>
               <td>
                 {% if leave.status == 'pending' %}
                   <span class="badge" style="background:rgba(245,158,11,0.15); color:#f59e0b; border:1px solid rgba(245,158,11,0.3);">Pending</span>
@@ -72,7 +89,7 @@
               <td><span class="muted">{{ leave.created_at.strftime('%Y-%m-%d') }}</span></td>
             </tr>
             {% else %}
-            <tr><td colspan="5" style="text-align:center;padding:3rem 2rem;" class="muted">No leave applications found.</td></tr>
+            <tr><td colspan="6" style="text-align:center;padding:3rem 2rem;" class="muted">No leave applications found.</td></tr>
             {% endfor %}
           </tbody>
         </table>

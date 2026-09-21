@@ -21,6 +21,7 @@ def leaves():
         start_date_str = request.form.get("start_date")
         end_date_str = request.form.get("end_date")
         reason = request.form.get("reason", "").strip()
+        reassign_to_id = request.form.get("reassign_to_id")
         
         try:
             start_date = date.fromisoformat(start_date_str)
@@ -31,11 +32,17 @@ def leaves():
             elif not reason:
                 flash("Reason is required.", "danger")
             else:
+                leave_days = (end_date - start_date).days + 1
+                if current_user.casual_leaves_balance < leave_days:
+                    flash(f"Insufficient Casual Leaves. You have {current_user.casual_leaves_balance} but applied for {leave_days} days.", "danger")
+                    return redirect(url_for("faculty.leaves"))
+
                 leave = LeaveApplication(
                     user_id=current_user.id,
                     start_date=start_date,
                     end_date=end_date,
-                    reason=reason
+                    reason=reason,
+                    reassign_to_id=reassign_to_id if reassign_to_id else None
                 )
                 db.session.add(leave)
                 
@@ -64,6 +71,14 @@ def leaves():
                             message=f"Leave Application: {current_user.username} ({current_user.role.upper()} · {current_user.department or 'Staff'}) applied for leave from {start_date} to {end_date}."
                         ))
 
+                if reassign_to_id:
+                    reassign_user = User.query.get(reassign_to_id)
+                    if reassign_user:
+                        db.session.add(Notification(
+                            user_id=reassign_user.id,
+                            message=f"Class Reassignment Pending: {current_user.username} has requested you to substitute their classes from {start_date} to {end_date}. This is pending HOD/Director approval."
+                        ))
+
                 db.session.commit()
                 if current_user.role == ROLE_HOD:
                     flash("Leave application submitted to the Director successfully. Notifications sent.", "success")
@@ -75,7 +90,8 @@ def leaves():
             
     # GET: show leave history
     my_leaves = LeaveApplication.query.filter_by(user_id=current_user.id).order_by(LeaveApplication.created_at.desc()).all()
-    return render_template("faculty/leaves.html", leaves=my_leaves, today=date.today().isoformat())
+    faculty_list = User.query.filter(User.role == ROLE_FACULTY, User.id != current_user.id).order_by(User.username).all()
+    return render_template("faculty/leaves.html", leaves=my_leaves, today=date.today().isoformat(), faculty_list=faculty_list)
 
 # --- Daily Face Attendance ---
 

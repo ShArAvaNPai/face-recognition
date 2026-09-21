@@ -6,6 +6,17 @@
     <h1>Register Faces: {{ target_name }}</h1>
     <p class="subtitle" style="margin-bottom:0;">Identifier: {{ target_identifier }} · <span class="badge badge-yes">{{ face_samples|length }} sample(s) stored</span></p>
   </div>
+  {% if profile_image %}
+  <div style="text-align: right;">
+    <p class="muted" style="margin: 0 0 0.5rem 0; font-size: 0.9rem;">Originally Registered Face:</p>
+    <a href="{{ url_for('faces.get_face_image', filename=profile_image) }}" target="_blank" title="View Full Size">
+      <img src="{{ url_for('faces.get_face_image', filename=profile_image) }}" alt="Stored Face" style="height: 100px; border-radius: 8px; border: 2px solid var(--border); transition: transform 0.2s;" onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+    </a>
+    <div style="font-size: 0.8rem; margin-top: 0.25rem;">
+      <a href="{{ url_for('faces.get_face_image', filename=profile_image) }}" target="_blank" style="color: var(--primary);">View Face</a>
+    </div>
+  </div>
+  {% endif %}
 </div>
 
 {% if not engine_ready %}
@@ -57,9 +68,14 @@
           <td><span class="badge badge-muted">#{{ loop.index }}</span></td>
           <td>{{ sample.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
           <td>
-            <form class="inline-form" method="post" action="{{ url_for('faces.delete_sample', sample_id=sample.id) }}">
-              <button class="btn btn-sm btn-danger" type="submit">Delete</button>
-            </form>
+            <div class="inline-form" style="display: flex; gap: 0.5rem; align-items: center;">
+              {% if sample.image_path %}
+              <a class="btn btn-sm" href="{{ url_for('faces.get_face_image', filename=sample.image_path) }}" target="_blank" style="background:var(--primary); color:white;">View</a>
+              {% endif %}
+              <form method="post" action="{{ url_for('faces.delete_sample', sample_id=sample.id) }}" style="margin:0;">
+                <button class="btn btn-sm btn-danger" type="submit">Delete</button>
+              </form>
+            </div>
           </td>
         </tr>
         {% endfor %}
