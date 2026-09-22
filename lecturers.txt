@@ -1,5 +1,4 @@
 Lecturer Accounts:
 ==================
-Username: prof_smith, Password: smithpassword
-Username: prof_jones, Password: jonespassword
-Username: prof_davis, Password: davispassword
+Username: prof_sharma, Password: sharmapassword
+Username: prof_patel, Password: patelpassword

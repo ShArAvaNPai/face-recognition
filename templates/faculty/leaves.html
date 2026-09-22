@@ -34,7 +34,7 @@
         <select name="reassign_to_id">
           <option value="">-- None --</option>
           {% for fac in faculty_list %}
-          <option value="{{ fac.id }}">{{ fac.username }} ({{ fac.department or 'General' }})</option>
+          <option value="{{ fac.id }}">{{ fac.username }} ({{ fac.role|upper }}{% if fac.department %} · {{ fac.department }}{% endif %})</option>
           {% endfor %}
         </select>
         

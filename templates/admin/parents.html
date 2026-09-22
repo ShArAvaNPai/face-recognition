@@ -61,6 +61,7 @@
       <input type="text" name="q" value="{{ search_query }}" placeholder="Search student name or roll number..." style="margin-bottom:0;">
     </div>
     
+    {% if current_user.role in ('admin', 'director') %}
     <div style="width:160px;">
       <select name="dept" style="margin-bottom:0;" onchange="this.form.submit()">
         <option value="">All Departments</option>
@@ -69,6 +70,7 @@
         {% endfor %}
       </select>
     </div>
+    {% endif %}
 
     <div style="width:200px;">
       <select name="att_filter" style="margin-bottom:0;" onchange="this.form.submit()">
@@ -122,7 +124,7 @@
           {% set stats = item.stats %}
           <tr {% if item.is_low %}style="background:rgba(239, 68, 68, 0.04);"{% endif %}>
             <td style="text-align:center;">
-              <input type="checkbox" name="student_ids" value="{{ s.id }}" class="student-select-checkbox" onchange="updateSelectedCount()" style="width:18px; height:18px; accent-color:var(--primary); cursor:pointer;">
+              <input type="checkbox" name="student_ids" value="{{ s.id }}" class="student-select-checkbox" data-phone="{{ item.parent_phone|default('') }}" onchange="updateSelectedCount()" style="width:18px; height:18px; accent-color:var(--primary); cursor:pointer;">
             </td>
             <td>
               <div style="display:flex; align-items:center; gap:0.75rem;">
@@ -176,7 +178,7 @@
             </td>
             <td style="text-align:right;">
               <div style="display:flex; gap:0.4rem; justify-content:flex-end;">
-                <button type="button" class="btn btn-sm btn-secondary" onclick="openEditParentModal('{{ s.id }}', '{{ s.name|replace(\"'\", \"\\\\'\") }}', '{{ s.roll_number|replace(\"'\", \"\\\\'\") }}', '{{ item.parent_phone|default(\"\") }}', '{{ item.parent_email|default(\"\") }}')" title="Edit Contact Info" style="background:rgba(255,255,255,0.05); border:1px solid var(--border);">
+                <button type="button" class="btn btn-sm btn-secondary" onclick="openEditParentModal('{{ s.id }}', '{{ s.name|replace("'", "\\'") }}', '{{ s.roll_number|replace("'", "\\'") }}', '{{ item.parent_phone|default("") }}', '{{ item.parent_email|default("") }}')" title="Edit Contact Info" style="background:rgba(255,255,255,0.05); border:1px solid var(--border);">
                   ✏️ Edit
                 </button>
                 {% if item.parent_email %}
@@ -260,6 +262,19 @@
         <input type="date" name="session_date" value="{{ today_date if today_date else '' }}" style="margin-bottom:0;">
       </div>
 
+      <!-- Dynamic Fields for Custom Templates -->
+      <div id="custom-extra-fields" style="display:none; background:rgba(99,102,241,0.08); border:1px solid rgba(99,102,241,0.2); border-radius:8px; padding:1rem; margin-bottom:1.25rem;">
+        <label>Pre-structured Templates</label>
+        <select id="custom-message-template" onchange="applyCustomTemplate()" style="margin-bottom:0; background:var(--bg-input, #0f172a); color:#fff; border:1px solid var(--border); border-radius:6px; padding:0.6rem; width:100%;">
+          <option value="">-- Select a template (Optional) --</option>
+          <option value="fees">Fees Reminder</option>
+          <option value="exam">Upcoming Exam Notification</option>
+          <option value="holiday">Holiday Notice</option>
+          <option value="discipline">Disciplinary Meeting Request</option>
+          <option value="general">General Performance Update</option>
+        </select>
+      </div>
+
       <!-- Subject & Body Form -->
       <label>Notification Title <span class="muted" style="font-weight:normal; font-size:0.8rem;">(Leave blank for default)</span></label>
       <input type="text" name="subject" id="mail-subject-input" placeholder="e.g. Low Attendance Warning Notice" style="margin-bottom:1rem;">
@@ -269,6 +284,9 @@
 
       <div style="display:flex; justify-content:flex-end; gap:0.75rem;">
         <button type="button" class="btn btn-secondary" onclick="closeSendMailModal()">Cancel</button>
+        <button type="button" class="btn" style="background:rgba(37, 211, 102, 0.2); color:#25D366; border:1px solid rgba(37, 211, 102, 0.4);" onclick="sendViaWhatsApp()">
+          💬 WhatsApp
+        </button>
         <button type="submit" class="btn" style="background:linear-gradient(135deg, var(--primary), var(--secondary));">
           🔔 Send Notification
         </button>
@@ -340,6 +358,51 @@
     document.getElementById('send-mail-modal').style.display = 'none';
   }
 
+  function sendViaWhatsApp() {
+    const scopeLow = document.getElementById('scope-low');
+    const scopeAll = document.getElementById('scope-all');
+    let checkboxes = [];
+    
+    if (scopeLow && scopeLow.checked) {
+        alert("WhatsApp sending requires selecting specific students manually from the table, as it opens individual chat windows.");
+        return;
+    } else if (scopeAll && scopeAll.checked) {
+        alert("WhatsApp sending requires selecting specific students manually from the table.");
+        return;
+    } else {
+        checkboxes = document.querySelectorAll('.student-select-checkbox:checked');
+    }
+
+    const subj = document.getElementById('mail-subject-input').value;
+    const body = document.getElementById('mail-body-input').value;
+    
+    let msg = "";
+    if (subj) msg += "*" + subj + "*\n\n";
+    if (body) msg += body;
+    
+    if (!msg.trim()) {
+        alert("Please enter a message or select a template to send.");
+        return;
+    }
+
+    let sent = 0;
+    checkboxes.forEach(cb => {
+        let phone = cb.getAttribute('data-phone');
+        if (phone && phone.trim() !== '') {
+            phone = phone.replace(/[\s\+\-]/g, '');
+            let url = `https://wa.me/${phone}?text=${encodeURIComponent(msg)}`;
+            window.open(url, '_blank');
+            sent++;
+        }
+    });
+
+    if (sent === 0) {
+        alert("No selected students have a parent phone number on file.");
+    } else {
+        closeSendMailModal();
+    }
+  }
+
   function sendSingleStudentMail(studentId) {
     // Uncheck all, check only this student
     document.querySelectorAll('.student-select-checkbox').forEach(cb => {
@@ -357,6 +420,7 @@
     const btnAbsent = document.getElementById('btn-type-absent');
     const btnCustom = document.getElementById('btn-type-custom');
     const absenceFields = document.getElementById('absence-extra-fields');
+    const customFields = document.getElementById('custom-extra-fields');
     const subjInput = document.getElementById('mail-subject-input');
 
     [btnLow, btnAbsent, btnCustom].forEach(btn => {
@@ -370,19 +434,59 @@
       btnLow.style.setProperty('border-color', '#ef4444', 'important');
       btnLow.style.setProperty('color', '#ef4444', 'important');
       absenceFields.style.display = 'none';
+      if (customFields) customFields.style.display = 'none';
       subjInput.placeholder = 'e.g. Low Attendance Warning Notice';
     } else if (type === 'absence') {
       btnAbsent.style.setProperty('background', 'rgba(249,115,22,0.2)', 'important');
       btnAbsent.style.setProperty('border-color', '#f97316', 'important');
       btnAbsent.style.setProperty('color', '#f97316', 'important');
       absenceFields.style.display = 'block';
+      if (customFields) customFields.style.display = 'none';
       subjInput.placeholder = 'e.g. Absence Alert Notice';
     } else if (type === 'custom') {
       btnCustom.style.setProperty('background', 'rgba(99,102,241,0.2)', 'important');
       btnCustom.style.setProperty('border-color', '#6366f1', 'important');
       btnCustom.style.setProperty('color', '#a5b4fc', 'important');
       absenceFields.style.display = 'none';
+      if (customFields) customFields.style.display = 'block';
       subjInput.placeholder = 'e.g. Important Notice from Administration';
+    }
+  }
+
+  function applyCustomTemplate() {
+    const template = document.getElementById('custom-message-template').value;
+    const subjInput = document.getElementById('mail-subject-input');
+    const bodyInput = document.getElementById('mail-body-input');
+    
+    const templates = {
+      'fees': {
+        subject: 'Fees Reminder Notice',
+        body: 'Dear Parent,\n\nPlease be reminded that the tuition fees for the upcoming period are due soon. Kindly arrange the payment at your earliest convenience to avoid any late fees.\n\nThank you.'
+      },
+      'exam': {
+        subject: 'Upcoming Exam Notification',
+        body: 'Dear Parent,\n\nThis is to notify you about the upcoming examinations. Please ensure your ward is well-prepared. Detailed timetables are available on the student portal.\n\nBest regards.'
+      },
+      'holiday': {
+        subject: 'Holiday Notice',
+        body: 'Dear Parent,\n\nPlease be informed that the college will remain closed on account of upcoming public holidays. Regular classes will resume thereafter.'
+      },
+      'discipline': {
+        subject: 'Disciplinary Meeting Request',
+        body: 'Dear Parent,\n\nWe would like to request a brief meeting regarding your ward\'s recent conduct in the college. Please contact the administration office to schedule an appointment at the earliest.'
+      },
+      'general': {
+        subject: 'General Performance Update',
+        body: 'Dear Parent,\n\nThis is a general update regarding your ward\'s academic performance and participation in college activities. We encourage you to review their progress on the portal.'
+      }
+    };
+
+    if (templates[template]) {
+      subjInput.value = templates[template].subject;
+      bodyInput.value = templates[template].body;
+    } else {
+      subjInput.value = '';
+      bodyInput.value = '';
     }
   }
 

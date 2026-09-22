@@ -50,6 +50,8 @@
           <td>
             {% if s.id in present_ids %}
               <span class="badge badge-yes">Present</span>
+            {% elif s.id in excused_ids %}
+              <span class="badge" style="background:rgba(99,102,241,0.15); color:#a5b4fc; border:1px solid rgba(99,102,241,0.3);">Excused</span>
             {% else %}
               <span class="badge badge-no">Absent</span>
             {% endif %}

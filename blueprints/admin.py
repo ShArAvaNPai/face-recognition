@@ -310,8 +310,13 @@ def manage_parents():
         threshold = 75.0
 
 
+    if current_user.role == ROLE_HOD and current_user.department:
+        dept_filter = current_user.department
+
     query = Student.query
-    if dept_filter:
+    if current_user.role == ROLE_HOD and current_user.department:
+        query = query.filter(Student.department == current_user.department)
+    elif dept_filter:
         query = query.filter(Student.department.ilike(dept_filter))
     if search_query:
         query = query.filter(

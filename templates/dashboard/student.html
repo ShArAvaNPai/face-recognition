@@ -87,13 +87,50 @@
         <input type="date" name="end_date" required style="width:100%;">
       </div>
     </div>
-    <div class="btn-row">
+    <div class="btn-row" style="margin-top:1.25rem;">
       <button type="submit" class="btn">
         <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>
-        Upload Certificate
+        Apply for Leave & Upload Certificate
       </button>
     </div>
   </form>
+
+  {% if certificates %}
+  <div style="margin-top: 2rem; border-top: 1px solid var(--border-color, #334155); padding-top: 1.25rem;">
+    <h4 style="margin:0 0 0.75rem 0; font-size:1rem; color:#fff;">Your Leave Applications</h4>
+    <div class="table-responsive">
+      <table>
+        <thead>
+          <tr>
+            <th>Applied On</th>
+            <th>Leave Window</th>
+            <th>Reason</th>
+            <th>Attendance Log Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for c in certificates %}
+          <tr>
+            <td><span class="badge badge-muted">{{ c.upload_date.strftime('%Y-%m-%d') if c.upload_date else '—' }}</span></td>
+            <td style="font-weight:600; color:#fff;">{{ c.start_date }} <span class="muted">to</span> {{ c.end_date }}</td>
+            <td>{{ c.reason or 'Medical Leave' }}</td>
+            <td>
+              <span class="badge" style="background:rgba(99,102,241,0.15); color:#a5b4fc; border:1px solid rgba(99,102,241,0.3);">
+                Excused
+              </span>
+              {% if c.status == 'approved' %}
+                <span class="badge badge-yes" style="margin-left:0.35rem;">HOD Approved</span>
+              {% else %}
+                <span class="badge badge-muted" style="margin-left:0.35rem;">Submitted</span>
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+  {% endif %}
 </div>
 {% else %}
 <div class="card" style="text-align:center; padding: 3rem 1.5rem;">

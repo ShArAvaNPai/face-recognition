@@ -317,9 +317,19 @@ def timetable_view():
     year = year_param if year_param in [1, 2] else 1
 
     if current_user.role == 'hod' and current_user.department:
-        department_faculty = User.query.filter(User.role.in_(['faculty', 'hod']), User.department == current_user.department).order_by(User.username).all()
+        department_faculty = User.query.filter(
+            db.or_(
+                db.and_(User.role.in_(['faculty', 'hod']), User.department == current_user.department),
+                User.role == 'director'
+            )
+        ).order_by(User.username).all()
     else:
-        department_faculty = User.query.filter(User.role.in_(['faculty', 'hod']), (User.department == dept) | (User.department == '')).order_by(User.username).all()
+        department_faculty = User.query.filter(
+            db.or_(
+                db.and_(User.role.in_(['faculty', 'hod']), (User.department == dept) | (User.department == '')),
+                User.role == 'director'
+            )
+        ).order_by(User.username).all()
 
     for time_str in slot_times:
         row = {"time": time_str, "days": {}}
@@ -689,12 +699,17 @@ def _student_dashboard():
             row["days"][day] = slot
         timetable_grid.append(row)
 
+    certificates = []
+    if student:
+        certificates = MedicalCertificate.query.filter_by(student_id=student.id).order_by(MedicalCertificate.upload_date.desc()).all()
+
     return render_template("dashboard/student.html", student=student,
                            present=present, total=total, percentage=pct,
                            subject_stats=subject_stats,
                            timetable_grid=timetable_grid,
                            timetable_days=DAYS,
-                           student_year=student_year)
+                           student_year=student_year,
+                           certificates=certificates)
 
 
 @dashboard_bp.route("/upload-certificate", methods=["POST"])
@@ -739,8 +754,37 @@ def upload_certificate():
         )
         from extensions import db
         db.session.add(cert)
+        db.session.flush()
+        
+        # Mark all sessions in the leave range as excused in the attendance log
+        st = current_user.student
+        sessions_in_range = AttendanceSession.query.filter(
+            AttendanceSession.session_date >= start_date,
+            AttendanceSession.session_date <= end_date
+        ).all()
+
+        excused_count = 0
+        for sess in sessions_in_range:
+            is_relevant = True
+            if sess.class_name and st.class_name and sess.class_name != st.class_name and sess.class_name != st.department:
+                is_relevant = False
+            if is_relevant:
+                rec = Attendance.query.filter_by(session_id=sess.id, student_id=st.id).first()
+                if rec:
+                    if rec.status != "excused":
+                        rec.status = "excused"
+                        rec.method = "medical"
+                        excused_count += 1
+                else:
+                    rec = Attendance(session_id=sess.id, student_id=st.id, status="excused", method="medical")
+                    db.session.add(rec)
+                    excused_count += 1
+
         db.session.commit()
         
-        flash("Medical certificate uploaded successfully.", "success")
+        if excused_count > 0:
+            flash(f"Leave application submitted. {excused_count} class session(s) from {start_date} to {end_date} marked as Excused in the attendance log.", "success")
+        else:
+            flash(f"Leave application submitted ({start_date} to {end_date}). Any scheduled class attendance for this period will be marked as Excused.", "success")
         
     return redirect(url_for("dashboard.index"))

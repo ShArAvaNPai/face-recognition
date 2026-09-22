@@ -161,7 +161,7 @@ def leaves_index():
         # HOD only reviews faculty in their department, NOT their own leave requests
         if current_user.department:
             leaves = (LeaveApplication.query
-                      .join(User)
+                      .join(User, LeaveApplication.user_id == User.id)
                       .filter(User.department == current_user.department,
                               User.role == ROLE_FACULTY,
                               User.id != current_user.id)
@@ -169,14 +169,14 @@ def leaves_index():
                       .all())
         else:
             leaves = (LeaveApplication.query
-                      .join(User)
+                      .join(User, LeaveApplication.user_id == User.id)
                       .filter(User.role == ROLE_FACULTY,
                               User.id != current_user.id)
                       .order_by(LeaveApplication.created_at.desc())
                       .all())
     else:
         # Director and Admin review all leaves (including HOD leaves submitted to Director)
-        leaves = LeaveApplication.query.join(User).order_by(LeaveApplication.created_at.desc()).all()
+        leaves = LeaveApplication.query.join(User, LeaveApplication.user_id == User.id).order_by(LeaveApplication.created_at.desc()).all()
     return render_template("director/leaves.html", leaves=leaves)
 
 @director_bp.route("/leaves/<int:leave_id>/update", methods=["POST"])

@@ -47,7 +47,7 @@ def leaves():
                 db.session.add(leave)
                 
                 # 1. Notification to the applicant
-                from models import Notification, ROLE_DIRECTOR
+                from models import Notification
                 db.session.add(Notification(
                     user_id=current_user.id,
                     message=f"Leave Application Submitted: Your leave request from {start_date} to {end_date} has been submitted (Status: Pending)."
@@ -90,8 +90,24 @@ def leaves():
             
     # GET: show leave history
     my_leaves = LeaveApplication.query.filter_by(user_id=current_user.id).order_by(LeaveApplication.created_at.desc()).all()
-    faculty_list = User.query.filter(User.role == ROLE_FACULTY, User.id != current_user.id).order_by(User.username).all()
-    return render_template("faculty/leaves.html", leaves=my_leaves, today=date.today().isoformat(), faculty_list=faculty_list)
+    
+    # Substitute should be of the same department and include Director and HOD
+    dept_filter = current_user.department
+    if dept_filter:
+        substitute_candidates = User.query.filter(
+            User.id != current_user.id,
+            db.or_(
+                db.and_(User.role.in_([ROLE_FACULTY, ROLE_HOD]), User.department == dept_filter),
+                User.role == ROLE_DIRECTOR
+            )
+        ).order_by(User.username).all()
+    else:
+        substitute_candidates = User.query.filter(
+            User.id != current_user.id,
+            User.role.in_([ROLE_FACULTY, ROLE_HOD, ROLE_DIRECTOR])
+        ).order_by(User.username).all()
+
+    return render_template("faculty/leaves.html", leaves=my_leaves, today=date.today().isoformat(), faculty_list=substitute_candidates)
 
 # --- Daily Face Attendance ---
 

@@ -16,7 +16,7 @@ from sqlalchemy.exc import IntegrityError
 from extensions import db
 from models import (User, Subject, AttendanceSession, Attendance, Student,
                     ROLE_ADMIN, ROLE_FACULTY, ROLE_DIRECTOR, ROLE_HOD,
-                    TimetableSlot, TimetableClaim, Notification)
+                    TimetableSlot, TimetableClaim, Notification, MedicalCertificate)
 from face_engine import engine, feature_from_bytes
 from blueprints.decorators import staff_required
 from blueprints.imaging import decode_data_url
@@ -224,6 +224,24 @@ def new_session():
             session_date=sd,
         )
         db.session.add(s)
+        db.session.flush()
+
+        # Auto-mark students with leave/medical certificates covering this session date as excused
+        active_leaves = MedicalCertificate.query.filter(
+            MedicalCertificate.start_date <= sd,
+            MedicalCertificate.end_date >= sd
+        ).all()
+        for cert in active_leaves:
+            st = cert.student
+            if not st:
+                continue
+            is_relevant = True
+            if s.class_name and st.class_name and s.class_name != st.class_name and s.class_name != st.department:
+                is_relevant = False
+            if is_relevant:
+                rec = Attendance(session_id=s.id, student_id=st.id, status="excused", method="medical")
+                db.session.add(rec)
+
         db.session.commit()
         flash("Attendance session started.", "success")
         return redirect(url_for("attendance.take", session_id=s.id))
@@ -318,6 +336,7 @@ def take(session_id):
         db.session.commit()
 
     present_ids = {a.student_id for a in session.records if a.status == "present"}
+    excused_ids = {a.student_id for a in session.records if a.status == "excused"}
     
     query = Student.query
     if session.class_name:
@@ -330,6 +349,7 @@ def take(session_id):
 
     return render_template("attendance/take.html", session=session,
                            students=students, present_ids=present_ids,
+                           excused_ids=excused_ids,
                            available_classes=available_classes,
                            engine_ready=engine.available)
 
@@ -528,8 +548,10 @@ def finalize_session(session_id):
     notified_count = 0
     for s in students:
         if s.id not in present_ids:
-            # Student is absent
             existing = Attendance.query.filter_by(session_id=session_id, student_id=s.id).first()
+            if existing and existing.status == "excused":
+                continue  # Student is on excused leave, do not mark absent or notify parents
+
             if not existing:
                 rec = Attendance(session_id=session_id, student_id=s.id, status="absent", method="manual")
                 db.session.add(rec)
@@ -554,6 +576,7 @@ def finalize_session(session_id):
 def history(session_id):
     session = AttendanceSession.query.get_or_404(session_id)
     present_ids = {a.student_id for a in session.records if a.status == "present"}
+    excused_ids = {a.student_id for a in session.records if a.status == "excused"}
     query = Student.query
     if session.class_name:
         query = query.filter(or_(Student.class_name == session.class_name, Student.department == session.class_name))
@@ -562,4 +585,5 @@ def history(session_id):
     students = query.order_by(Student.roll_number).all()
     return render_template("attendance/history.html", session=session,
                            students=students, present_ids=present_ids,
+                           excused_ids=excused_ids,
                            today_date=date.today())

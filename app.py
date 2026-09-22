@@ -10,7 +10,7 @@ Core modules implemented:
      + role-aware Dashboard.
 
 Run:
-    python download_models.py     # once, to fetch the face models
+    python download_models.py     # once, to fetch the face models 
     python app.py
 """
 from flask import Flask, render_template, send_from_directory

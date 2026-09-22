@@ -9,7 +9,7 @@ from blueprints.decorators import staff_required
 students_bp = Blueprint("students", __name__, url_prefix="/students")
 
 
-from models import Student, Mark, Fee, ROLE_HOD, ROLE_STUDENT
+from models import Student, Mark, Fee, ROLE_HOD, ROLE_STUDENT, ROLE_FACULTY
 
 @students_bp.route("/")
 @login_required
@@ -19,11 +19,11 @@ def list_students():
     dept_filter = request.args.get("dept", "").strip()
     year_filter = request.args.get("year", "").strip() or request.args.get("class_name", "").strip()
 
-    if current_user.role == ROLE_HOD and current_user.department:
+    if current_user.role in (ROLE_HOD, ROLE_FACULTY) and current_user.department:
         dept_filter = current_user.department
 
     query = Student.query
-    if current_user.role == ROLE_HOD and current_user.department:
+    if current_user.role in (ROLE_HOD, ROLE_FACULTY) and current_user.department:
         query = query.filter(Student.department == current_user.department)
     elif dept_filter:
         query = query.filter(Student.department == dept_filter)
@@ -46,7 +46,7 @@ def list_students():
 
     students = query.order_by(Student.roll_number).all()
 
-    if current_user.role == ROLE_HOD and current_user.department:
+    if current_user.role in (ROLE_HOD, ROLE_FACULTY) and current_user.department:
         all_depts = [current_user.department]
     else:
         all_depts = sorted(set(s.department for s in Student.query.all() if s.department))
