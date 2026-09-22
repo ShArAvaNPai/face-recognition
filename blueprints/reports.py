@@ -17,30 +17,29 @@ def _student_stats(subject_id=None):
 
     If subject_id is given, restrict to that subject's sessions.
     """
-    session_query = AttendanceSession.query
+    global_total = 0
     if subject_id:
-        session_query = session_query.filter_by(subject_id=subject_id)
-    total_sessions = session_query.count()
-    session_ids = [s.id for s in session_query.all()]
+        global_total = AttendanceSession.query.filter_by(subject_id=subject_id).count()
+    else:
+        global_total = AttendanceSession.query.count()
 
     rows = []
     for student in Student.query.order_by(Student.roll_number).all():
-        if session_ids:
-            present = Attendance.query.filter(
-                Attendance.student_id == student.id,
-                Attendance.session_id.in_(session_ids),
-                Attendance.status.in_(["present", "excused"]),
-            ).count()
-        else:
-            present = 0
-        pct = round(100.0 * present / total_sessions, 1) if total_sessions else 0.0
+        records = student.attendance_records
+        if subject_id:
+            records = [r for r in records if r.session.subject_id == subject_id]
+        
+        total = len(records)
+        present = sum(1 for r in records if r.status in ("present", "excused"))
+        pct = round(100.0 * present / total, 1) if total > 0 else 0.0
+        
         rows.append({
             "student": student,
             "present": present,
-            "total": total_sessions,
+            "total": total,
             "percentage": pct,
         })
-    return total_sessions, rows
+    return global_total, rows
 
 
 @reports_bp.route("/")

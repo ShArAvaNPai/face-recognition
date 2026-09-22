@@ -176,6 +176,9 @@
             </td>
             <td style="text-align:right;">
               <div style="display:flex; gap:0.4rem; justify-content:flex-end;">
+                <button type="button" class="btn btn-sm btn-secondary" onclick="openEditParentModal('{{ s.id }}', '{{ s.name|replace(\"'\", \"\\\\'\") }}', '{{ s.roll_number|replace(\"'\", \"\\\\'\") }}', '{{ item.parent_phone|default(\"\") }}', '{{ item.parent_email|default(\"\") }}')" title="Edit Contact Info" style="background:rgba(255,255,255,0.05); border:1px solid var(--border);">
+                  ✏️ Edit
+                </button>
                 {% if item.parent_email %}
                   <button type="button" class="btn btn-sm" style="background:rgba(99,102,241,0.2) !important; color:#a5b4fc !important; border:1px solid rgba(99,102,241,0.4) !important;" onclick="sendSingleStudentMail('{{ s.id }}')" title="Send notification to this parent">
                     🔔 Notify
